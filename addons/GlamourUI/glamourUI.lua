@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.0.1';
+addon.version = '0.0.2';
 
 local imgui = require('imgui')
 
@@ -49,56 +49,30 @@ settings.register('settings', 'settings_update', function(s)
 end);
 
 local party = AshitaCore:GetMemoryManager():GetParty();
-local p1 = T{
-    Name = '',
-    HP = 0,
-    HPP = 0,
-    MP = 0,
-    MPP = 0,
-    TP = 0
-}
-local p2 = T{
-    Name = '',
-    HP = 0,
-    HPP = 0,
-    MP = 0,
-    MPP = 0,
-    TP = 0
-}
-local p3 =T{
-    Name = '',
-    HP = 0,
-    HPP = 0,
-    MP = 0,
-    MPP = 0,
-    TP = 0
-}
-local p4 = T{
-    Name = '',
-    HP = 0,
-    HPP = 0,
-    MP = 0,
-    MPP = 0,
-    TP = 0
-}
-local p5 = T{
-    Name = '',
-    HP = 0,
-    HPP = 0,
-    MP = 0,
-    MPP = 0,
-    TP = 0
-}
-local p6 = T{
-    Name = '',
-    HP = 0,
-    HPP = 0,
-    MP = 0,
-    MPP = 0,
-    TP = 0
-}
 
+glamourUI.getName = function(index)
+    return AshitaCore:GetMemoryManager():GetParty():GetMemberName(index);
+end
 
+glamourUI.getHP = function(index)
+    return AshitaCore:GetMemoryManager():GetParty():GetMemberHP(index);
+end
+
+glamourUI.getHPP = function(index)
+    return AshitaCore:GetMemoryManager():GetParty():GetMemberHPPercent(index);
+end
+
+glamourUI.getMP = function(index)
+    return AshitaCore:GetMemoryManager():GetParty():GetMemberMP(index);
+end
+
+glamourUI.getMPP = function(index)
+    return AshitaCore:GetMemoryManager():GetParty():GetMemberMPPercent(index);
+end
+
+glamourUI.getTP = function(index)
+    return AshitaCore:GetMemoryManager():GetParty():GetMemberTP(index);
+end
 
 function render_test_panel()
     if (glamourUI.settings.partylist.enabled) then
@@ -115,194 +89,141 @@ function render_test_panel()
                     partyCount = partyCount +1;
                 end
             end
-
-            p1.Name = party:GetMemberName(0);
-            p1.HP = party:GetMemberHP(0);
-            p1.HPP = party:GetMemberHPPercent(0);
-            p1.MP = party:GetMemberMP(0);
-            p1.MPP = party:GetMemberMPPercent(0);
-            p1.TP = party:GetMemberTP(0);
-            
-            
-            p2.Name = party:GetMemberName(1);
-            p2.HP = party:GetMemberHP(1);
-            p2.HPP = party:GetMemberHPPercent(1);
-            p2.MP = party:GetMemberMP(1);
-            p2.MPP = party:GetMemberMPPercent(1);
-            p2.TP = party:GetMemberTP(1);
-
-
-            p3.Name = party:GetMemberName(2);
-            p3.HP = party:GetMemberHP(2);
-            p3.HPP = party:GetMemberHPPercent(2);
-            p3.MP = party:GetMemberMP(2);
-            p3.MPP = party:GetMemberMPPercent(2);
-            p3.TP = party:GetMemberTP(2);
-
-
-            p4.Name = party:GetMemberName(3);
-            p4.HP = party:GetMemberHP(3);
-            p4.HPP = party:GetMemberHPPercent(3);
-            p4.MP = party:GetMemberMP(3);
-            p4.MPP = party:GetMemberMPPercent(3);
-            p4.TP = party:GetMemberTP(3);
-
-            
-            p5.Name = party:GetMemberName(4);
-            p5.HP = party:GetMemberHP(4);
-            p5.HPP = party:GetMemberHPPercent(4);
-            p5.MP = party:GetMemberMP(4);
-            p5.MPP = party:GetMemberMPPercent(4);
-            p5.TP = party:GetMemberTP(4);
-
-
-            p6.Name = party:GetMemberName(5);
-            p6.HP = party:GetMemberHP(5);
-            p6.HPP = party:GetMemberHPPercent(5);
-            p6.MP = party:GetMemberMP(5);
-            p6.MPP = party:GetMemberMPPercent(5);
-            p6.TP = party:GetMemberTP(5);
-            
             
             -- PLayer Rendering
-            imgui.Text(tostring(p1.Name));
+            imgui.Text(tostring(glamourUI.getName(0)));
             imgui.SetCursorPosX(25);
-            imgui.ProgressBar(p1.HPP / 100, { 200, 16 });
+            imgui.ProgressBar(glamourUI.getHPP(0) / 100, { 200, 16 });
             imgui.SameLine();
             imgui.SetCursorPosX(27);
-            imgui.Text(tostring(p1.HP));
+            imgui.Text(tostring(glamourUI.getHP(0)));
             imgui.SameLine();
             imgui.SetCursorPosX(275);
             imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.49, 1.0, 1.0 });
-            imgui.ProgressBar(p1.MPP / 100, { 200, 16});
+            imgui.ProgressBar(glamourUI.getMPP(0) / 100, { 200, 16});
             imgui.SameLine();
             imgui.SetCursorPosX(277);
-            imgui.Text(tostring(p1.MP));
+            imgui.Text(tostring(glamourUI.getMP(0)));
             imgui.SameLine();
             imgui.SetCursorPosX(525);
-            imgui.ProgressBar(p1.TP / 1000, {200, 16});
+            imgui.ProgressBar(glamourUI.getTP(0) / 1000, {200, 16});
             imgui.SameLine();
             imgui.SetCursorPosX(527);
-            imgui.Text(tostring(p1.TP));
+            imgui.Text(tostring(glamourUI.getTP(0)));
             
             --Party Member 1 Rendering
             if(partyCount >= 2) then
-                imgui.Text('');
-                imgui.Text(tostring(p2.Name));
+                imgui.Text(tostring(glamourUI.getName(1)));
                 imgui.SetCursorPosX(25);
-                imgui.ProgressBar(p2.HPP / 100, { 200, 16 });
+                imgui.ProgressBar(glamourUI.getHPP(1) / 100, { 200, 16 });
                 imgui.SameLine();
                 imgui.SetCursorPosX(27);
-                imgui.Text(tostring(p2.HP));
+                imgui.Text(tostring(glamourUI.getHP(1)));
                 imgui.SameLine();
                 imgui.SetCursorPosX(275);
                 imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.49, 1.0, 1.0 });
-                imgui.ProgressBar(p2.MPP / 100, { 200, 16});
+                imgui.ProgressBar(glamourUI.getMPP(1) / 100, { 200, 16});
                 imgui.SameLine();
                 imgui.SetCursorPosX(277);
-                imgui.Text(tostring(p2.MP));
+                imgui.Text(tostring(glamourUI.getMP(1)));
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
-                imgui.ProgressBar(p2.TP / 1000, {200, 16});
+                imgui.ProgressBar(glamourUI.getTP(1) / 1000, {200, 16});
                 imgui.SameLine();
                 imgui.SetCursorPosX(527);
-                imgui.Text(tostring(p2.TP));
+                imgui.Text(tostring(glamourUI.getTP(1)));
             end
             
             --Party Member 2 Rendering
             if(partyCount >= 3) then
-                imgui.Text('');
-                imgui.Text(tostring(p3.Name));
+                imgui.Text(tostring(glamourUI.getName(2)));
                 imgui.SetCursorPosX(25);
-                imgui.ProgressBar(p3.HPP / 100, { 200, 16 });
+                imgui.ProgressBar(glamourUI.getHPP(2) / 100, { 200, 16 });
                 imgui.SameLine();
                 imgui.SetCursorPosX(27);
-                imgui.Text(tostring(p3.HP));
+                imgui.Text(tostring(glamourUI.getHP(2)));
                 imgui.SameLine();
                 imgui.SetCursorPosX(275);
                 imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.49, 1.0, 1.0 });
-                imgui.ProgressBar(p3.MPP / 100, { 200, 16});
+                imgui.ProgressBar(glamourUI.getMPP(2) / 100, { 200, 16});
                 imgui.SameLine();
                 imgui.SetCursorPosX(277);
-                imgui.Text(tostring(p3.MP));
+                imgui.Text(tostring(glamourUI.getMP(2)));
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
-                imgui.ProgressBar(p3.TP / 1000, {200, 16});
+                imgui.ProgressBar(glamourUI.getTP(2) / 1000, {200, 16});
                 imgui.SameLine();
                 imgui.SetCursorPosX(527);
-                imgui.Text(tostring(p3.TP));
+                imgui.Text(tostring(glamourUI.getTP(2)));
             end
             
             --Party Member 3 Rendering
             if(partyCount >= 4) then
-                imgui.Text('');
-                imgui.Text(tostring(p4.Name));
+                imgui.Text(tostring(glamourUI.getName(3)));
                 imgui.SetCursorPosX(25);
-                imgui.ProgressBar(p4.HPP / 100, { 200, 16 });
+                imgui.ProgressBar(glamourUI.getHPP(3) / 100, { 200, 16 });
                 imgui.SameLine();
                 imgui.SetCursorPosX(27);
-                imgui.Text(tostring(p4.HP));
+                imgui.Text(tostring(glamourUI.getHP(3)));
                 imgui.SameLine();
                 imgui.SetCursorPosX(275);
                 imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.49, 1.0, 1.0 });
-                imgui.ProgressBar(p4.MPP / 100, { 200, 16});
+                imgui.ProgressBar(glamourUI.getMPP(3) / 100, { 200, 16});
                 imgui.SameLine();
                 imgui.SetCursorPosX(277);
-                imgui.Text(tostring(p4.MP));
+                imgui.Text(tostring(glamourUI.getMP(3)));
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
-                imgui.ProgressBar(p4.TP / 1000, {200, 16});
+                imgui.ProgressBar(glamourUI.getTP(3) / 1000, {200, 16});
                 imgui.SameLine();
                 imgui.SetCursorPosX(527);
-                imgui.Text(tostring(p4.TP));
+                imgui.Text(tostring(glamourUI.getTP(3)));
             end
             
             --Party Member 4 Rendering
             if(partyCount >= 5) then
-                imgui.Text('');
-                imgui.Text(tostring(p5.Name));
+                imgui.Text(tostring(glamourUI.getName(4)));
                 imgui.SetCursorPosX(25);
-                imgui.ProgressBar(p5.HPP / 100, { 200, 16 });
+                imgui.ProgressBar(glamourUI.getHPP(4) / 100, { 200, 16 });
                 imgui.SameLine();
                 imgui.SetCursorPosX(27);
-                imgui.Text(tostring(p5.HP));
+                imgui.Text(tostring(glamourUI.getHP(4)));
                 imgui.SameLine();
                 imgui.SetCursorPosX(275);
                 imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.49, 1.0, 1.0 });
-                imgui.ProgressBar(p5.MPP / 100, { 200, 16});
+                imgui.ProgressBar(glamourUI.getMPP(4) / 100, { 200, 16});
                 imgui.SameLine();
                 imgui.SetCursorPosX(277);
-                imgui.Text(tostring(p5.MP));
+                imgui.Text(tostring(glamourUI.getMP(4)));
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
-                imgui.ProgressBar(p5.TP / 1000, {200, 16});
+                imgui.ProgressBar(glamourUI.getTP(4) / 1000, {200, 16});
                 imgui.SameLine();
                 imgui.SetCursorPosX(527);
-                imgui.Text(tostring(p5.TP));
+                imgui.Text(tostring(glamourUI.getTP(4)));
             end
             
             --Party Member 5 Rendering
             if(partyCount >= 6) then
-                imgui.Text('');
-                imgui.Text(tostring(p6.Name));
+                imgui.Text(tostring(glamourUI.getName(5)));
                 imgui.SetCursorPosX(25);
-                imgui.ProgressBar(p6.HPP / 100, { 200, 16 });
+                imgui.ProgressBar(glamourUI.getHPP(5) / 100, { 200, 16 });
                 imgui.SameLine();
-                imgui.SetCursorPosX(30);
-                imgui.Text(tostring(p6.HP));
+                imgui.SetCursorPosX(27);
+                imgui.Text(tostring(glamourUI.getHP(5)));
                 imgui.SameLine();
                 imgui.SetCursorPosX(275);
                 imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.49, 1.0, 1.0 });
-                imgui.ProgressBar(p6.MPP / 100, { 200, 16});
+                imgui.ProgressBar(glamourUI.getMPP(5) / 100, { 200, 16});
                 imgui.SameLine();
-                imgui.SetCursorPosX(280);
-                imgui.Text(tostring(p6.MP));
+                imgui.SetCursorPosX(277);
+                imgui.Text(tostring(glamourUI.getMP(5)));
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
-                imgui.ProgressBar(p6.TP / 1000, {200, 16});
+                imgui.ProgressBar(glamourUI.getTP(5) / 1000, {200, 16});
                 imgui.SameLine();
-                imgui.SetCursorPosX(530);
-                imgui.Text(tostring(p6.TP));
+                imgui.SetCursorPosX(527);
+                imgui.Text(tostring(glamourUI.getTP(5)));
             end
 
         end
