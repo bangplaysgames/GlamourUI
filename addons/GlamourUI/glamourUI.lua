@@ -109,13 +109,14 @@ function render_test_panel()
             imgui.Text(tostring(glamourUI.getMP(0)));
             imgui.SameLine();
             imgui.SetCursorPosX(525);
-            imgui.ProgressBar(glamourUI.getTP(0) / 1000, {200, 16});
+            imgui.ProgressBar(glamourUI.getTP(0) / 1000, {200, 16}, '');
             imgui.SameLine();
             imgui.SetCursorPosX(527);
             imgui.Text(tostring(glamourUI.getTP(0)));
             
             --Party Member 1 Rendering
             if(partyCount >= 2) then
+                imgui.Text('');
                 imgui.Text(tostring(glamourUI.getName(1)));
                 imgui.SetCursorPosX(25);
                 imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
@@ -134,7 +135,7 @@ function render_test_panel()
                 imgui.Text(tostring(glamourUI.getMP(1)));
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
-                imgui.ProgressBar(glamourUI.getTP(1) / 1000, {200, 16});
+                imgui.ProgressBar(glamourUI.getTP(1) / 1000, {200, 16}, '');
                 imgui.SameLine();
                 imgui.SetCursorPosX(527);
                 imgui.Text(tostring(glamourUI.getTP(1)));
@@ -142,6 +143,7 @@ function render_test_panel()
             
             --Party Member 2 Rendering
             if(partyCount >= 3) then
+                imgui.Text('');
                 imgui.Text(tostring(glamourUI.getName(2)));
                 imgui.SetCursorPosX(25);
                 imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
@@ -160,7 +162,7 @@ function render_test_panel()
                 imgui.Text(tostring(glamourUI.getMP(2)));
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
-                imgui.ProgressBar(glamourUI.getTP(2) / 1000, {200, 16});
+                imgui.ProgressBar(glamourUI.getTP(2) / 1000, {200, 16}, '');
                 imgui.SameLine();
                 imgui.SetCursorPosX(527);
                 imgui.Text(tostring(glamourUI.getTP(2)));
@@ -168,6 +170,7 @@ function render_test_panel()
             
             --Party Member 3 Rendering
             if(partyCount >= 4) then
+                imgui.Text('');
                 imgui.Text(tostring(glamourUI.getName(3)));
                 imgui.SetCursorPosX(25);
                 imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
@@ -186,7 +189,7 @@ function render_test_panel()
                 imgui.Text(tostring(glamourUI.getMP(3)));
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
-                imgui.ProgressBar(glamourUI.getTP(3) / 1000, {200, 16});
+                imgui.ProgressBar(glamourUI.getTP(3) / 1000, {200, 16}, '');
                 imgui.SameLine();
                 imgui.SetCursorPosX(527);
                 imgui.Text(tostring(glamourUI.getTP(3)));
@@ -194,6 +197,7 @@ function render_test_panel()
             
             --Party Member 4 Rendering
             if(partyCount >= 5) then
+                imgui.Text('');
                 imgui.Text(tostring(glamourUI.getName(4)));
                 imgui.SetCursorPosX(25);
                 imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
@@ -212,7 +216,7 @@ function render_test_panel()
                 imgui.Text(tostring(glamourUI.getMP(4)));
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
-                imgui.ProgressBar(glamourUI.getTP(4) / 1000, {200, 16});
+                imgui.ProgressBar(glamourUI.getTP(4) / 1000, {200, 16}, '');
                 imgui.SameLine();
                 imgui.SetCursorPosX(527);
                 imgui.Text(tostring(glamourUI.getTP(4)));
@@ -220,6 +224,7 @@ function render_test_panel()
             
             --Party Member 5 Rendering
             if(partyCount >= 6) then
+                imgui.Text('');
                 imgui.Text(tostring(glamourUI.getName(5)));
                 imgui.SetCursorPosX(25);
                 imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
@@ -238,7 +243,7 @@ function render_test_panel()
                 imgui.Text(tostring(glamourUI.getMP(5)));
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
-                imgui.ProgressBar(glamourUI.getTP(5) / 1000, {200, 16});
+                imgui.ProgressBar(glamourUI.getTP(5) / 1000, {200, 16}, '');
                 imgui.SameLine();
                 imgui.SetCursorPosX(527);
                 imgui.Text(tostring(glamourUI.getTP(5)));
