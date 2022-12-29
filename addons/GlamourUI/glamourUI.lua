@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.0.2';
+addon.version = '0.0.3';
 
 local imgui = require('imgui')
 
@@ -110,6 +110,20 @@ function render_test_panel()
             imgui.SameLine();
             imgui.SetCursorPosX(525);
             imgui.ProgressBar(glamourUI.getTP(0) / 1000, {200, 16}, '');
+            if(glamourUI.getTP(0) > 1000) then
+                imgui.SameLine();
+                imgui.SetCursorPosX(525);
+                imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0});
+                imgui.ProgressBar((glamourUI.getTP(0) -1000) /1000, {200, 10}, '');
+                imgui.PopStyleColor(1);
+            end
+            if(glamourUI.getTP(0) > 2000) then
+                imgui.SameLine();
+                imgui.SetCursorPosX(525);
+                imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0});
+                imgui.ProgressBar((glamourUI.getTP(0) -2000) /1000, {200, 4}, '');
+                imgui.PopStyleColor(1);
+            end
             imgui.SameLine();
             imgui.SetCursorPosX(527);
             imgui.Text(tostring(glamourUI.getTP(0)));
@@ -136,6 +150,20 @@ function render_test_panel()
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
                 imgui.ProgressBar(glamourUI.getTP(1) / 1000, {200, 16}, '');
+                if(glamourUI.getTP(1) > 1000) then
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(525);
+                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0});
+                    imgui.ProgressBar((glamourUI.getTP(1) -1000) /1000, {200, 10}, '');
+                    imgui.PopStyleColor(1);
+                end
+                if(glamourUI.getTP(1) > 2000) then
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(525);
+                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0});
+                    imgui.ProgressBar((glamourUI.getTP(1) -2000) /1000, {200, 4}, '');
+                    imgui.PopStyleColor(1);
+                end
                 imgui.SameLine();
                 imgui.SetCursorPosX(527);
                 imgui.Text(tostring(glamourUI.getTP(1)));
@@ -163,6 +191,20 @@ function render_test_panel()
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
                 imgui.ProgressBar(glamourUI.getTP(2) / 1000, {200, 16}, '');
+                if(glamourUI.getTP(2) > 1000) then
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(525);
+                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0});
+                    imgui.ProgressBar((glamourUI.getTP(2) -1000) /1000, {200, 10}, '');
+                    imgui.PopStyleColor(1);
+                end
+                if(glamourUI.getTP(2) > 2000) then
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(525);
+                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0});
+                    imgui.ProgressBar((glamourUI.getTP(2) -2000) /1000, {200, 4}, '');
+                    imgui.PopStyleColor(1);
+                end
                 imgui.SameLine();
                 imgui.SetCursorPosX(527);
                 imgui.Text(tostring(glamourUI.getTP(2)));
@@ -190,6 +232,20 @@ function render_test_panel()
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
                 imgui.ProgressBar(glamourUI.getTP(3) / 1000, {200, 16}, '');
+                if(glamourUI.getTP(3) > 1000) then
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(525);
+                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0});
+                    imgui.ProgressBar((glamourUI.getTP(3) -1000) /1000, {200, 10}, '');
+                    imgui.PopStyleColor(1);
+                end
+                if(glamourUI.getTP(3) > 2000) then
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(525);
+                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0});
+                    imgui.ProgressBar((glamourUI.getTP(3) -2000) /1000, {200, 4}, '');
+                    imgui.PopStyleColor(1);
+                end
                 imgui.SameLine();
                 imgui.SetCursorPosX(527);
                 imgui.Text(tostring(glamourUI.getTP(3)));
@@ -217,6 +273,20 @@ function render_test_panel()
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
                 imgui.ProgressBar(glamourUI.getTP(4) / 1000, {200, 16}, '');
+                if(glamourUI.getTP(4) > 1000) then
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(525);
+                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0});
+                    imgui.ProgressBar((glamourUI.getTP(4) -1000) /1000, {200, 10}, '');
+                    imgui.PopStyleColor(1);
+                end
+                if(glamourUI.getTP(4) > 2000) then
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(525);
+                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0});
+                    imgui.ProgressBar((glamourUI.getTP(4) -2000) /1000, {200, 4}, '');
+                    imgui.PopStyleColor(1);
+                end
                 imgui.SameLine();
                 imgui.SetCursorPosX(527);
                 imgui.Text(tostring(glamourUI.getTP(4)));
@@ -244,6 +314,20 @@ function render_test_panel()
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
                 imgui.ProgressBar(glamourUI.getTP(5) / 1000, {200, 16}, '');
+                if(glamourUI.getTP(5) > 1000) then
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(525);
+                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0});
+                    imgui.ProgressBar((glamourUI.getTP(5) -1000) /1000, {200, 10}, '');
+                    imgui.PopStyleColor(1);
+                end
+                if(glamourUI.getTP(5) > 2000) then
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(525);
+                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0});
+                    imgui.ProgressBar((glamourUI.getTP(5) -2000) /1000, {200, 4}, '');
+                    imgui.PopStyleColor(1);
+                end
                 imgui.SameLine();
                 imgui.SetCursorPosX(527);
                 imgui.Text(tostring(glamourUI.getTP(5)));
