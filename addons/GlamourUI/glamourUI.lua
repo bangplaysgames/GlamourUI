@@ -31,8 +31,13 @@ local default_settings = T{
         y = 150,
         enabled = true,
         theme = 'Default'
-    }
+    },
 
+    targetbar = T{
+         x = 1000,
+         y = 150,
+         enabled = true
+    }
 };
 
 local glamourUI = T{
@@ -74,7 +79,17 @@ glamourUI.getTP = function(index)
     return AshitaCore:GetMemoryManager():GetParty():GetMemberTP(index);
 end
 
-function render_test_panel()
+local function GetEntityByServerId(sid)
+    for x = 0, 2303 do
+        local ent = GetEntity(x);
+        if (ent ~= nil and ent.ServerId == sid) then
+            return ent;
+        end
+    end
+    return nil;
+end
+
+function render_party_list()
     if (glamourUI.settings.partylist.enabled) then
         imgui.SetNextWindowBgAlpha(.3);
         imgui.SetNextWindowSize({ 750, -1, }, ImGuiCond_Always);
@@ -110,6 +125,7 @@ function render_test_panel()
             imgui.SameLine();
             imgui.SetCursorPosX(525);
             imgui.ProgressBar(glamourUI.getTP(0) / 1000, {200, 16}, '');
+            imgui.PopStyleColor(1);
             if(glamourUI.getTP(0) > 1000) then
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
@@ -150,6 +166,7 @@ function render_test_panel()
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
                 imgui.ProgressBar(glamourUI.getTP(1) / 1000, {200, 16}, '');
+                imgui.PopStyleColor(1);
                 if(glamourUI.getTP(1) > 1000) then
                     imgui.SameLine();
                     imgui.SetCursorPosX(525);
@@ -191,6 +208,7 @@ function render_test_panel()
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
                 imgui.ProgressBar(glamourUI.getTP(2) / 1000, {200, 16}, '');
+                imgui.PopStyleColor(1);
                 if(glamourUI.getTP(2) > 1000) then
                     imgui.SameLine();
                     imgui.SetCursorPosX(525);
@@ -232,6 +250,7 @@ function render_test_panel()
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
                 imgui.ProgressBar(glamourUI.getTP(3) / 1000, {200, 16}, '');
+                imgui.PopStyleColor(1);
                 if(glamourUI.getTP(3) > 1000) then
                     imgui.SameLine();
                     imgui.SetCursorPosX(525);
@@ -273,6 +292,7 @@ function render_test_panel()
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
                 imgui.ProgressBar(glamourUI.getTP(4) / 1000, {200, 16}, '');
+                imgui.PopStyleColor(1);
                 if(glamourUI.getTP(4) > 1000) then
                     imgui.SameLine();
                     imgui.SetCursorPosX(525);
@@ -314,6 +334,7 @@ function render_test_panel()
                 imgui.SameLine();
                 imgui.SetCursorPosX(525);
                 imgui.ProgressBar(glamourUI.getTP(5) / 1000, {200, 16}, '');
+                imgui.PopStyleColor(1);
                 if(glamourUI.getTP(5) > 1000) then
                     imgui.SameLine();
                     imgui.SetCursorPosX(525);
@@ -339,6 +360,29 @@ function render_test_panel()
     imgui.End();
 end
 
+function render_target_bar()
+    if (glamourUI.settings.targetbar.enabled) then
+        local player = AshitaCore:GetMemoryManager():GetPlayer();
+        local target = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(AshitaCore:GetMemoryManager():GetTarget():GetIsSubTargetActive())
+        local targetEntity = GetEntity(target);
+
+        imgui.SetNextWindowBgAlpha(.3);
+        imgui.SetNextWindowSize({ 750, -1, }, ImGuiCond_Always);
+        imgui.SetNextWindowPos({glamourUI.settings.targetbar.x, glamourUI.settings.targetbar.y}, ImGuiCond_Always);
+
+        if(targetEntity ~= nil) then
+            if(imgui.Begin('Target Bar', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav))) then
+
+                imgui.Text(targetEntity.Name);
+                imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
+                imgui.ProgressBar(targetEntity.HPPercent / 100, {700, 16}, tostring(targetEntity.HPPercent) .. '%');
+                imgui.PopStyleColor(1);
+            end
+            imgui.End();
+
+        end
+    end
+end
 
 ashita.events.register('command', 'command_cb', function (e)
     --Parse Arguments
@@ -358,6 +402,7 @@ ashita.events.register('command', 'command_cb', function (e)
 end)
 
 ashita.events.register('d3d_present', 'present_cb', function ()
-    render_test_panel();
+    render_party_list();
+    render_target_bar();
 end)
 
