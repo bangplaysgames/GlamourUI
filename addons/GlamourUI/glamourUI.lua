@@ -164,7 +164,7 @@ function render_party_list()
                 imgui.SameLine();
                 imgui.PopStyleColor(1);
                 imgui.SetCursorPosX(27);
-                imgui.Text(pet.HPPercent);
+                imgui.Text(tostring(pet.HPPercent));
                 imgui.SameLine();
                 imgui.SetCursorPosX(240);
                 imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.5, 0.0, 1.0 });
