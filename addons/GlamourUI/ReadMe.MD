@@ -7,10 +7,15 @@ Initially, the addon is adding a Party list and a target bar.  The current aesth
 Currently, I have just a handful of commands:
 
 /glam - The primary command.  This will print a help text to the chatlog.
+
 /glam help - This mimics the /glam command.
+
 /glam partylist - Toggles the party list on and off.
+
 /glam partylist setscale # - Changes the scale of the party list.  Replace # with the scale multiplier.  (Default 1.  Accepts integers or decimals.)
+
 /glam targetbar - Toggles the target bar on and off.
+
 /glam targetbar setscale # - Changes the scale of the target bar.
 
 
