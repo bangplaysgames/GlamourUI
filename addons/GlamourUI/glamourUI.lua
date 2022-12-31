@@ -170,8 +170,9 @@ function render_party_list()
                 imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.5, 0.0, 1.0 });
                 imgui.ProgressBar(AshitaCore:GetMemoryManager():GetPlayer():GetPetMPPercent() / 100, { 200, 14}, '');
                 imgui.PopStyleColor(1);
+                imgui.SameLine();
                 imgui.SetCursorPosX(242);
-                imgui.Text(AshitaCore:GetMemoryManager():GetPlayer():GetPetMPPercent());
+                imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetMPPercent()));
                 imgui.SameLine();
                 imgui.SetCursorPosX(455);
                 imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.45, 1.0, 1.0});
