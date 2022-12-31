@@ -13,5 +13,11 @@ Currently, I have just a handful of commands:
 /glam targetbar - Toggles the target bar on and off.
 /glam targetbar setscale # - Changes the scale of the target bar.
 
+
+Example Screenshots
+Party List:
 ![alt text](https://github.com/bangplaysgames/images/blob/main/GlamourUI/PartyList.png?raw=true)
+
+
+Target Bar:
 ![alt text](https://github.com/bangplaysgames/images/blob/main/GlamourUI/target%20bar.png?raw=true)
