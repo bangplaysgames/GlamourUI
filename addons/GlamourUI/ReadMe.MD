@@ -12,3 +12,6 @@ Currently, I have just a handful of commands:
 /glam partylist setscale # - Changes the scale of the party list.  Replace # with the scale multiplier.  (Default 1.  Accepts integers or decimals.)
 /glam targetbar - Toggles the target bar on and off.
 /glam targetbar setscale # - Changes the scale of the target bar.
+
+![alt text](https://github.com/bangplaysgames/images/blob/main/GlamourUI/PartyList.png?raw=true)
+![alt text](https://github.com/bangplaysgames/images/blob/main/GlamourUI/target%20bar.png?raw=true)
