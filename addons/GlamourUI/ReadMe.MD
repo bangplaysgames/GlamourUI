@@ -1,0 +1,14 @@
+GlamourUI Is a UI enhancement addon.  While it's currently in its early stages, I have big plans for it in the future.
+
+
+Initially, the addon is adding a Party list and a target bar.  The current aesthetic is just the default Ashita UI, but one of the plans is to build a theming engine and a layout engine.  These two components combined will allow the player to customize the look of each element of the UI entirely.  Want the different components of your party list rearranged?  The layout engine will provide an easy means to do so.  Want to make custom textures for everything?  The theming engine will easily accomplish that.
+
+
+Currently, I have just a handful of commands:
+
+/glam - The primary command.  This will print a help text to the chatlog.
+/glam help - This mimics the /glam command.
+/glam partylist - Toggles the party list on and off.
+/glam partylist setscale # - Changes the scale of the party list.  Replace # with the scale multiplier.  (Default 1.  Accepts integers or decimals.)
+/glam targetbar - Toggles the target bar on and off.
+/glam targetbar setscale # - Changes the scale of the target bar.
