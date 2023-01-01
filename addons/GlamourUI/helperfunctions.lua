@@ -84,7 +84,7 @@ function renderPlayerThemed(hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, p)
     imgui.Image(tpbT, {200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale});
     imgui.SameLine();
     imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
-    imgui.Image(tpfT, {(200 * (math.clamp((getTP(p) / 1000), 0, 1000) * glamourUI.settings.partylist.gui_scale)), 16 * glamourUI.settings.partylist.gui_scale});
+    imgui.Image(tpfT, {(200 * (math.clamp((getTP(p) / 1000), 0, 1) * glamourUI.settings.partylist.gui_scale)), 16 * glamourUI.settings.partylist.gui_scale});
     imgui.SameLine();
     imgui.SetCursorPosX(457 * glamourUI.settings.partylist.gui_scale);
     imgui.Text(tostring(getTP(p)));
@@ -115,7 +115,7 @@ function renderPartyThemed(hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, p)
     imgui.Image(tpbT, {200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale});
     imgui.SameLine();
     imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
-    imgui.Image(tpfT, {(200 * (math.clamp((getTP(p) / 1000),0,1000)) * glamourUI.settings.partylist.gui_scale), 16 * glamourUI.settings.partylist.gui_scale});
+    imgui.Image(tpfT, {(200 * (math.clamp((getTP(p) / 1000),0,1)) * glamourUI.settings.partylist.gui_scale), 16 * glamourUI.settings.partylist.gui_scale});
     imgui.SameLine();
     imgui.SetCursorPosX(457 * glamourUI.settings.partylist.gui_scale);
     imgui.Text(tostring(getTP(p)));
@@ -146,7 +146,7 @@ function renderPetThemed(hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, p)
     imgui.Image(tpbT, {200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale});
     imgui.SameLine();
     imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
-    imgui.Image(tpfT, {(200 * (math.clamp((AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() / 1000), 0, 1000) * glamourUI.settings.partylist.gui_scale)), 16 * glamourUI.settings.partylist.gui_scale});
+    imgui.Image(tpfT, {(200 * (math.clamp((AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() / 1000), 0, 1) * glamourUI.settings.partylist.gui_scale)), 16 * glamourUI.settings.partylist.gui_scale});
     imgui.SameLine();
     imgui.SetCursorPosX(457 * glamourUI.settings.partylist.gui_scale);
     imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetTP()));
