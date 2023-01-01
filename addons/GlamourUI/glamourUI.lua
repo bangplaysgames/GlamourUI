@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.1.0';
+addon.version = '0.1.1';
 
 local imgui = require('imgui')
 
@@ -141,6 +141,10 @@ function render_party_list()
                     end
                     if(partyCount >= 6) then
                         renderPartyThemed(hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
+                    end
+
+                    if(pet ~= nil) then
+                        renderPetThemed(hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet)
                     end
                 end
             else
