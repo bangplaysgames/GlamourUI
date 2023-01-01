@@ -40,8 +40,12 @@ end
 
 local modules = T{
     ['partylist'] = 1,
-    ['targetbar'] = 2
+    ['targetbar'] = 2,
+    ['alliancepanel'] = 3,
+    ['alliancepanel2'] = 4
 }
+
+local d3d8_device = d3d8.get_device();
 
 function getTex(d3d8_device, tex_path, tex_ptr)
     local texcData = '';
@@ -53,6 +57,68 @@ function getTex(d3d8_device, tex_path, tex_ptr)
         return tonumber(ffi.cast('uint32_t', texcData));
     end
 
+end
+
+function renderPlayerThemed(hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, p)
+
+    imgui.Text(tostring(getName(p)));
+    imgui.SetCursorPosX(25 * glamourUI.settings.partylist.gui_scale);
+    imgui.Image(hpbT, {200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale});
+    imgui.SameLine();
+    imgui.SetCursorPosX(25 * glamourUI.settings.partylist.gui_scale);
+    imgui.Image(hpfT, {(200 * (getHPP(p) / 100)) * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale});
+    imgui.SameLine();
+    imgui.SetCursorPosX(27 * glamourUI.settings.partylist.gui_scale);
+    imgui.Text(tostring(getHP(p)));
+    imgui.SameLine();
+    imgui.SetCursorPosX(240 * glamourUI.settings.partylist.gui_scale);
+    imgui.Image(mpbT, {200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale});
+    imgui.SameLine();
+    imgui.SetCursorPosX(240 * glamourUI.settings.partylist.gui_scale);
+    imgui.Image(mpfT, {(200 * (getMPP(p) / 100)) * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale});
+    imgui.SameLine();
+    imgui.SetCursorPosX(242 * glamourUI.settings.partylist.gui_scale);
+    imgui.Text(tostring(getMP(p)));
+    imgui.SameLine();
+    imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
+    imgui.Image(tpbT, {200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale});
+    imgui.SameLine();
+    imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
+    imgui.Image(tpfT, {(200 * (getTP(p) / 1000)) * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale});
+    imgui.SameLine();
+    imgui.SetCursorPosX(457 * glamourUI.settings.partylist.gui_scale);
+    imgui.Text(tostring(getTP(p)));
+end
+
+function renderPartyThemed(hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, p)
+    imgui.Text('');
+    imgui.Text(tostring(getName(p)));
+    imgui.SetCursorPosX(25 * glamourUI.settings.partylist.gui_scale);
+    imgui.Image(hpbT, {200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale});
+    imgui.SameLine();
+    imgui.SetCursorPosX(25 * glamourUI.settings.partylist.gui_scale);
+    imgui.Image(hpfT, {(200 * (getHPP(p) / 100)) * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale});
+    imgui.SameLine();
+    imgui.SetCursorPosX(27 * glamourUI.settings.partylist.gui_scale);
+    imgui.Text(tostring(getHP(p)));
+    imgui.SameLine();
+    imgui.SetCursorPosX(240 * glamourUI.settings.partylist.gui_scale);
+    imgui.Image(mpbT, {200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale});
+    imgui.SameLine();
+    imgui.SetCursorPosX(240 * glamourUI.settings.partylist.gui_scale);
+    imgui.Image(mpfT, {(200 * (getMPP(p) / 100)) * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale});
+    imgui.SameLine();
+    imgui.SetCursorPosX(242 * glamourUI.settings.partylist.gui_scale);
+    imgui.Text(tostring(getMP(p)));
+    imgui.SameLine();
+    imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
+    imgui.Image(tpbT, {200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale});
+    imgui.SameLine();
+    imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
+    imgui.Image(tpfT, {(200 * (getTP(p) / 1000)) * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale});
+    imgui.SameLine();
+    imgui.SetCursorPosX(457 * glamourUI.settings.partylist.gui_scale);
+    imgui.Text(tostring(getTP(p)));
 end
 
 function renderParty(p)
@@ -95,6 +161,11 @@ function renderParty(p)
     imgui.SameLine();
     imgui.SetCursorPosX(457 * glamourUI.settings.partylist.gui_scale);
     imgui.Text(tostring(getTP(p)));
+end
+
+function renderAllianceMember(a)
+    imgui.PushStyleColor(ImGuiCol_PlotHistogram, {1.0, 0.25, 0.25, 1.0});
+    imgui.ProgressBar(getHPP(a) / 100, {100 * glamourUI.settings.alliancePanel.gui_scale, 16 * glamourUI.settings.alliancePanel.gui_scale}, getName(a));
 end
 
 function setscale(a,v)
