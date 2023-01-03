@@ -132,11 +132,7 @@ function render_party_list()
                 tpfTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\tpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
             end
             local tpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
-            if(not ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\hpBar.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme)) or not ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\hpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme)) or not not ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\mpBar.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme)) or not ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\mpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme)) or not not ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\tpBar.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme)) or not ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\tpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme))) then
-                print(chat.header('Missing Texture Files.  Disabling Theming Engine.'));
-                glamourUI.settings.partylist.themed = false;
-                return;
-            end
+
             local hpbTex = getTex(d3d8_device, hpbTexPath, hpbTexPtr);
             local hpfTex = getTex(d3d8_device, hpfTexPath, hpfTexPtr);
             local mpbTex = getTex(d3d8_device, mpbTexPath, mpbTexPtr);
@@ -181,136 +177,136 @@ function render_party_list()
                 if(pet ~= nil) then
                     renderPetThemed(hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet)
                 end
-                imgui.End();
-            else
-                if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
-                    local party = AshitaCore:GetMemoryManager():GetParty()
-                    local partyCount = 0;
-                    for i = 1,6,1 do
-                        if(AshitaCore:GetMemoryManager():GetParty():GetMemberIsActive(i-1) > 0) then
-                            partyCount = partyCount +1;
-                        end
-                    end
-
-                    local player = GetPlayerEntity();
-                    if(player == nil) then
-                        player = 0;
-                    end
-                    local pet = GetEntity(player.PetTargetIndex);
-
-                    -- PLayer Rendering
-                    imgui.SetWindowFontScale((glamourUI.settings.partylist.font_scale));
-                    imgui.Text(tostring(getName(0)));
-                    imgui.SetCursorPosX(25 * glamourUI.settings.partylist.gui_scale);
-                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
-                    imgui.ProgressBar(getHPP(0) / 100, { 200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale}, '');
-                    imgui.PopStyleColor(1);
-                    imgui.SameLine();
-                    imgui.SetCursorPosX(27 * glamourUI.settings.partylist.gui_scale);
-                    imgui.Text(tostring(getHP(0)));
-                    imgui.SameLine();
-                    imgui.SetCursorPosX(240 * glamourUI.settings.partylist.gui_scale);
-                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.5, 0.0, 1.0 });
-                    imgui.ProgressBar(getMPP(0) / 100, { 200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale}, '');
-                    imgui.PopStyleColor(1);
-                    imgui.SameLine();
-                    imgui.SetCursorPosX(242 * glamourUI.settings.partylist.gui_scale);
-                    imgui.Text(tostring(getMP(0)));
-                    imgui.SameLine();
-                    imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
-                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.45, 1.0, 1.0});
-                    imgui.ProgressBar(getTP(0) / 1000, {200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale}, '');
-                    imgui.PopStyleColor(1);
-                    if(getTP(0) > 1000) then
-                        imgui.SameLine();
-                        imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
-                        imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0});
-                        imgui.ProgressBar((getTP(0) -1000) /1000, {200 * glamourUI.settings.partylist.gui_scale, 10 * glamourUI.settings.partylist.gui_scale}, '');
-                        imgui.PopStyleColor(1);
-                    end
-                    if(getTP(0) > 2000) then
-                        imgui.SameLine();
-                        imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
-                        imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0});
-                        imgui.ProgressBar((getTP(0) -2000) /1000, {200 * glamourUI.settings.partylist.gui_scale, 4 * glamourUI.settings.partylist.gui_scale}, '');
-                        imgui.PopStyleColor(1);
-                    end
-                    imgui.SameLine();
-                    imgui.SetCursorPosX(457 * glamourUI.settings.partylist.gui_scale);
-                    imgui.Text(tostring(getTP(0)));
-
-                    --Party Member 1 Rendering
-                    if(partyCount >= 2) then
-                        renderParty(1);
-                    end
-
-
-                    --Party Member 2 Rendering
-                    if(partyCount >= 3) then
-                        renderParty(2);
-                    end
-
-                    --Party Member 3 Rendering
-                    if(partyCount >= 4) then
-                        renderParty(3);
-                    end
-
-                    --Party Member 4 Rendering
-                    if(partyCount >= 5) then
-                        renderParty(4);
-                    end
-
-                    --Party Member 5 Rendering
-                    if(partyCount >= 6) then
-                        renderParty(5);
-                    end
-
-                    --Pet Rendering
-                    if(pet ~= nil) then
-                        imgui.Text('');
-                        imgui.Text(tostring(pet.Name));
-                        imgui.SetCursorPosX(25);
-                        imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
-                        imgui.ProgressBar(pet.HPPercent / 100, { 200, 14 }, '');
-                        imgui.SameLine();
-                        imgui.PopStyleColor(1);
-                        imgui.SetCursorPosX(27);
-                        imgui.Text(tostring(pet.HPPercent ) .. '%%');
-                        imgui.SameLine();
-                        imgui.SetCursorPosX(240);
-                        imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.5, 0.0, 1.0 });
-                        imgui.ProgressBar(AshitaCore:GetMemoryManager():GetPlayer():GetPetMPPercent() / 100, { 200, 14}, '');
-                        imgui.PopStyleColor(1);
-                        imgui.SameLine();
-                        imgui.SetCursorPosX(242);
-                        imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetMPPercent()) .. '%%');
-                        imgui.SameLine();
-                        imgui.SetCursorPosX(455);
-                        imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.45, 1.0, 1.0});
-                        imgui.ProgressBar(AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() / 1000, {200, 14}, '');
-                        imgui.PopStyleColor(1);
-                        if(getTP(5) > 1000) then
-                            imgui.SameLine();
-                            imgui.SetCursorPosX(455);
-                            imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0});
-                            imgui.ProgressBar((AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() -1000) /1000, {200, 10}, '');
-                            imgui.PopStyleColor(1);
-                        end
-                        if(getTP(5) > 2000) then
-                            imgui.SameLine();
-                            imgui.SetCursorPosX(455);
-                            imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0});
-                            imgui.ProgressBar((AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() -2000) /1000, {200, 4}, '');
-                            imgui.PopStyleColor(1);
-                        end
-                        imgui.SameLine();
-                        imgui.SetCursorPosX(457);
-                        imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetTP()));
+            end
+            imgui.End();
+        else
+            if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
+                local party = AshitaCore:GetMemoryManager():GetParty()
+                local partyCount = 0;
+                for i = 1,6,1 do
+                    if(AshitaCore:GetMemoryManager():GetParty():GetMemberIsActive(i-1) > 0) then
+                        partyCount = partyCount +1;
                     end
                 end
-                imgui.End();
 
+                local player = GetPlayerEntity();
+                if(player == nil) then
+                    player = 0;
+                end
+                local pet = GetEntity(player.PetTargetIndex);
+
+                -- PLayer Rendering
+                imgui.SetWindowFontScale((glamourUI.settings.partylist.font_scale));
+                imgui.Text(tostring(getName(0)));
+                imgui.SetCursorPosX(25 * glamourUI.settings.partylist.gui_scale);
+                imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
+                imgui.ProgressBar(getHPP(0) / 100, { 200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale}, '');
+                imgui.PopStyleColor(1);
+                imgui.SameLine();
+                imgui.SetCursorPosX(27 * glamourUI.settings.partylist.gui_scale);
+                imgui.Text(tostring(getHP(0)));
+                imgui.SameLine();
+                imgui.SetCursorPosX(240 * glamourUI.settings.partylist.gui_scale);
+                imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.5, 0.0, 1.0 });
+                imgui.ProgressBar(getMPP(0) / 100, { 200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale}, '');
+                imgui.PopStyleColor(1);
+                imgui.SameLine();
+                imgui.SetCursorPosX(242 * glamourUI.settings.partylist.gui_scale);
+                imgui.Text(tostring(getMP(0)));
+                imgui.SameLine();
+                imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
+                imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.45, 1.0, 1.0});
+                imgui.ProgressBar(getTP(0) / 1000, {200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale}, '');
+                imgui.PopStyleColor(1);
+                if(getTP(0) > 1000) then
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
+                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0});
+                    imgui.ProgressBar((getTP(0) -1000) /1000, {200 * glamourUI.settings.partylist.gui_scale, 10 * glamourUI.settings.partylist.gui_scale}, '');
+                    imgui.PopStyleColor(1);
+                end
+                if(getTP(0) > 2000) then
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
+                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0});
+                    imgui.ProgressBar((getTP(0) -2000) /1000, {200 * glamourUI.settings.partylist.gui_scale, 4 * glamourUI.settings.partylist.gui_scale}, '');
+                    imgui.PopStyleColor(1);
+                end
+                imgui.SameLine();
+                imgui.SetCursorPosX(457 * glamourUI.settings.partylist.gui_scale);
+                imgui.Text(tostring(getTP(0)));
+
+                --Party Member 1 Rendering
+                if(partyCount >= 2) then
+                    renderParty(1);
+                end
+
+
+                --Party Member 2 Rendering
+                if(partyCount >= 3) then
+                    renderParty(2);
+                end
+
+                --Party Member 3 Rendering
+                if(partyCount >= 4) then
+                    renderParty(3);
+                end
+
+                --Party Member 4 Rendering
+                if(partyCount >= 5) then
+                    renderParty(4);
+                end
+
+                --Party Member 5 Rendering
+                if(partyCount >= 6) then
+                    renderParty(5);
+                end
+
+                --Pet Rendering
+                if(pet ~= nil) then
+                    imgui.Text('');
+                    imgui.Text(tostring(pet.Name));
+                    imgui.SetCursorPosX(25);
+                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
+                    imgui.ProgressBar(pet.HPPercent / 100, { 200, 14 }, '');
+                    imgui.SameLine();
+                    imgui.PopStyleColor(1);
+                    imgui.SetCursorPosX(27);
+                    imgui.Text(tostring(pet.HPPercent ) .. '%%');
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(240);
+                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.5, 0.0, 1.0 });
+                    imgui.ProgressBar(AshitaCore:GetMemoryManager():GetPlayer():GetPetMPPercent() / 100, { 200, 14}, '');
+                    imgui.PopStyleColor(1);
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(242);
+                    imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetMPPercent()) .. '%%');
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(455);
+                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.45, 1.0, 1.0});
+                    imgui.ProgressBar(AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() / 1000, {200, 14}, '');
+                    imgui.PopStyleColor(1);
+                    if(getTP(5) > 1000) then
+                        imgui.SameLine();
+                        imgui.SetCursorPosX(455);
+                        imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0});
+                        imgui.ProgressBar((AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() -1000) /1000, {200, 10}, '');
+                        imgui.PopStyleColor(1);
+                    end
+                    if(getTP(5) > 2000) then
+                        imgui.SameLine();
+                        imgui.SetCursorPosX(455);
+                        imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0});
+                        imgui.ProgressBar((AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() -2000) /1000, {200, 4}, '');
+                        imgui.PopStyleColor(1);
+                    end
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(457);
+                    imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetTP()));
+                end
             end
+            imgui.End();
+
         end
 
     end
@@ -346,11 +342,6 @@ function render_target_bar()
                         hpfTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\hpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
                     end
                     local hpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
-                    if (hpbTexPath == '' or hpfTexPath == '') then
-                        print(chat.header('Missing Target Bar Textures.  Disabling Theming Engine for TargetBar'))
-                        glamourUI.settings.targetbar.themed = false;
-                        return;
-                    end
                     local hpbTex = getTex(d3d8_device, hpbTexPath, hpbTexPtr);
                     local hpfTex = getTex(d3d8_device, hpfTexPath, hpfTexPtr);
                     local textureIsPresent = true;
@@ -366,7 +357,7 @@ function render_target_bar()
                     imgui.SameLine();
                     imgui.SetCursorPosX(340 * glamourUI.settings.targetbar.gui_scale);
                     imgui.Text(tostring(targetEntity.HPPercent) .. '%%');
-                    if(textureIsPresent == true and IsTargetLocked() and glamourUI.settings.targetbar.lockIndicator == true) then
+                    if(IsTargetLocked() and glamourUI.settings.targetbar.lockIndicator == true) then
                         local lockTexPath = '';
                         if ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\LockOn.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.targetbar.theme)) then
                             lockTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\LockOn.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.targetbar.theme);
@@ -382,38 +373,33 @@ function render_target_bar()
                         imgui.SetCursorPosX(0);
                         imgui.SetCursorPosY(0);
                         imgui.Image(lockedTex, {723 * glamourUI.settings.targetbar.gui_scale, 59 * glamourUI.settings.targetbar.gui_scale});
+                    end
 
-                    else
-                        imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
-                        imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
-                        imgui.SetWindowFontScale(1 * glamourUI.settings.targetbar.gui_scale);
-                        imgui.ProgressBar(targetEntity.HPPercent / 100, {660 * glamourUI.settings.targetbar.gui_scale, 16 * glamourUI.settings.targetbar.gui_scale}, tostring(targetEntity.HPPercent) .. '%');
-                        imgui.PopStyleColor(1);
-                        if(IsTargetLocked() and glamourUI.settings.targetbar.lockIndicator == true) then
-                            local lockTexPath = '';
-                            if ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\LockOn.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.targetbar.theme)) then
-                                lockTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\LockOn.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.targetbar.theme);
-                            else
-                                print(chat.header('Missing Lock-On Texture'));
-                                return;
-                            end
-                            local lockTexPtr = ffi.new('IDirect3DTexture8*[1]');
-                            local lockedTex = getTex(d3d8_device, lockTexPath, lockTexPtr);
-
-                            imgui.SetCursorPosX(0);
-                            imgui.SetCursorPosY(0);
-                            imgui.Image(lockedTex, {723 * glamourUI.settings.targetbar.gui_scale, 59 * glamourUI.settings.targetbar.gui_scale});
+                else
+                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
+                    imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
+                    imgui.SetWindowFontScale(1 * glamourUI.settings.targetbar.gui_scale);
+                    imgui.ProgressBar(targetEntity.HPPercent / 100, {660 * glamourUI.settings.targetbar.gui_scale, 16 * glamourUI.settings.targetbar.gui_scale}, tostring(targetEntity.HPPercent) .. '%');
+                    imgui.PopStyleColor(1);
+                    if(IsTargetLocked() and glamourUI.settings.targetbar.lockIndicator == true) then
+                        local lockTexPath = '';
+                        if ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\LockOn.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.targetbar.theme)) then
+                            lockTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\LockOn.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.targetbar.theme);
+                        else
+                            print(chat.header('Missing Lock-On Texture'));
+                            return;
                         end
+                        local lockTexPtr = ffi.new('IDirect3DTexture8*[1]');
+                        local lockedTex = getTex(d3d8_device, lockTexPath, lockTexPtr);
 
+                        imgui.SetCursorPosX(0);
+                        imgui.SetCursorPosY(0);
+                        imgui.Image(lockedTex, {723 * glamourUI.settings.targetbar.gui_scale, 59 * glamourUI.settings.targetbar.gui_scale});
                     end
                 end
                 imgui.End();
-
-
-
             end
         end
-
     end
 end
 
@@ -435,12 +421,6 @@ function render_alliance_panel()
                 hpfTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\hpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
             end
             local hpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
-            if(hpbTexPath == '' or hpfTexPath == '') then
-                print(chat.header('Missing Texture Files.  Disabling Theming Engine.'));
-                glamourUI.settings.alliancePanel.themed = false;
-                glamourUI.settings.alliancePanel2.themed = false;
-                return;
-            end
 
 
             local hpbTex = getTex(d3d8_device, hpbTexPath, hpbTexPtr);
@@ -613,11 +593,6 @@ function render_player_stats()
             local mpfTex = getTex(d3d8_device, mpfTexPath, mpfTexPtr);
             local tpbTex = getTex(d3d8_device, tpbTexPath, tpbTexPtr);
             local tpfTex = getTex(d3d8_device, tpfTexPath, tpfTexPtr);
-            if(hpbTex == nil or hpfTex == nil or mpbTex == nil or mpfTex == nil or tpbTex == nil or tpfTex == nil)then
-                print(chat.header('Missing Texture Files.  Disabling Theming Engine.'));
-                glamourUI.settings.partylist.themed = false;
-                return;
-            end
             if (imgui.Begin('Player Stats', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
                 imgui.SetWindowFontScale(glamourUI.settings.playerStats.font_scale);
                 renderPlayerStats(hpbTex, hpfTex, hp, hpp, 0);

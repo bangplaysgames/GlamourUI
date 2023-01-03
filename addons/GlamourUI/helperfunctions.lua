@@ -207,7 +207,7 @@ function renderAllianceThemed(hpbT, hpfT, a, o)
 end
 
 function renderPlayerStats(b, f, s, p, o)
-    imgui.SetCursorPosX(o);
+    imgui.SetCursorPosX(o + 5);
     imgui.Image(b, {225 * glamourUI.settings.playerStats.gui_scale, 16 * glamourUI.settings.playerStats.gui_scale});
     imgui.SameLine();
     imgui.SetCursorPosX(o);
