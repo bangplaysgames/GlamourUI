@@ -199,6 +199,28 @@ function renderAllianceMember(a)
     imgui.ProgressBar(getHPP(a) / 100, {100 * glamourUI.settings.alliancePanel.gui_scale, 16 * glamourUI.settings.alliancePanel.gui_scale}, getName(a));
 end
 
+function renderAllianceThemed(hpbT, hpfT, a, o)
+    imgui.SetCursorPosX(o);
+    imgui.Image(hpbT, {100 * glamourUI.settings.alliancePanel.gui_scale, 16 * glamourUI.settings.alliancePanel.gui_scale});
+    imgui.SameLine();
+    imgui.Image(hpfT, {100 * glamourUI.Settings.AlliancePanel.gui_scale, 16 * glamourUI.settings.alliancePanel.gui_scale});
+end
+
+function renderPlayerStats(b, f, s, p, o)
+    imgui.SetCursorPosX(o);
+    imgui.Image(b, {225 * glamourUI.settings.playerStats.gui_scale, 16 * glamourUI.settings.playerStats.gui_scale});
+    imgui.SameLine();
+    imgui.SetCursorPosX(o);
+    if(p ~= nil)then
+        imgui.Image(f, {(225 * glamourUI.settings.playerStats.gui_scale) * p / 100, 16* glamourUI.settings.playerStats.gui_scale});
+    else
+        imgui.Image(f, {225  * (math.clamp((s / 1000), 0, 1) * glamourUI.settings.playerStats.gui_scale), 16 * glamourUI.settings.playerStats.gui_scale});
+    end
+    imgui.SameLine();
+    imgui.SetCursorPosX(o + 5);
+    imgui.Text(tostring(s));
+end
+
 function setscale(a,v)
     if(a == 'partylist')then
         glamourUI.settings.partylist.gui_scale = v + 0.0;
