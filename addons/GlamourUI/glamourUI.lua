@@ -27,56 +27,58 @@ local d3d8 = require('d3d8')
 
 local dbug = false;
 
-local d3d8_device = d3d8.get_device();
-
 local default_settings = T{
 
     partylist = T{
-        x = 12,
-        y = 150,
         enabled = true,
-        theme = 'Default',
         font_scale = 1.5,
         gui_scale = 1,
-        themed = true
+        layout = 'Default',
+        theme = 'Default',
+        themed = true,
+        x = 12,
+        y = 150,
     },
 
     targetbar = T{
-         x = 1000,
-         y = 150,
          enabled = true,
          font_scale = 1.5,
          gui_scale = 1,
          lockIndicator = true,
+         theme = 'Default',
          themed = true,
+         x = 1000,
+         y = 150,
     },
 
     alliancePanel = T{
+        enabled = true,
+        font_scale = 1.5,
+        gui_scale = 1,
+        theme = 'Default',
+        themed = true,
         x = 12,
         y = 700,
-        enabled = true,
-        font_scale = 1.5,
-        gui_scale = 1,
-        themed = true
     },
     alliancePanel2 = T{
+        enabled = true,
+        font_scale = 1.5,
+        gui_scale = 1,
+        theme = 'Default',
+        themed = true,
         x = 400,
         y = 700,
-        enabled = true,
-        font_scale = 1.5,
-        gui_scale = 1,
-        themed = true
     },
     playerStats = T{
-        x = 600,
-        y = 800,
         enabled = true,
         font_scale = 1.5,
         gui_scale = 1,
-        themed = true
-    },
+        theme = 'Default',
+        themed = true,
+        x = 600,
+        y = 800,
+    }
 
-    theme = 'Default'
 };
 
 glamourUI = T{
@@ -112,13 +114,30 @@ end);
 local party = AshitaCore:GetMemoryManager():GetParty();
 
 function render_party_list()
+    pokeCache(glamourUI.settings);
+
     if (glamourUI.settings.partylist.enabled) then
 
         imgui.SetNextWindowBgAlpha(.3);
         imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
         imgui.SetNextWindowPos({glamourUI.settings.partylist.x, glamourUI.settings.partylist.y}, ImGuiCond_FirstUseEver);
 
-        if(glamourUI.settings.partylist.themed == true)then
+
+        if(glamourUI.settings.partylist.themed == true) then
+            local hpbTex = getTex(glamourUI.settings, 'partylist', 'hpBar.png');
+            local hpfTex = getTex(glamourUI.settings, 'partylist', 'hpFill.png');
+            local mpbTex = getTex(glamourUI.settings, 'partylist', 'mpBar.png');
+            local mpfTex = getTex(glamourUI.settings, 'partylist', 'mpFill.png');
+            local tpbTex = getTex(glamourUI.settings, 'partylist', 'tpBar.png');
+            local tpfTex = getTex(glamourUI.settings, 'partylist', 'tpFill.png');
+
+            if (hpbTex == nil or hpfTex == nil or mpbTex == nil or mpfTex == nil or tpbTex == nil or tpfTex == nil) then
+                -- we're missing textures - disable theming for this element and skip the frame
+                glamourUI.settings.partylist.themed = false;
+                return;
+            end
+
+
             if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
                 local party = AshitaCore:GetMemoryManager():GetParty()
                 local partyCount = 0;
@@ -294,6 +313,7 @@ function render_party_list()
 end
 
 function render_target_bar()
+    pokeCache(glamourUI.settings);
     if (glamourUI.settings.targetbar.enabled) then
         local player = AshitaCore:GetMemoryManager():GetPlayer();
         local target = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(AshitaCore:GetMemoryManager():GetTarget():GetIsSubTargetActive())
@@ -310,8 +330,22 @@ function render_target_bar()
                 imgui.SetWindowFontScale(glamourUI.settings.targetbar.font_scale * glamourUI.settings.targetbar.gui_scale);
                 imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
                 imgui.SetCursorPosY(10 * glamourUI.settings.targetbar.gui_scale);
-                imgui.Text(targetEntity.Name);
+
                 if(glamourUI.settings.targetbar.themed == true) then
+
+                    local hpbTex = getTex(glamourUI.settings, 'targetbar', 'hpBar.png');
+                    local hpfTex = getTex(glamourUI.settings, 'targetbar', 'hpFill.png');
+                    local lockedTex = getTex(glamourUI.settings, 'targetbar', 'LockOn.png');
+
+                    if(hpbTex == nil or hpfTex == nil or lockedTex == nil) then
+                        -- missing textures, disable theming for this element and skipt the current frame
+                        glamourUI.settings.targetbar.themed = false;
+                        imgui.End();
+                        return;
+                    end
+
+                    imgui.Text(targetEntity.Name);
+
 
                     imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
                     imgui.SetWindowFontScale(1 * glamourUI.settings.targetbar.gui_scale);
@@ -329,16 +363,22 @@ function render_target_bar()
                     end
 
                 else
-                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
+                    if(IsTargetLocked() and glamourUI.settings.targetbar.lockIndicator == true) then
+                        imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0 });
+                    else
+                        imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
+                    end
                     imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
                     imgui.SetWindowFontScale(1 * glamourUI.settings.targetbar.gui_scale);
                     imgui.ProgressBar(targetEntity.HPPercent / 100, {660 * glamourUI.settings.targetbar.gui_scale, 16 * glamourUI.settings.targetbar.gui_scale}, tostring(targetEntity.HPPercent) .. '%');
                     imgui.PopStyleColor(1);
+
                     if(IsTargetLocked() and glamourUI.settings.targetbar.lockIndicator == true) then
                         imgui.SetCursorPosX(0);
                         imgui.SetCursorPosY(0);
                         imgui.Image(lockedTex, {723 * glamourUI.settings.targetbar.gui_scale, 59 * glamourUI.settings.targetbar.gui_scale});
                     end
+
                 end
                 imgui.End();
             end
@@ -355,11 +395,25 @@ function render_alliance_panel()
             imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
             imgui.SetNextWindowPos({glamourUI.settings.alliancePanel.x, glamourUI.settings.alliancePanel.y}, ImGuiCond_FirstUseEver);
 
+
+            local hpbTex1 = getTex(glamourUI.settings, 'alliancePanel', 'hpBar.png');
+            local hpfTex1 = getTex(glamourUI.settings, 'alliancePanel', 'hpFill.png');
+            local hpbTex2 = getTex(glamourUI.settings, 'alliancePanel2', 'hpBar.png');
+            local hpfTex2 = getTex(glamourUI.settings, 'alliancePanel2', 'hpFill.png');
+
+            if(hpbTex1 == nil or hpfTex1 == nil) then
+                glamourUI.settings.alliancePanel.themed = false;
+            end
+            if(hpbTex2 == nil or hpfTex2 == nil) then
+                glamourUI.settings.alliancePanel2.themed = false;
+            end
+
+
             if (imgui.Begin('Alliance List', glamourUI.alliancePanel.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
 
                 if(a1Count >= 1) then
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex, hpfTex, 6, 0);
+                        renderAllianceThemed(hpbTex1, hpfTex1, 6, 0);
                     else
                         renderAllianceMember(6);
 
@@ -368,7 +422,7 @@ function render_alliance_panel()
                 if(a1Count >= 2) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex, hpfTex, 7, 100);
+                        renderAllianceThemed(hpbTex1, hpfTex1, 7, 100);
                     else
                         renderAllianceMember(7);
 
@@ -377,7 +431,7 @@ function render_alliance_panel()
                 if(a1Count >= 3) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex, hpfTex, 8, 200);
+                        renderAllianceThemed(hpbTex1, hpfTex1, 8, 200);
                     else
                         renderAllianceMember(8);
 
@@ -385,7 +439,7 @@ function render_alliance_panel()
                 end
                 if(a1Count >= 4) then
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex, hpfTex, 9, 0);
+                        renderAllianceThemed(hpbTex1, hpfTex1, 9, 0);
                     else
                         renderAllianceMember(9);
 
@@ -394,7 +448,7 @@ function render_alliance_panel()
                 if(a1Count >= 5) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex, hpfTex, 10, 0);
+                        renderAllianceThemed(hpbTex1, hpfTex1, 10, 0);
                     else
                         renderAllianceMember(10);
 
@@ -403,7 +457,7 @@ function render_alliance_panel()
                 if(a1Count >= 6) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex, hpfTex, 11, 0);
+                        renderAllianceThemed(hpbTex1, hpfTex1, 11, 0);
                     else
                         renderAllianceMember(11);
 
@@ -420,7 +474,7 @@ function render_alliance_panel()
 
                 if(a2Count >= 1) then
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex, hpfTex, 12, 0);
+                        renderAllianceThemed(hpbTex2, hpfTex2, 12, 0);
                     else
                         renderAllianceMember(12);
 
@@ -429,7 +483,7 @@ function render_alliance_panel()
                 if(a2Count >= 2) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex, hpfTex, 13, 100);
+                        renderAllianceThemed(hpbTex2, hpfTex2, 13, 100);
                     else
                         renderAllianceMember(13);
 
@@ -438,7 +492,7 @@ function render_alliance_panel()
                 if(a2Count >= 3) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex, hpfTex, 14, 200);
+                        renderAllianceThemed(hpbTex2, hpfTex2, 14, 200);
                     else
                         renderAllianceMember(14);
 
@@ -446,7 +500,7 @@ function render_alliance_panel()
                 end
                 if(a2Count >= 4) then
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex, hpfTex, 15, 0);
+                        renderAllianceThemed(hpbTex2, hpfTex2, 15, 0);
                     else
                         renderAllianceMember(15);
 
@@ -455,7 +509,7 @@ function render_alliance_panel()
                 if(a2Count >= 5) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex, hpfTex, 16, 0);
+                        renderAllianceThemed(hpbTex2, hpfTex2, 16, 0);
                     else
                         renderAllianceMember(16);
 
@@ -464,7 +518,7 @@ function render_alliance_panel()
                 if(a2Count >= 6) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex, hpfTex, 17, 0);
+                        renderAllianceThemed(hpbTex2, hpfTex2, 17, 0);
                     else
                         renderAllianceMember(17);
 
@@ -503,6 +557,19 @@ function render_player_stats()
     if(glamourUI.settings.playerStats.enabled == true)then
 
         if(glamourUI.settings.playerStats.themed == true) then
+
+            local hpbTex = getTex(glamourUI.settings, 'playerStats', 'hpBar.png');
+            local hpfTex = getTex(glamourUI.settings, 'playerStats', 'hpFill.png');
+            local mpbTex = getTex(glamourUI.settings, 'playerStats', 'mpBar.png');
+            local mpfTex = getTex(glamourUI.settings, 'playerStats', 'mpFill.png');
+            local tpbTex = getTex(glamourUI.settings, 'playerStats', 'tpBar.png');
+            local tpfTex = getTex(glamourUI.settings, 'playerStats', 'tpFill.png');
+
+            if (hpbTex == nil or hpfTex == nil or mpbTex == nil or mpfTex == nil or tpbTex == nil or tpbTex == nil) then
+                print('playerStats rendering disabled, missing textures.');
+                glamourUI.settings.playerStats.themed = false;
+                return;
+            end
             if (imgui.Begin('Player Stats', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
                 imgui.SetWindowFontScale(glamourUI.settings.playerStats.font_scale);
                 renderPlayerStats(hpbTex, hpfTex, hp, hpp, 0);
