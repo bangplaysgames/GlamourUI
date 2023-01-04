@@ -2,6 +2,12 @@ local ffi = require('ffi')
 local d3d8 = require('d3d8')
 local imgui = require('imgui')
 
+local cache = T{
+    theme = nil,
+    paths = T{},
+    textures = T{}
+};
+
 function IsTargetLocked()
     return (bit.band(AshitaCore:GetMemoryManager():GetTarget():GetLockedOnFlags(), 1) == 1);
 end
@@ -47,16 +53,64 @@ local modules = T{
 
 local d3d8_device = d3d8.get_device();
 
-function getTex(d3d8_device, tex_path, tex_ptr)
-    local texcData = '';
-    if(ffi.C.D3DXCreateTextureFromFileA(d3d8_device, tex_path, tex_ptr) == ffi.C.S_OK) then
-        texcData = d3d8.gc_safe_release(ffi.cast('IDirect3DTexture8*', tex_ptr[0]));
+function pokeCache(settings)
+-- checks `settings` for a change in theme and invalidates the texture cache if needed
+    local theme_key = ('%s_%s_%s_%s_%s'):fmt(
+        settings.partylist.theme,
+        settings.targetbar.theme,
+        settings.alliancePanel.theme,
+        settings.alliancePanel2.theme,
+        settings.playerStats.theme
+    );
+
+    if(cache.theme ~= theme_key) then
+        -- theme key changed, invalidate the chache
+        cache.theme = theme_key;
+        cache.paths = T{};
+        cache.textures = T{};
+    end
+end
+
+function getTexturePath(settings, type, texture)
+    local theme = nil;
+    if(settings:haskey(type) and settings[type]:haskey('theme')) then
+        theme = settings[type].theme;
     end
 
-    if(texcData ~= nil)then
-        return tonumber(ffi.cast('uint32_t', texcData));
+    if(theme ~= nil) then
+        local path = ('%s\\addons\\GlamourUI\\Themes\\%s\\%s'):fmt(AshitaCore:GetInstallPath(), theme, texture)
+        if(not cache.paths:haskey(path)) then
+            if(ashita.fs.exists(path)) then
+                cache.paths[path] = path;
+            else
+                cache.paths[path] = nil;
+            end
+        end
+        return cache.paths[path];
     end
+    return nil;
+end
 
+function getTex(settings, type, texture)
+    local tex_path = getTexturePath(settings, type, texture);
+
+    if(tex_path ~= nil) then
+        if(not cache.textures:haskey(tex_path)) then
+            local tex_ptr = ffi.new('IDirect3DTexture8*[1]');
+            local cdata = nil;
+            if(ffi.C.D3DXCreateTextureFromFileA(d3d8_device, tex_path, tex_ptr) == ffi.C.S_OK) then
+                cdata = d3d8.gc_safe_release(ffi.cast('IDirect3DTexture8*', tex_ptr[0]));
+            end
+
+            -- this *can be nil*
+            cache.textures[tex_path] = cdata;
+        end
+
+        if(cache.textures[tex_path] ~= nil) then
+            return tonumber(ffi.cast('uint32_t', cache.textures[tex_path]));
+        end
+    end
+    return nil;
 end
 
 function renderPlayerThemed(hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, p)
