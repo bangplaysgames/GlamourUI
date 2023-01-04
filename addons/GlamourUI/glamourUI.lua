@@ -561,6 +561,7 @@ end)
 ashita.events.register('d3d_present', 'present_cb', function ()
     local player = GetPlayerEntity();
     if (player ~= nil) then
+        loadTextures(themePath);
         render_party_list();
         render_target_bar();
         render_debug_panel();
@@ -570,7 +571,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 end)
 
 ashita.events.register('load', 'load_cb', function()
-    loadTextures(themePath);
+
 end)
 
 ashita.events.register('unload', 'unload_cb', function()
