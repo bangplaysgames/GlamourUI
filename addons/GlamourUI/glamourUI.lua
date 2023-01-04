@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.1.2';
+addon.version = '0.1.3';
 
 local imgui = require('imgui')
 
@@ -78,12 +78,30 @@ local default_settings = T{
         x = 600,
         y = 800,
     }
+
 };
 
 glamourUI = T{
     is_open = true,
     settings = settings.load(default_settings)
 }
+
+hpbTexPath = '';
+hpfTexPath = '';
+mpbTexPath = '';
+mpfTexPath = '';
+tpbTexPath = '';
+tpfTexPath = '';
+lockTexPath = '';
+hpbTexPtr = ffi.new('IDirect3DTexture8*[1]');
+hpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
+mpbTexPtr = ffi.new('IDirect3DTexture8*[1]');
+mpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
+tpbTexPtr = ffi.new('IDirect3DTexture8*[1]');
+tpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
+lockTexPtr = ffi.new('IDirect3DTexture8*[1]');
+themePath = ('%s\\config\\addons\\GlamourUI\\Themes\\%s\\'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.theme);
+
 
 settings.register('settings', 'settings_update', function(s)
     if (s ~=nil) then
@@ -104,6 +122,7 @@ function render_party_list()
         imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
         imgui.SetNextWindowPos({glamourUI.settings.partylist.x, glamourUI.settings.partylist.y}, ImGuiCond_FirstUseEver);
 
+
         if(glamourUI.settings.partylist.themed == true) then
             local hpbTex = getTex(glamourUI.settings, 'partylist', 'hpBar.png');
             local hpfTex = getTex(glamourUI.settings, 'partylist', 'hpFill.png');
@@ -117,6 +136,7 @@ function render_party_list()
                 glamourUI.settings.partylist.themed = false;
                 return;
             end
+
 
             if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
                 local party = AshitaCore:GetMemoryManager():GetParty()
@@ -312,6 +332,7 @@ function render_target_bar()
                 imgui.SetCursorPosY(10 * glamourUI.settings.targetbar.gui_scale);
 
                 if(glamourUI.settings.targetbar.themed == true) then
+
                     local hpbTex = getTex(glamourUI.settings, 'targetbar', 'hpBar.png');
                     local hpfTex = getTex(glamourUI.settings, 'targetbar', 'hpFill.png');
                     local lockedTex = getTex(glamourUI.settings, 'targetbar', 'LockOn.png');
@@ -324,6 +345,7 @@ function render_target_bar()
                     end
 
                     imgui.Text(targetEntity.Name);
+
 
                     imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
                     imgui.SetWindowFontScale(1 * glamourUI.settings.targetbar.gui_scale);
@@ -350,6 +372,13 @@ function render_target_bar()
                     imgui.SetWindowFontScale(1 * glamourUI.settings.targetbar.gui_scale);
                     imgui.ProgressBar(targetEntity.HPPercent / 100, {660 * glamourUI.settings.targetbar.gui_scale, 16 * glamourUI.settings.targetbar.gui_scale}, tostring(targetEntity.HPPercent) .. '%');
                     imgui.PopStyleColor(1);
+
+                    if(IsTargetLocked() and glamourUI.settings.targetbar.lockIndicator == true) then
+                        imgui.SetCursorPosX(0);
+                        imgui.SetCursorPosY(0);
+                        imgui.Image(lockedTex, {723 * glamourUI.settings.targetbar.gui_scale, 59 * glamourUI.settings.targetbar.gui_scale});
+                    end
+
                 end
                 imgui.End();
             end
@@ -366,6 +395,7 @@ function render_alliance_panel()
             imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
             imgui.SetNextWindowPos({glamourUI.settings.alliancePanel.x, glamourUI.settings.alliancePanel.y}, ImGuiCond_FirstUseEver);
 
+
             local hpbTex1 = getTex(glamourUI.settings, 'alliancePanel', 'hpBar.png');
             local hpfTex1 = getTex(glamourUI.settings, 'alliancePanel', 'hpFill.png');
             local hpbTex2 = getTex(glamourUI.settings, 'alliancePanel2', 'hpBar.png');
@@ -377,6 +407,7 @@ function render_alliance_panel()
             if(hpbTex2 == nil or hpfTex2 == nil) then
                 glamourUI.settings.alliancePanel2.themed = false;
             end
+
 
             if (imgui.Begin('Alliance List', glamourUI.alliancePanel.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
 
@@ -526,6 +557,7 @@ function render_player_stats()
     if(glamourUI.settings.playerStats.enabled == true)then
 
         if(glamourUI.settings.playerStats.themed == true) then
+
             local hpbTex = getTex(glamourUI.settings, 'playerStats', 'hpBar.png');
             local hpfTex = getTex(glamourUI.settings, 'playerStats', 'hpFill.png');
             local mpbTex = getTex(glamourUI.settings, 'playerStats', 'mpBar.png');
@@ -538,7 +570,6 @@ function render_player_stats()
                 glamourUI.settings.playerStats.themed = false;
                 return;
             end
-
             if (imgui.Begin('Player Stats', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
                 imgui.SetWindowFontScale(glamourUI.settings.playerStats.font_scale);
                 renderPlayerStats(hpbTex, hpfTex, hp, hpp, 0);
@@ -603,6 +634,10 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         render_alliance_panel();
         render_player_stats();
     end
+end)
+
+ashita.events.register('load', 'load_cb', function()
+    loadTextures(themePath);
 end)
 
 ashita.events.register('unload', 'unload_cb', function()

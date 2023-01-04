@@ -1,6 +1,7 @@
 local ffi = require('ffi')
 local d3d8 = require('d3d8')
 local imgui = require('imgui')
+require('common')
 
 local cache = T{
     theme = nil,
@@ -273,6 +274,37 @@ function renderPlayerStats(b, f, s, p, o)
     imgui.SameLine();
     imgui.SetCursorPosX(o + 5);
     imgui.Text(tostring(s));
+end
+
+function loadTextures(t)
+    if (ashita.fs.exists((t .. 'hpBar.png'))) then
+        hpbTexPath = (t .. 'hpBar.png');
+        hpbTex = getTex(d3d8_device, hpbTexPath, hpbTexPtr);
+    end
+    if(ashita.fs.exists((t .. 'mpBar.png'))) then
+        mpbTexPath = (t .. 'mpBar.png');
+        mpbTex = getTex(d3d8_device, mpbTexPath, mpbTexPtr);
+    end
+    if(ashita.fs.exists((t .. 'tpBar.png'))) then
+        tpbTexPath = (t .. 'tpBar.png');
+        tpbTex = getTex(d3d8_device, tpbTexPath, tpbTexPtr);
+    end
+    if(ashita.fs.exists((t .. 'hpFill.png'))) then
+        hpfTexPath = (t .. 'hpFill.png');
+        hpfTex = getTex(d3d8_device, hpfTexPath, hpfTexPtr);
+    end
+    if(ashita.fs.exists((t .. 'mpFill.png'))) then
+        mpfTexPath = (t .. 'mpFill.png');
+        mpfTex = getTex(d3d8_device, mpfTexPath, mpfTexPtr);
+    end
+    if(ashita.fs.exists((t .. 'tpFill.png'))) then
+        tpfTexPath = (t .. 'tpFill.png');
+        tpfTex = getTex(d3d8_device, tpfTexPath, tpfTexPtr);
+    end
+    if(ashita.fs.exists(t .. 'LockOn.png')) then
+        lockTexPath = (t .. 'LockOn.png');
+        lockedTex = getTex(d3d8_device, lockTexPath, lockTexPtr);
+    end
 end
 
 function setscale(a,v)
