@@ -98,7 +98,7 @@ mpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
 tpbTexPtr = ffi.new('IDirect3DTexture8*[1]');
 tpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
 lockTexPtr = ffi.new('IDirect3DTexture8*[1]');
-themePath = ('%s\\addons\\GlamourUI\\Themes\\%s\\'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.theme);
+themePath = ('%s\\config\\addons\\GlamourUI\\Themes\\%s\\'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.theme);
 
 
 settings.register('settings', 'settings_update', function(s)
