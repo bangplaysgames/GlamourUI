@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.1.2';
+addon.version = '0.1.3';
 
 local imgui = require('imgui')
 
@@ -38,7 +38,6 @@ local default_settings = T{
         theme = 'Default',
         font_scale = 1.5,
         gui_scale = 1,
-        layout = 'Default',
         themed = true
     },
 
@@ -50,7 +49,6 @@ local default_settings = T{
          gui_scale = 1,
          lockIndicator = true,
          themed = true,
-         theme = 'Default'
     },
 
     alliancePanel = T{
@@ -76,13 +74,32 @@ local default_settings = T{
         font_scale = 1.5,
         gui_scale = 1,
         themed = true
-    }
+    },
+
+    theme = 'Default'
 };
 
 glamourUI = T{
     is_open = true,
     settings = settings.load(default_settings)
 }
+
+hpbTexPath = '';
+hpfTexPath = '';
+mpbTexPath = '';
+mpfTexPath = '';
+tpbTexPath = '';
+tpfTexPath = '';
+lockTexPath = '';
+hpbTexPtr = ffi.new('IDirect3DTexture8*[1]');
+hpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
+mpbTexPtr = ffi.new('IDirect3DTexture8*[1]');
+mpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
+tpbTexPtr = ffi.new('IDirect3DTexture8*[1]');
+tpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
+lockTexPtr = ffi.new('IDirect3DTexture8*[1]');
+themePath = ('%s\\addons\\GlamourUI\\Themes\\%s\\'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.theme);
+
 
 settings.register('settings', 'settings_update', function(s)
     if (s ~=nil) then
@@ -102,43 +119,6 @@ function render_party_list()
         imgui.SetNextWindowPos({glamourUI.settings.partylist.x, glamourUI.settings.partylist.y}, ImGuiCond_FirstUseEver);
 
         if(glamourUI.settings.partylist.themed == true)then
-            local hpbTexPath = '';
-            if (ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\hpBar.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme))) then
-                hpbTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\hpBar.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
-            end
-            local hpbTexPtr = ffi.new('IDirect3DTexture8*[1]');
-            local mpbTexPath = '';
-            if(ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\mpBar.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme))) then
-                mpbTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\mpBar.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
-            end
-            local mpbTexPtr = ffi.new('IDirect3DTexture8*[1]');
-            local tpbTexPath = '';
-            if(ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\tpBar.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme))) then
-                tpbTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\tpBar.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
-            end
-            local tpbTexPtr = ffi.new('IDirect3DTexture8*[1]');
-            local hpfTexPath = '';
-            if(ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\hpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme))) then
-                hpfTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\hpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
-            end
-            local hpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
-            local mpfTexPath = '';
-            if(ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\mpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme))) then
-                mpfTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\mpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
-            end
-            local mpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
-            local tpfTexPath = '';
-            if(ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\tpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme))) then
-                tpfTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\tpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
-            end
-            local tpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
-
-            local hpbTex = getTex(d3d8_device, hpbTexPath, hpbTexPtr);
-            local hpfTex = getTex(d3d8_device, hpfTexPath, hpfTexPtr);
-            local mpbTex = getTex(d3d8_device, mpbTexPath, mpbTexPtr);
-            local mpfTex = getTex(d3d8_device, mpfTexPath, mpfTexPtr);
-            local tpbTex = getTex(d3d8_device, tpbTexPath, tpbTexPtr);
-            local tpfTex = getTex(d3d8_device, tpfTexPath, tpfTexPtr);
             if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
                 local party = AshitaCore:GetMemoryManager():GetParty()
                 local partyCount = 0;
@@ -332,21 +312,6 @@ function render_target_bar()
                 imgui.SetCursorPosY(10 * glamourUI.settings.targetbar.gui_scale);
                 imgui.Text(targetEntity.Name);
                 if(glamourUI.settings.targetbar.themed == true) then
-                    local hpbTexPath = '';
-                    if(ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\hpBar.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme))) then
-                        hpbTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\hpBar.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
-                    end
-                    local hpbTexPtr = ffi.new('IDirect3DTexture8*[1]');
-                    local hpfTexPath = '';
-                    if(ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\hpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme))) then
-                        hpfTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\hpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
-                    end
-                    local hpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
-                    local hpbTex = getTex(d3d8_device, hpbTexPath, hpbTexPtr);
-                    local hpfTex = getTex(d3d8_device, hpfTexPath, hpfTexPtr);
-                    local textureIsPresent = true;
-
-
 
                     imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
                     imgui.SetWindowFontScale(1 * glamourUI.settings.targetbar.gui_scale);
@@ -358,18 +323,6 @@ function render_target_bar()
                     imgui.SetCursorPosX(340 * glamourUI.settings.targetbar.gui_scale);
                     imgui.Text(tostring(targetEntity.HPPercent) .. '%%');
                     if(IsTargetLocked() and glamourUI.settings.targetbar.lockIndicator == true) then
-                        local lockTexPath = '';
-                        if ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\LockOn.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.targetbar.theme)) then
-                            lockTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\LockOn.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.targetbar.theme);
-                        else
-                            print(chat.header('Missing Lock-On Texture'));
-                            return;
-                        end
-
-
-                        local lockTexPtr = ffi.new('IDirect3DTexture8*[1]');
-                        local lockedTex = getTex(d3d8_device, lockTexPath, lockTexPtr);
-
                         imgui.SetCursorPosX(0);
                         imgui.SetCursorPosY(0);
                         imgui.Image(lockedTex, {723 * glamourUI.settings.targetbar.gui_scale, 59 * glamourUI.settings.targetbar.gui_scale});
@@ -382,16 +335,6 @@ function render_target_bar()
                     imgui.ProgressBar(targetEntity.HPPercent / 100, {660 * glamourUI.settings.targetbar.gui_scale, 16 * glamourUI.settings.targetbar.gui_scale}, tostring(targetEntity.HPPercent) .. '%');
                     imgui.PopStyleColor(1);
                     if(IsTargetLocked() and glamourUI.settings.targetbar.lockIndicator == true) then
-                        local lockTexPath = '';
-                        if ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\LockOn.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.targetbar.theme)) then
-                            lockTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\LockOn.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.targetbar.theme);
-                        else
-                            print(chat.header('Missing Lock-On Texture'));
-                            return;
-                        end
-                        local lockTexPtr = ffi.new('IDirect3DTexture8*[1]');
-                        local lockedTex = getTex(d3d8_device, lockTexPath, lockTexPtr);
-
                         imgui.SetCursorPosX(0);
                         imgui.SetCursorPosY(0);
                         imgui.Image(lockedTex, {723 * glamourUI.settings.targetbar.gui_scale, 59 * glamourUI.settings.targetbar.gui_scale});
@@ -411,21 +354,6 @@ function render_alliance_panel()
             imgui.SetNextWindowBgAlpha(.3);
             imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
             imgui.SetNextWindowPos({glamourUI.settings.alliancePanel.x, glamourUI.settings.alliancePanel.y}, ImGuiCond_FirstUseEver);
-            local hpbTexPath = '';
-            if(ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\hpBar.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme))) then
-                hpbTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\hpBar.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
-            end
-            local hpbTexPtr = ffi.new('IDirect3DTexture8*[1]');
-            local hpfTexPath = '';
-            if(ashita.fs.exists(('%s\\addons\\GlamourUI\\Themes\\%s\\hpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme))) then
-                hpfTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\hpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
-            end
-            local hpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
-
-
-            local hpbTex = getTex(d3d8_device, hpbTexPath, hpbTexPtr);
-            local hpfTex = getTex(d3d8_device, hpfTexPath, hpfTexPtr);
-
 
             if (imgui.Begin('Alliance List', glamourUI.alliancePanel.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
 
@@ -575,24 +503,6 @@ function render_player_stats()
     if(glamourUI.settings.playerStats.enabled == true)then
 
         if(glamourUI.settings.playerStats.themed == true) then
-            local hpbTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\hpBar.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
-            local hpbTexPtr = ffi.new('IDirect3DTexture8*[1]');
-            local mpbTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\mpBar.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
-            local mpbTexPtr = ffi.new('IDirect3DTexture8*[1]');
-            local tpbTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\tpBar.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
-            local tpbTexPtr = ffi.new('IDirect3DTexture8*[1]');
-            local hpfTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\hpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
-            local hpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
-            local mpfTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\mpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
-            local mpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
-            local tpfTexPath = ('%s\\addons\\GlamourUI\\Themes\\%s\\tpFill.png'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.partylist.theme);
-            local tpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
-            local hpbTex = getTex(d3d8_device, hpbTexPath, hpbTexPtr);
-            local hpfTex = getTex(d3d8_device, hpfTexPath, hpfTexPtr);
-            local mpbTex = getTex(d3d8_device, mpbTexPath, mpbTexPtr);
-            local mpfTex = getTex(d3d8_device, mpfTexPath, mpfTexPtr);
-            local tpbTex = getTex(d3d8_device, tpbTexPath, tpbTexPtr);
-            local tpfTex = getTex(d3d8_device, tpfTexPath, tpfTexPtr);
             if (imgui.Begin('Player Stats', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
                 imgui.SetWindowFontScale(glamourUI.settings.playerStats.font_scale);
                 renderPlayerStats(hpbTex, hpfTex, hp, hpp, 0);
@@ -657,6 +567,10 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         render_alliance_panel();
         render_player_stats();
     end
+end)
+
+ashita.events.register('load', 'load_cb', function()
+    loadTextures(themePath);
 end)
 
 ashita.events.register('unload', 'unload_cb', function()
