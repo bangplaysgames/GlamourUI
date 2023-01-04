@@ -79,7 +79,7 @@ function getTexturePath(settings, type, texture)
     end
 
     if(theme ~= nil) then
-        local path = ('%s\\addons\\GlamourUI\\Themes\\%s\\%s'):fmt(AshitaCore:GetInstallPath(), theme, texture)
+        local path = ('%s\\config\\addons\\GlamourUI\\Themes\\%s\\%s'):fmt(AshitaCore:GetInstallPath(), theme, texture)
         if(not cache.paths:haskey(path)) then
             if(ashita.fs.exists(path)) then
                 cache.paths[path] = path;
