@@ -71,6 +71,7 @@ function render_config()
                     if (glamourUI.settings.partylist.layout ~= layoutdir[i] and imgui.Selectable(layoutdir[i], is_selected))then
                         confGUI.layoutID = i;
                         glamourUI.settings.partylist.layout = layoutdir[i];
+                        loadLayout(layoutdir[i]);
                     end
                     if(is_selected) then
                         imgui.SetItemDefaultFocus();

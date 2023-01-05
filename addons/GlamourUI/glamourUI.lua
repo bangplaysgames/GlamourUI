@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.3.0';
+addon.version = '0.3.1';
 
 local imgui = require('imgui')
 
@@ -692,7 +692,10 @@ ashita.events.register('load', 'load_cb', function()
         ashita.fs.create_directory(('%s\\config\\addons\\GlamourUI\\Layouts'):fmt(AshitaCore:GetInstallPath()));
         print(chat.header('Creating Layout Directory'));
     end
-    if(not ashita.fs.exists(('%s\\config\\addons\\GlamourUI\\Layouts\\Default.lua'):fmt(AshitaCore:GetInstallPath()))) then
+    if(not ashita.fs.exists(('%s\\config\\addons\\GlamourUI\\Layouts\\Default'):fmt(AshitaCore:GetInstallPath())))then
+        ashita.fs.create_directory(('%s\\config\\addons\\GlamourUI\\Layouts\\Default'):fmt(AshitaCore:GetInstallPath()));
+    end
+    if(not ashita.fs.exists(('%s\\config\\addons\\GlamourUI\\Layouts\\Default\\layout.lua'):fmt(AshitaCore:GetInstallPath()))) then
         createLayout('Default');
         print(chat.header('Creating Default Layout'));
     end

@@ -365,7 +365,7 @@ function renderPlayerNoTheme(o, c, p, pp)
 end
 
 function createLayout(name)
-    local path = ('%s\\config\\addons\\GlamourUI\\Layouts\\%s.lua'):fmt(AshitaCore:GetInstallPath(), name);
+    local path = ('%s\\config\\addons\\GlamourUI\\Layouts\\%s\\layout.lua'):fmt(AshitaCore:GetInstallPath(), name);
     if ashita.fs.exists(path)then
         print(chat.header(('Layout with name: \"%s\" already exists.'):fmt(name)));
         return;
@@ -406,7 +406,7 @@ function createLayout(name)
 end
 
 function updateLayoutFile(name)
-    local path = ('%s\\config\\addons\\GlamourUI\\Layouts\\%s.lua'):fmt(AshitaCore:GetInstallPath(), name);
+    local path = ('%s\\config\\addons\\GlamourUI\\Layouts\\%s\\layout.lua'):fmt(AshitaCore:GetInstallPath(), name);
 
     local file = io.open(path, 'w+');
     if(file == nil) then
@@ -465,8 +465,9 @@ function LoadFile(filePath)
 end
 
 function loadLayout(name)
-    local path = (('%s\\config\\addons\\GlamourUI\\Layouts\\%s.lua'):fmt(AshitaCore:GetInstallPath(), name));
+    local path = (('%s\\config\\addons\\GlamourUI\\Layouts\\%s\\layout.lua'):fmt(AshitaCore:GetInstallPath(), name));
     glamourUI.layout = LoadFile(path);
+    print(chat.header(path));
 end
 
 function setscale(a,v)
