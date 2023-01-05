@@ -122,7 +122,7 @@ function render_party_list()
             end
 
 
-            if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
+            if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
                 local party = AshitaCore:GetMemoryManager():GetParty()
                 local partyCount = 0;
                 for i = 1,6,1 do
@@ -163,7 +163,7 @@ function render_party_list()
             end
             imgui.End();
         else
-            if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
+            if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
                 local party = AshitaCore:GetMemoryManager():GetParty()
                 local partyCount = 0;
                 for i = 1,6,1 do
@@ -347,6 +347,7 @@ function render_target_bar()
                     end
 
                 else
+                    imgui.Text(targetEntity.Name);
                     if(IsTargetLocked() and glamourUI.settings.targetbar.lockIndicator == true) then
                         imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0 });
                     else
@@ -393,7 +394,7 @@ function render_alliance_panel()
             end
 
 
-            if (imgui.Begin('Alliance List', glamourUI.alliancePanel.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
+            if (imgui.Begin('Alliance List', glamourUI.alliancePanel.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
 
                 if(a1Count >= 1) then
                     if(glamourUI.settings.alliancePanel.themed == true)then
@@ -454,7 +455,7 @@ function render_alliance_panel()
             imgui.SetNextWindowBgAlpha(.3);
             imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
             imgui.SetNextWindowPos({glamourUI.settings.alliancePanel2.x, glamourUI.settings.alliancePanel2.y}, ImGuiCond_FirstUseEver);
-            if (imgui.Begin('Alliance List', glamourUI.alliancePanel.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
+            if (imgui.Begin('Alliance List', glamourUI.alliancePanel.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
 
                 if(a2Count >= 1) then
                     if(glamourUI.settings.alliancePanel.themed == true)then
@@ -539,7 +540,7 @@ function render_player_stats()
     local tp = getTP(0);
 
     if(glamourUI.settings.playerStats.enabled == true)then
-        if (imgui.Begin('Player Stats', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
+        if (imgui.Begin('Player Stats', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
             if(glamourUI.settings.playerStats.themed == true) then
 
                 local hpbTex = getTex(glamourUI.settings, 'playerStats', 'hpBar.png');

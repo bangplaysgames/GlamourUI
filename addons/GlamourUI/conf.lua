@@ -105,8 +105,8 @@ function render_config()
             imgui.SameLine();
             imgui.SetCursorPosX(400);
             if(imgui.Checkbox('Themed', {glamourUI.settings.alliancePanel.themed}))then
-                glamourUI.settings.alliancePanel.themed = not glamourUI.settings.AlliancePanel.themed;
-                glamourUI.settings.alliancePanel2.themed = not glamourUI.settings.AlliancePanel2.themed;
+                glamourUI.settings.alliancePanel.themed = not glamourUI.settings.alliancePanel.themed;
+                glamourUI.settings.alliancePanel2.themed = not glamourUI.settings.alliancePanel2.themed;
             end
             imgui.SliderFloat('Alliance Panels Scale  ', alliance_gui_scale, 0.1, 5.0, '%.1f');
             if(glamourUI.settings.alliancePanel.gui_scale ~= alliance_gui_scale[1]) then
