@@ -175,7 +175,7 @@ end
 
 function renderPartyThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, p)
     local element = glamourUI.layout.Priority;
-    local yOffset = p * 40;
+    local yOffset = (p * 40) + glamourUI.layout.padding;
     if element[e] == 'name' then
         imgui.SetCursorPosX((5 + glamourUI.layout.NamePosition.x) * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.NamePosition.y) * glamourUI.settings.partylist.gui_scale);
@@ -221,7 +221,7 @@ function renderPartyThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, p)
 end
 
 function renderPetThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, p, c)
-    local yOffset = c * 40;
+    local yOffset = (c * 40) + glamourUI.layout.padding;
     local element = glamourUI.layout.Priority;
 
     if element[e] == 'name' then

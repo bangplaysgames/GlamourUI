@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.2.1';
+addon.version = '0.3.0';
 
 local imgui = require('imgui')
 
@@ -666,6 +666,9 @@ ashita.events.register('command', 'command_cb', function (e)
         end
         if (args[2] == 'config') then
             confGUI.is_open = true;
+        end
+        if (args[2] == 'layout') then
+            layoutGUI.is_open = true;
         end
     end
 end)
