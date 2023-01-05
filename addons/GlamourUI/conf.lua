@@ -4,7 +4,8 @@ local imgui = require('imgui')
 
 confGUI = T{
     is_open = false,
-    themeID = T{ getThemeID('Default')}
+    themeID = T{ getThemeID('Default')},
+    layoutID = T{ getLayoutID('Default')}
 }
 
 function render_config()
@@ -19,12 +20,13 @@ function render_config()
     local alliance2_font_scale = {glamourUI.settings.alliancePanel2.font_scale};
     local player_font_scale = {glamourUI.settings.playerStats.font_scale};
     local themedir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Themes\\'):fmt(AshitaCore:GetInstallPath()));
+    local layoutdir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Layouts\\'):fmt(AshitaCore:GetInstallPath()));
 
     if(confGUI.is_open == true)then
         imgui.SetNextWindowSize({-1,-1}, ImGuiCond_Always);
         if(imgui.Begin('GlamourUI Configuration', confGUI.is_open, ImGuiWindowFlags_NoDecoration,ImGuiWindowFlags_AlwaysAutoResize)) then
             imgui.BeginGroup();
-            imgui.BeginChild('conf_partylist', {500,125}, true);
+            imgui.BeginChild('conf_partylist', {500,140}, true);
             imgui.Text('PartyList');
             imgui.SameLine();
             imgui.SetCursorPosX(200);
@@ -51,6 +53,20 @@ function render_config()
                     if (glamourUI.settings.partylist.theme ~= themedir[i] and imgui.Selectable(themedir[i], is_selected))then
                         confGUI.themeID = i;
                         glamourUI.settings.partylist.theme = themedir[i];
+                    end
+                    if(is_selected) then
+                        imgui.SetItemDefaultFocus();
+                    end
+                end
+                imgui.EndCombo();
+            end
+            if(imgui.BeginCombo('Layout  ', glamourUI.settings.partylist.layout, combo_flags))then
+                for i = 1,#layoutdir,1 do
+                    local is_selected = i == confGUI.layoutID;
+
+                    if (glamourUI.settings.partylist.layout ~= layoutdir[i] and imgui.Selectable(layoutdir[i], is_selected))then
+                        confGUI.layoutID = i;
+                        glamourUI.settings.partylist.layout = layoutdir[i];
                     end
                     if(is_selected) then
                         imgui.SetItemDefaultFocus();
@@ -176,4 +192,8 @@ function render_config()
         end
         imgui.End();
     end
+end
+
+function render_layout_editor()
+    return;
 end

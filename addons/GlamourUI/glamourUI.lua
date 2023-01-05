@@ -84,7 +84,33 @@ local default_settings = T{
 
 glamourUI = T{
     is_open = true,
-    settings = settings.load(default_settings)
+    settings = settings.load(default_settings),
+    debug = '',
+    layout = {
+        Priority = {
+            'name',
+            'hp',
+            'mp',
+            'tp'
+        },
+        NamePosition = {
+            x = 0,
+            y = 0
+        },
+        HPBarPosition = {
+            x = 0,
+            y = 0
+        },
+        MPBarPosition = {
+            x = 0,
+            y = 0
+        },
+        TPBarPosition = {
+            x = 0,
+            y = 0
+        },
+        padding = 0
+    }
 }
 
 settings.register('settings', 'settings_update', function(s)
@@ -137,28 +163,48 @@ function render_party_list()
                 end
                 local pet = GetEntity(player.PetTargetIndex);
 
-
                 imgui.SetWindowFontScale((glamourUI.settings.partylist.font_scale));
-                renderPlayerThemed(hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 0);
+                renderPlayerThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 0);
+                renderPlayerThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 0);
+                renderPlayerThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 0);
+                renderPlayerThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 0);
 
                 if(partyCount >= 2) then
-                    renderPartyThemed(hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
+                    renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
+                    renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
+                    renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
+                    renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
                 end
                 if(partyCount >= 3) then
-                    renderPartyThemed(hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
+                    renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
+                    renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
+                    renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
+                    renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
                 end
                 if(partyCount >= 4) then
-                    renderPartyThemed(hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
+                    renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
+                    renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
+                    renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
+                    renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
                 end
                 if(partyCount >= 5) then
-                    renderPartyThemed(hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
+                    renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
+                    renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
+                    renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
+                    renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
                 end
                 if(partyCount >= 6) then
-                    renderPartyThemed(hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
+                    renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
+                    renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
+                    renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
+                    renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
                 end
 
                 if(pet ~= nil) then
-                    renderPetThemed(hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet)
+                    renderPetThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
+                    renderPetThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
+                    renderPetThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
+                    renderPetThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
                 end
             end
             imgui.End();
@@ -521,9 +567,12 @@ end
 function render_debug_panel()
     if(dbug == true) then
         imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
-        imgui.SetNextWindowPos({12, 12}, ImGuiCond_Always);
+        imgui.SetNextWindowPos({12, 12}, ImGuiCond_FirstUseEver);
         if(imgui.Begin('Debug'))then
-            imgui.Text(glamourUI.themes);
+            imgui.Text(tostring(glamourUI.layout.NamePosition.x));
+            if(imgui.Button('Load value from Layout'))then
+                loadLayout('Default');
+            end
         end
         imgui.End();
     end
@@ -626,15 +675,24 @@ ashita.events.register('d3d_present', 'present_cb', function ()
     if (player ~= nil) then
         render_party_list();
         render_target_bar();
-        --render_debug_panel();
         render_alliance_panel();
         render_player_stats();
         render_config(glamourUI.settings);
+        render_layout_editor(glamourUI.layout);
+        render_debug_panel();
     end
 end)
 
 ashita.events.register('load', 'load_cb', function()
-
+    if(not ashita.fs.exists(('%s\\config\\addons\\GlamourUI\\Layouts'):fmt(AshitaCore:GetInstallPath())))then
+        ashita.fs.create_directory(('%s\\config\\addons\\GlamourUI\\Layouts'):fmt(AshitaCore:GetInstallPath()));
+        print(chat.header('Creating Layout Directory'));
+    end
+    if(not ashita.fs.exists(('%s\\config\\addons\\GlamourUI\\Layouts\\Default.lua'):fmt(AshitaCore:GetInstallPath()))) then
+        createLayout('Default');
+        print(chat.header('Creating Default Layout'));
+    end
+    loadLayout(glamourUI.settings.partylist.layout);
 end)
 
 ashita.events.register('unload', 'unload_cb', function()
