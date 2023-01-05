@@ -405,6 +405,43 @@ function createLayout(name)
     file:close();
 end
 
+function updateLayoutFile(name)
+    local path = ('%s\\config\\addons\\GlamourUI\\Layouts\\%s.lua'):fmt(AshitaCore:GetInstallPath(), name);
+
+    local file = io.open(path, 'w+');
+    if(file == nil) then
+        print(chat.header(('Error Creating new Layout')));
+        return;
+    end;
+    file:write('local layout = {\n');
+    file:write('    Priority = {\n');
+    file:write('        \'name\',\n');
+    file:write('        \'hp\',\n');
+    file:write('        \'mp\',\n');
+    file:write('        \'tp\'\n');
+    file:write('    },\n');
+    file:write('    NamePosition = {\n');
+    file:write(('        x = %s,\n'):fmt(glamourUI.layout.NamePosition.x));
+    file:write(('        y = %s\n'):fmt(glamourUI.layout.NamePosition.y));
+    file:write('    },\n');
+    file:write('    HPBarPosition = {\n');
+    file:write(('        x = %s,\n'):fmt(glamourUI.layout.HPBarPosition.x));
+    file:write(('        y = %s\n'):fmt(glamourUI.layout.HPBarPosition.y));
+    file:write('    },\n');
+    file:write('    MPBarPosition = {\n');
+    file:write(('        x = %s,\n'):fmt(glamourUI.layout.MPBarPosition.x));
+    file:write(('        y = %s\n'):fmt(glamourUI.layout.MPBarPosition.y));
+    file:write('    },\n');
+    file:write('    TPBarPosition = {\n');
+    file:write(('        x = %s,\n'):fmt(glamourUI.layout.TPBarPosition.x));
+    file:write(('        y = %s\n'):fmt(glamourUI.layout.TPBarPosition.y));
+    file:write('    },\n')
+    file:write(('    padding = %s'):fmt(glamourUI.layout.padding));
+    file:write('};\n')
+    file:write('return layout;')
+    file:close();
+end
+
 function LoadFile(filePath)
     if not ashita.fs.exists(filePath) then
         return nil;

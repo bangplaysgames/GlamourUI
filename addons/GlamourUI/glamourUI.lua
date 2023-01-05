@@ -639,6 +639,7 @@ ashita.events.register('command', 'command_cb', function (e)
         print(chat.header('Glamour UI Commands:'));
         print(chat.message('/glam - Show this help text'))
         print(chat.message('/glam config - Opens the Configuration window'));
+        print(chat.message('/glam layout - Opens the Layout Editor'));
         print(chat.message('/glam partylist - Toggle Partylist'));
         print(chat.message('/glam partylist setscale # - Set PartyList Scale'));
         print(chat.message('/glam targetbar - Toggle Target Bar'));

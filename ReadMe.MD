@@ -23,6 +23,8 @@ Currently, I have just a handful of commands:
 
 /glam config - Opens the GlamourUI Configuration Window
 
+/glam layout - Opens the In-Game Layout Editor
+
 /glam partylist - Toggles the party list on and off.
 
 /glam partylist setscale # - Changes the scale of the party list.  Replace # with the scale multiplier.  (Default 1.  Accepts integers or decimals.)

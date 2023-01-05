@@ -343,6 +343,7 @@ function render_layout_editor()
             imgui.EndChild();
             if(imgui.Button('Close Editor'))then
                 layoutGUI.is_open = false;
+                updateLayoutFile(glamourUI.settings.partylist.layout);
             end
         end
         imgui.End();
