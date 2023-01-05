@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.2.0';
+addon.version = '0.2.1';
 
 local imgui = require('imgui')
 
@@ -539,32 +539,39 @@ function render_player_stats()
     local tp = getTP(0);
 
     if(glamourUI.settings.playerStats.enabled == true)then
+        if (imgui.Begin('Player Stats', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
+            if(glamourUI.settings.playerStats.themed == true) then
 
-        if(glamourUI.settings.playerStats.themed == true) then
+                local hpbTex = getTex(glamourUI.settings, 'playerStats', 'hpBar.png');
+                local hpfTex = getTex(glamourUI.settings, 'playerStats', 'hpFill.png');
+                local mpbTex = getTex(glamourUI.settings, 'playerStats', 'mpBar.png');
+                local mpfTex = getTex(glamourUI.settings, 'playerStats', 'mpFill.png');
+                local tpbTex = getTex(glamourUI.settings, 'playerStats', 'tpBar.png');
+                local tpfTex = getTex(glamourUI.settings, 'playerStats', 'tpFill.png');
 
-            local hpbTex = getTex(glamourUI.settings, 'playerStats', 'hpBar.png');
-            local hpfTex = getTex(glamourUI.settings, 'playerStats', 'hpFill.png');
-            local mpbTex = getTex(glamourUI.settings, 'playerStats', 'mpBar.png');
-            local mpfTex = getTex(glamourUI.settings, 'playerStats', 'mpFill.png');
-            local tpbTex = getTex(glamourUI.settings, 'playerStats', 'tpBar.png');
-            local tpfTex = getTex(glamourUI.settings, 'playerStats', 'tpFill.png');
 
-            if (hpbTex == nil or hpfTex == nil or mpbTex == nil or mpfTex == nil or tpbTex == nil or tpbTex == nil) then
-                print('playerStats rendering disabled, missing textures.');
-                glamourUI.settings.playerStats.themed = false;
-                return;
-            end
-            if (imgui.Begin('Player Stats', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
                 imgui.SetWindowFontScale(glamourUI.settings.playerStats.font_scale);
                 renderPlayerStats(hpbTex, hpfTex, hp, hpp, 0);
                 imgui.SameLine();
                 renderPlayerStats(mpbTex, mpfTex, mp, mpp, 250);
                 imgui.SameLine();
                 renderPlayerStats(tpbTex, tpfTex, tp, nil, 500);
-            end
-        end
 
+            else
+
+                imgui.SetWindowFontScale(glamourUI.settings.playerStats.font_scale);
+                renderPlayerNoTheme(0, { 1.0, 0.25, 0.25, 1.0 }, hp, hpp);
+                imgui.SameLine();
+                renderPlayerNoTheme(250, { 0.0, 0.5, 0.0, 1.0 }, mp, mpp);
+                imgui.SameLine();
+                renderPlayerNoTheme(500, { 0.0, 0.45, 1.0, 1.0}, tp, nil);
+
+            end
+
+        end
+        imgui.End();
     end
+
 end
 
 ashita.events.register('command', 'command_cb', function (e)

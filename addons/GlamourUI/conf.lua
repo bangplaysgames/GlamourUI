@@ -31,6 +31,11 @@ function render_config()
             if(imgui.Checkbox('Enabled', {glamourUI.settings.partylist.enabled}))then
                 glamourUI.settings.partylist.enabled = not glamourUI.settings.partylist.enabled;
             end
+            imgui.SameLine();
+            imgui.SetCursorPosX(400);
+            if(imgui.Checkbox('Themed', {glamourUI.settings.partylist.themed}))then
+                glamourUI.settings.partylist.themed = not glamourUI.settings.partylist.themed;
+            end
             imgui.SliderFloat('Party List Scale  ', party_gui_scale, 0.1, 5.0, '%.1f');
             if(glamourUI.settings.partylist.gui_scale ~= party_gui_scale[1]) then
                 glamourUI.settings.partylist.gui_scale = party_gui_scale[1];
@@ -60,6 +65,11 @@ function render_config()
             imgui.SetCursorPosX(200);
             if(imgui.Checkbox('Enabled', {glamourUI.settings.targetbar.enabled}))then
                 glamourUI.settings.targetbar.enabled = not glamourUI.settings.targetbar.enabled;
+            end
+            imgui.SameLine();
+            imgui.SetCursorPosX(400);
+            if(imgui.Checkbox('Themed', {glamourUI.settings.targetbar.themed}))then
+                glamourUI.settings.targetbar.themed = not glamourUI.settings.targetbar.themed;
             end
             imgui.SliderFloat('Target Bar Scale  ', party_gui_scale, 0.1, 5.0, '%.1f');
             if(glamourUI.settings.targetbar.gui_scale ~= target_gui_scale[1]) then
@@ -91,6 +101,12 @@ function render_config()
             if(imgui.Checkbox('Enabled', {glamourUI.settings.alliancePanel.enabled}))then
                 glamourUI.settings.alliancePanel.enabled = not glamourUI.settings.alliancePanel.enabled;
                 glamourUI.settings.alliancePanel2.enabled = not glamourUI.settings.alliancePanel2.enabled;
+            end
+            imgui.SameLine();
+            imgui.SetCursorPosX(400);
+            if(imgui.Checkbox('Themed', {glamourUI.settings.alliancePanel.themed}))then
+                glamourUI.settings.alliancePanel.themed = not glamourUI.settings.AlliancePanel.themed;
+                glamourUI.settings.alliancePanel2.themed = not glamourUI.settings.AlliancePanel2.themed;
             end
             imgui.SliderFloat('Alliance Panels Scale  ', alliance_gui_scale, 0.1, 5.0, '%.1f');
             if(glamourUI.settings.alliancePanel.gui_scale ~= alliance_gui_scale[1]) then
@@ -125,7 +141,12 @@ function render_config()
             if(imgui.Checkbox('Enabled', {glamourUI.settings.playerStats.enabled}))then
                 glamourUI.settings.playerStats.enabled = not glamourUI.settings.playerStats.enabled;
             end
-            imgui.SliderFloat('Alliance Panels Scale  ', player_gui_scale, 0.1, 5.0, '%.1f');
+            imgui.SameLine();
+            imgui.SetCursorPosX(400);
+            if(imgui.Checkbox('Themed', {glamourUI.settings.playerStats.themed}))then
+                glamourUI.settings.playerStats.themed = not glamourUI.settings.playerStats.themed;
+            end
+            imgui.SliderFloat('Player Stats Scale  ', player_gui_scale, 0.1, 5.0, '%.1f');
             if(glamourUI.settings.playerStats.gui_scale ~= player_gui_scale[1]) then
                 glamourUI.settings.playerStats.gui_scale = player_gui_scale[1];
             end

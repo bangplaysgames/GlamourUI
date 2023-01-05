@@ -264,18 +264,45 @@ function renderAllianceThemed(hpbT, hpfT, a, o)
 end
 
 function renderPlayerStats(b, f, s, p, o)
+        imgui.SetCursorPosX(o + 5);
+        imgui.Image(b, {225 * glamourUI.settings.playerStats.gui_scale, 16 * glamourUI.settings.playerStats.gui_scale});
+        imgui.SameLine();
+        imgui.SetCursorPosX(o);
+        if(p ~= nil)then
+            imgui.Image(f, {(225 * glamourUI.settings.playerStats.gui_scale) * p / 100, 16* glamourUI.settings.playerStats.gui_scale});
+        else
+            imgui.Image(f, {225  * (math.clamp((s / 1000), 0, 1) * glamourUI.settings.playerStats.gui_scale), 16 * glamourUI.settings.playerStats.gui_scale});
+        end
+        imgui.SameLine();
+        imgui.SetCursorPosX(o + 5);
+        imgui.Text(tostring(s));
+end
+
+function renderPlayerNoTheme(o, c, p, pp)
     imgui.SetCursorPosX(o + 5);
-    imgui.Image(b, {225 * glamourUI.settings.playerStats.gui_scale, 16 * glamourUI.settings.playerStats.gui_scale});
-    imgui.SameLine();
-    imgui.SetCursorPosX(o);
-    if(p ~= nil)then
-        imgui.Image(f, {(225 * glamourUI.settings.playerStats.gui_scale) * p / 100, 16* glamourUI.settings.playerStats.gui_scale});
+    imgui.PushStyleColor(ImGuiCol_PlotHistogram, c);
+    if(pp ~= nil) then
+        imgui.ProgressBar(pp / 100, { 225 * glamourUI.settings.playerStats.gui_scale, 16 * glamourUI.settings.playerStats.gui_scale }, '');
     else
-        imgui.Image(f, {225  * (math.clamp((s / 1000), 0, 1) * glamourUI.settings.playerStats.gui_scale), 16 * glamourUI.settings.playerStats.gui_scale});
+        imgui.ProgressBar(p / 1000, {225 * glamourUI.settings.playerStats.gui_scale, 16 * glamourUI.settings.playerStats.gui_scale}, '');
+        if(p > 1000) then
+            imgui.SameLine();
+            imgui.SetCursorPosX(o+5);
+            imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0});
+            imgui.ProgressBar((p -1000) /1000, {225 * glamourUI.settings.playerStats.gui_scale, 10 * glamourUI.settings.partylist.gui_scale}, '');
+            imgui.PopStyleColor(1);
+        end
+        if(p > 2000) then
+            imgui.SameLine();
+            imgui.SetCursorPosX(o+5);
+            imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0});
+            imgui.ProgressBar((p -2000) /1000, {225 * glamourUI.settings.playerStats.gui_scale, 4 * glamourUI.settings.partylist.gui_scale}, '');
+            imgui.PopStyleColor(1);
+        end
     end
     imgui.SameLine();
-    imgui.SetCursorPosX(o + 5);
-    imgui.Text(tostring(s));
+    imgui.SetCursorPosX(o+5);
+    imgui.Text(tostring(p));
 end
 
 function setscale(a,v)
