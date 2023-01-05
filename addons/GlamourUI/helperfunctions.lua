@@ -2,6 +2,7 @@ local ffi = require('ffi')
 local d3d8 = require('d3d8')
 local imgui = require('imgui')
 require('common')
+local chat = require('chat')
 
 local cache = T{
     theme = nil,
@@ -37,6 +38,15 @@ function getTP(index)
     return AshitaCore:GetMemoryManager():GetParty():GetMemberTP(index);
 end
 
+function getThemeID(theme)
+    local dir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Themes\\'):fmt(AshitaCore:GetInstallPath()));
+    for i = 1,#dir,1 do
+        if(dir[i] == theme) then
+            return i;
+        end
+    end
+end
+
 function ToBoolean(b)
     if(b == 1)then
         return true;
@@ -44,13 +54,6 @@ function ToBoolean(b)
         return false;
     end
 end
-
-local modules = T{
-    ['partylist'] = 1,
-    ['targetbar'] = 2,
-    ['alliancepanel'] = 3,
-    ['alliancepanel2'] = 4
-}
 
 local d3d8_device = d3d8.get_device();
 

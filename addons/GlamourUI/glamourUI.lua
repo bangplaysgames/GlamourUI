@@ -24,6 +24,7 @@ local chat = require('chat')
 require('helperfunctions')
 local ffi = require('ffi')
 local d3d8 = require('d3d8')
+local conf = require('conf')
 
 local dbug = false;
 
@@ -85,23 +86,6 @@ glamourUI = T{
     is_open = true,
     settings = settings.load(default_settings)
 }
-
-hpbTexPath = '';
-hpfTexPath = '';
-mpbTexPath = '';
-mpfTexPath = '';
-tpbTexPath = '';
-tpfTexPath = '';
-lockTexPath = '';
-hpbTexPtr = ffi.new('IDirect3DTexture8*[1]');
-hpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
-mpbTexPtr = ffi.new('IDirect3DTexture8*[1]');
-mpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
-tpbTexPtr = ffi.new('IDirect3DTexture8*[1]');
-tpfTexPtr = ffi.new('IDirect3DTexture8*[1]');
-lockTexPtr = ffi.new('IDirect3DTexture8*[1]');
-themePath = ('%s\\config\\addons\\GlamourUI\\Themes\\%s\\'):fmt(AshitaCore:GetInstallPath(), glamourUI.settings.theme);
-
 
 settings.register('settings', 'settings_update', function(s)
     if (s ~=nil) then
@@ -538,9 +522,9 @@ function render_debug_panel()
         imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
         imgui.SetNextWindowPos({12, 12}, ImGuiCond_Always);
         if(imgui.Begin('Debug'))then
-            imgui.Text(tostring(IsTargetLocked()));
+            imgui.Text(glamourUI.themes);
         end
-
+        imgui.End();
     end
 end
 
@@ -597,6 +581,7 @@ ashita.events.register('command', 'command_cb', function (e)
     if(args[1]:any('/glam') and (#args ==1 or args[2]:any('help'))) then
         print(chat.header('Glamour UI Commands:'));
         print(chat.message('/glam - Show this help text'))
+        print(chat.message('/glam config - Opens the Configuration window'));
         print(chat.message('/glam partylist - Toggle Partylist'));
         print(chat.message('/glam partylist setscale # - Set PartyList Scale'));
         print(chat.message('/glam targetbar - Toggle Target Bar'));
@@ -622,6 +607,9 @@ ashita.events.register('command', 'command_cb', function (e)
         if (args[3] == 'setscale')then
             setscale(args[2], args[4]);
         end
+        if (args[2] == 'config') then
+            confGUI.is_open = true;
+        end
     end
 end)
 
@@ -630,9 +618,10 @@ ashita.events.register('d3d_present', 'present_cb', function ()
     if (player ~= nil) then
         render_party_list();
         render_target_bar();
-        render_debug_panel();
+        --render_debug_panel();
         render_alliance_panel();
         render_player_stats();
+        render_config(glamourUI.settings);
     end
 end)
 
