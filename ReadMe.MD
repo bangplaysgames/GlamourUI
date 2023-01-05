@@ -10,7 +10,9 @@ Download the latest release from:  https://github.com/bangplaysgames/glamourui/r
 
 Extract the contents of the zip file directly into your Ashita folder or Horizon\Game\ folder.
 
-UPDATE 0.1.1 - Added Theming engine for Party List.
+
+I have added a new Theme Repository for players to create their own themes and share them:  https://github.com/bangplaysgames/glamouruithemes/
+Clone the repository, make your new theme in its own folder, then create a pull request.  This will be the best way for user generated themes to be shared with other players.  I'm excited to see what others' designs are.
 
 
 Currently, I have just a handful of commands:
