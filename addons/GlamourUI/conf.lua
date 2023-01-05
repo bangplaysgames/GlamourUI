@@ -333,6 +333,9 @@ function render_layout_editor()
             imgui.BeginChild('layoutPadding', {400, 50}, true);
             imgui.Text('Padding');
             imgui.InputInt("", pad, 0, 100);
+            if(glamourUI.layout.padding ~= pad[1])then
+                glamourUI.layout.padding = pad[1];
+            end
             imgui.SameLine();
             if(imgui.ArrowButton('pleft', ImGuiDir_Up))then
                 glamourUI.layout.padding = glamourUI.layout.padding - 1;

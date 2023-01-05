@@ -371,6 +371,10 @@ function createLayout(name)
         return;
     end
 
+    if (not ashita.fs.exists(('%s\\config\\addons\\GlamourUI\\Layouts\\%s'):fmt(AshitaCore:GetInstallPath(), name))) then
+        ashita.fs.create_directory(('%s\\config\\addons\\GlamourUI\\Layouts\\%s'):fmt(AshitaCore:GetInstallPath(), name));
+    end
+
     local file = io.open(path, 'w');
     if(file == nil) then
         print(chat.header(('Error Creating new Layout')));
