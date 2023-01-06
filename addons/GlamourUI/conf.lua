@@ -112,11 +112,11 @@ function render_config()
             if(imgui.Checkbox('Themed', {glamourUI.settings.targetbar.themed}))then
                 glamourUI.settings.targetbar.themed = not glamourUI.settings.targetbar.themed;
             end
-            imgui.SliderFloat('Target Bar Scale  ', party_gui_scale, 0.1, 5.0, '%.1f');
+            imgui.SliderFloat('Target Bar Scale  ', target_gui_scale, 0.1, 5.0, '%.1f');
             if(glamourUI.settings.targetbar.gui_scale ~= target_gui_scale[1]) then
                 glamourUI.settings.targetbar.gui_scale = target_gui_scale[1];
             end
-            imgui.SliderFloat('Font Scale', party_font_scale, 0.1, 5.0, '%.1f');
+            imgui.SliderFloat('Font Scale', target_font_scale, 0.1, 5.0, '%.1f');
             if(glamourUI.settings.targetbar.font_scale ~= target_font_scale[1])then
                 glamourUI.settings.targetbar.font_scale = target_font_scale[1];
             end

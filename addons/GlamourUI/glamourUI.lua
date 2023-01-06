@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.4.0';
+addon.version = '0.4.1';
 
 local imgui = require('imgui')
 
@@ -405,7 +405,7 @@ function render_target_bar()
 
 
                     imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
-                    imgui.SetWindowFontScale(1 * glamourUI.settings.targetbar.gui_scale);
+                    imgui.SetWindowFontScale(1 * glamourUI.settings.targetbar.font_scale);
                     imgui.Image(hpbTex, {glamourUI.settings.targetbar.hpBarDim.l * glamourUI.settings.targetbar.gui_scale, glamourUI.settings.targetbar.hpBarDim.g * glamourUI.settings.targetbar.gui_scale});
                     imgui.SameLine();
                     imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
