@@ -38,6 +38,11 @@ function getTP(index)
     return AshitaCore:GetMemoryManager():GetParty():GetMemberTP(index);
 end
 
+function getZone(index)
+    local id = AshitaCore:GetMemoryManager():GetParty():GetMemberZone(index);
+    return AshitaCore:GetResourceManager():GetString('zones.names', id);
+end
+
 function getThemeID(theme)
     local dir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Themes\\'):fmt(AshitaCore:GetInstallPath()));
     for i = 1,#dir,1 do
@@ -363,6 +368,15 @@ function renderPlayerNoTheme(o, c, p, pp)
     imgui.SameLine();
     imgui.SetCursorPosX(o+5);
     imgui.Text(tostring(p));
+end
+
+function renderPartyZone(p)
+    local yOffset = (p * 40) + (p * glamourUI.layout.padding);
+    imgui.SetCursorPosX((5 + glamourUI.layout.NamePosition.x) * glamourUI.settings.partylist.gui_scale);
+    imgui.SetCursorPosY((yOffset + glamourUI.layout.NamePosition.y) * glamourUI.settings.partylist.gui_scale);
+    imgui.Text(getName(p));
+    imgui.SetCursorPosX(25 * glamourUI.settings.partylist.gui_scale);
+    imgui.Text('(|  '..getZone(p)..'  |)');
 end
 
 function createLayout(name)

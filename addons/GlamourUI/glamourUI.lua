@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.4.1';
+addon.version = '0.4.2';
 
 local imgui = require('imgui')
 
@@ -197,34 +197,54 @@ function render_party_list()
                 renderPlayerThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 0);
 
                 if(partyCount >= 2) then
-                    renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
-                    renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
-                    renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
-                    renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
+                    if(getZone(1) == getZone(0))then
+                        renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
+                        renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
+                        renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
+                        renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
+                    else
+                        renderPartyZone(1);
+                    end
                 end
                 if(partyCount >= 3) then
-                    renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
-                    renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
-                    renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
-                    renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
+                    if(getZone(2) == getZone(0))then
+                        renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
+                        renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
+                        renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
+                        renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
+                    else
+                        renderPartyZone(2);
+                    end
                 end
                 if(partyCount >= 4) then
-                    renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
-                    renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
-                    renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
-                    renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
+                    if(getZone(3) == getZone(0))then
+                        renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
+                        renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
+                        renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
+                        renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
+                    else
+                        renderPartyZone(3);
+                    end
                 end
                 if(partyCount >= 5) then
-                    renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
-                    renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
-                    renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
-                    renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
+                    if(getZone(4) == getZone(0))then
+                        renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
+                        renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
+                        renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
+                        renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
+                    else
+                        renderPartyZone(4);
+                    end
                 end
                 if(partyCount >= 6) then
-                    renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
-                    renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
-                    renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
-                    renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
+                    if(getZone(5) == getZone(0))then
+                        renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
+                        renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
+                        renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
+                        renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
+                    else
+                        renderPartyZone(5);
+                    end
                 end
 
                 if(pet ~= nil) then
@@ -596,7 +616,8 @@ function render_debug_panel()
         imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
         imgui.SetNextWindowPos({12, 12}, ImGuiCond_FirstUseEver);
         if(imgui.Begin('Debug'))then
-            imgui.Text(tostring(glamourUI.layout.NamePosition.x));
+            imgui.Text(tostring(getZone(1)));
+            imgui.Text(tostring(AshitaCore:GetResourceManager():GetString('zones.names', AshitaCore:GetMemoryManager():GetParty():GetMemberZone(1))));
             if(imgui.Button('Load value from Layout'))then
                 loadLayout('Default');
             end
