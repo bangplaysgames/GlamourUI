@@ -49,6 +49,7 @@ end
 
 function getLayoutID(layout)
     local dir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Layouts\\'):fmt(AshitaCore:GetInstallPath()));
+
     for i = 1,#dir,1 do
         if(dir[i] == layout) then
             return i;

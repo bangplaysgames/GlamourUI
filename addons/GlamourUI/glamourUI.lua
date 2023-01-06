@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.3.2';
+addon.version = '0.3.3';
 
 local imgui = require('imgui')
 
@@ -24,7 +24,6 @@ local chat = require('chat')
 require('helperfunctions')
 local ffi = require('ffi')
 local d3d8 = require('d3d8')
-local conf = require('conf')
 
 local dbug = false;
 
@@ -705,6 +704,7 @@ ashita.events.register('load', 'load_cb', function()
         createLayout('Default');
         print(chat.header('Creating Default Layout'));
     end
+    require('conf')
     loadLayout(glamourUI.settings.partylist.layout);
 end)
 

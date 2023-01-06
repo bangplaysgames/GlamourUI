@@ -9,7 +9,7 @@ confGUI = T{
 };
 
 layoutGUI = T{
-    is_open = false;
+    is_open = false
 };
 
 function render_config()
