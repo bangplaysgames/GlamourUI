@@ -12,6 +12,22 @@ layoutGUI = T{
     is_open = false
 };
 
+plistBarDim = T{
+    is_open = false
+};
+
+tBarDim = T{
+    is_open = false
+};
+
+aPanelBarDim = T{
+    is_open = false
+};
+
+pStatsBarDim = T{
+    is_open = false
+};
+
 function render_config()
     local party_gui_scale = {glamourUI.settings.partylist.gui_scale};
     local target_gui_scale = {glamourUI.settings.targetbar.gui_scale};
@@ -29,8 +45,9 @@ function render_config()
     if(confGUI.is_open == true)then
         imgui.SetNextWindowSize({-1,-1}, ImGuiCond_Always);
         if(imgui.Begin('GlamourUI Configuration', confGUI.is_open, ImGuiWindowFlags_NoDecoration,ImGuiWindowFlags_AlwaysAutoResize)) then
+            imgui.Text('GlamourUI Configuration');
             imgui.BeginGroup();
-            imgui.BeginChild('conf_partylist', {500,140}, true);
+            imgui.BeginChild('conf_partylist', {500,160}, true);
             imgui.Text('PartyList');
             imgui.SameLine();
             imgui.SetCursorPosX(200);
@@ -79,8 +96,11 @@ function render_config()
                 end
                 imgui.EndCombo();
             end
+            if(imgui.Button('Bar Dimensions'))then
+                plistBarDim.is_open = not plistBarDim.is_open;
+            end
             imgui.EndChild();
-            imgui.BeginChild('conf_targetbar', {500,125}, true);
+            imgui.BeginChild('conf_targetbar', {500,145}, true);
             imgui.Text('Target Bar');
             imgui.SameLine();
             imgui.SetCursorPosX(200);
@@ -114,8 +134,11 @@ function render_config()
                 end
                 imgui.EndCombo();
             end
+            if(imgui.Button('Bar Dimensions'))then
+                tBarDim.is_open = not tBarDim.is_open;
+            end
             imgui.EndChild();
-            imgui.BeginChild('conf_alliancePanel', {500,125}, true);
+            imgui.BeginChild('conf_alliancePanel', {500,145}, true);
             imgui.Text('Alliance Panels');
             imgui.SameLine();
             imgui.SetCursorPosX(200);
@@ -154,8 +177,11 @@ function render_config()
                 end
                 imgui.EndCombo();
             end
+            if(imgui.Button('BarDimensions'))then
+                aPanelBarDim.is_open = not aPanelBarDim.is_open;
+            end
             imgui.EndChild();
-            imgui.BeginChild('conf_playerStats', {500,125}, true);
+            imgui.BeginChild('conf_playerStats', {500,145}, true);
             imgui.Text('Player Stats');
             imgui.SameLine();
             imgui.SetCursorPosX(200);
@@ -189,6 +215,9 @@ function render_config()
                 end
                 imgui.EndCombo();
             end
+            if(imgui.Button('Bar Dimensions'))then
+                pStatsBarDim.is_open = not pStatsBarDim.is_open;
+            end
             imgui.EndChild();
             if(imgui.Button('Close Config'))then
                 confGUI.is_open = false;
@@ -220,8 +249,9 @@ function render_layout_editor()
     local pad = {glamourUI.layout.padding};
 
     if(layoutGUI.is_open == true)then
-        imgui.SetNextWindowSize({400,500});
+        imgui.SetNextWindowSize({400,515});
         if(imgui.Begin('Layout Editor', layoutGUI.is_open, ImGuiWindowFlags_NoDecoration))then
+            imgui.Text('Layout Editor');
             imgui.BeginChild('layoutName', {400, 100}, true);
             imgui.Text('Name')
             imgui.InputInt("X  ", nPos.x, 0, 700);
@@ -315,7 +345,7 @@ function render_layout_editor()
             end
             imgui.SameLine();
             if(imgui.ArrowButton('tXright', ImGuiDir_Right))then
-                glamourUI.layout.TpTPBarPosition.x = glamourUI.layout.TPBarPosition.x + 1;
+                glamourUI.layout.TPBarPosition.x = glamourUI.layout.TPBarPosition.x + 1;
             end
             imgui.InputInt("Y  ", tpB.y, 0, 100);
             if(glamourUI.layout.TPBarPosition.y ~= tpB.y[1])then
@@ -350,6 +380,214 @@ function render_layout_editor()
                 updateLayoutFile(glamourUI.settings.partylist.layout);
             end
         end
+        imgui.End();
+    end
+end
+
+function render_plistBarDim()
+    local hpBl = {glamourUI.settings.partylist.hpBarDim.l};
+    local hpBg = {glamourUI.settings.partylist.hpBarDim.g};
+    local mpBl = {glamourUI.settings.partylist.mpBarDim.l};
+    local mpBg = {glamourUI.settings.partylist.mpBarDim.g};
+    local tpBl = {glamourUI.settings.partylist.tpBarDim.l};
+    local tpBg = {glamourUI.settings.partylist.tpBarDim.g};
+    if(plistBarDim.is_open == true)then
+        imgui.SetNextWindowSize({300, 100}, ImGuiCond_FirstUseEver);
+        if(imgui.Begin('plistBarDim', {300, 100}, bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoDecoration)))then
+            imgui.Text('Party List Bar Dimensions');
+            imgui.BeginChild('hpBar', {300, 100});
+            imgui.Text('HP Bar');
+            imgui.SliderInt('Length', hpBl, 1, 500);
+            imgui.SameLine();
+            if(imgui.Button('-##l'))then
+                hpBl[1] = hpBl[1] - 1;
+            end
+            imgui.SameLine();
+            if(imgui.Button('+##l'))then
+                hpBl[1] = hpBl[1] + 1;
+            end
+            imgui.SliderInt('Girth', hpBg, 1, 100);
+            imgui.SameLine();
+            if(imgui.Button('-##g'))then
+                hpBg[1] = hpBg[1] - 1;
+            end
+            imgui.SameLine();
+            if(imgui.Button('+##g'))then
+                hpBg[1] = hpBg[1] + 1;
+            end
+            imgui.EndChild();
+            imgui.BeginChild('mpBar', {300, 100});
+            imgui.Text('MP Bar');
+            imgui.SliderInt('Length', mpBl, 1, 500);
+            imgui.SameLine();
+            if(imgui.Button('-##l'))then
+                mpBl[1] = mpBl[1] - 1;
+            end
+            imgui.SameLine();
+            if(imgui.Button('+##l'))then
+                mpBl[1] = mpBl[1] + 1;
+            end
+            imgui.SliderInt('Girth', mpBg, 1, 100);
+            imgui.SameLine();
+            if(imgui.Button('-##g'))then
+                mpBg[1] = mpBg[1] - 1;
+            end
+            imgui.SameLine();
+            if(imgui.Button('+##g'))then
+                mpBg[1] = mpBg[1] + 1;
+            end
+            imgui.EndChild();
+            imgui.BeginChild('tpBar', {300, 100});
+            imgui.Text('TP Bar');
+            imgui.SliderInt('Length', tpBl, 1, 500);
+            imgui.SameLine();
+            if(imgui.Button('-##l'))then
+                tpBl[1] = tpBl[1] - 1;
+            end
+            imgui.SameLine();
+            if(imgui.Button('+##l'))then
+                tpBl[1] = tpBl[1] + 1;
+            end
+            imgui.SliderInt('Girth', tpBg, 1, 100);
+            imgui.SameLine();
+            if(imgui.Button('-##g'))then
+                tpBg[1] = tpBg[1] - 1;
+            end
+            imgui.SameLine();
+            if(imgui.Button('+##g'))then
+                tpBg[1] = tpBg[1] + 1;
+            end
+            imgui.EndChild();
+            if(imgui.Button('Close Editor'))then
+                plistBarDim.is_open = false;
+            end
+        end
+        glamourUI.settings.partylist.hpBarDim.l = hpBl[1];
+        glamourUI.settings.partylist.hpBarDim.g = hpBg[1];
+        glamourUI.settings.partylist.mpBarDim.l = mpBl[1];
+        glamourUI.settings.partylist.mpBarDim.g = mpBg[1];
+        glamourUI.settings.partylist.tpBarDim.l = tpBl[1];
+        glamourUI.settings.partylist.tpBarDim.g = tpBg[1];
+        imgui.End();
+    end
+end
+
+function render_tbarDim()
+    local hpBl = {glamourUI.settings.targetbar.hpBarDim.l};
+    local hpBg = {glamourUI.settings.targetbar.hpBarDim.g};
+
+    if(tBarDim.is_open == true)then
+        imgui.SetNextWindowSize({300, 100}, ImGuiCond_FirstUseEver);
+        if(imgui.Begin('tBarDim', {300, 100}, bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoDecoration)))then
+            imgui.Text('Target Bar Dimensions');
+            imgui.BeginChild('hpBar', {300, 100});
+            imgui.Text('HP Bar');
+            imgui.SliderInt('Length', hpBl, 1, 1500);
+            imgui.SameLine();
+            if(imgui.Button('-##l'))then
+                hpBl[1] = hpBl[1] - 1;
+            end
+            imgui.SameLine();
+            if(imgui.Button('+##l'))then
+                hpBl[1] = hpBl[1] + 1;
+            end
+            imgui.SliderInt('Girth', hpBg, 1, 100);
+            imgui.SameLine();
+            if(imgui.Button('-##g'))then
+                hpBg[1] = hpBg[1] - 1;
+            end
+            imgui.SameLine();
+            if(imgui.Button('+##g'))then
+                hpBg[1] = hpBg[1] + 1;
+            end
+            imgui.EndChild();
+            if(imgui.Button('Close Editor'))then
+                tBarDim.is_open = false;
+            end
+        end
+        glamourUI.settings.targetbar.hpBarDim.l = hpBl[1];
+        glamourUI.settings.targetbar.hpBarDim.g = hpBg[1];
+        imgui.End();
+    end
+end
+
+function render_aPanelDim()
+    local hpBl = {glamourUI.settings.alliancePanel.hpBarDim.l};
+    local hpBg = {glamourUI.settings.alliancePanel.hpBarDim.g};
+
+    if(aPanelBarDim.is_open == true)then
+        imgui.SetNextWindowSize({300, 100}, ImGuiCond_FirstUseEver);
+        if(imgui.Begin('aPanelBarDim', {300, 100}, bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoDecoration)))then
+            imgui.Text('Alliance Panel Bar Dimensions');
+            imgui.BeginChild('hpBar', {300, 100});
+            imgui.Text('HP Bar');
+            imgui.SliderInt('Length', hpBl, 1, 500);
+            imgui.SameLine();
+            if(imgui.Button('-##l'))then
+                hpBl[1] = hpBl[1] - 1;
+            end
+            imgui.SameLine();
+            if(imgui.Button('+##l'))then
+                hpBl[1] = hpBl[1] + 1;
+            end
+            imgui.SliderInt('Girth', hpBg, 1, 100);
+            imgui.SameLine();
+            if(imgui.Button('-##g'))then
+                hpBg[1] = hpBg[1] - 1;
+            end
+            imgui.SameLine();
+            if(imgui.Button('+##g'))then
+                hpBg[1] = hpBg[1] + 1;
+            end
+            imgui.EndChild();
+            if(imgui.Button('Close Editor'))then
+                aPanelBarDim.is_open = false;
+            end
+        end
+        glamourUI.settings.alliancePanel.hpBarDim.l = hpBl[1];
+        glamourUI.settings.alliancePanel.hpBarDim.g = hpBg[1];
+        glamourUI.settings.alliancePanel2.hpBarDim.l = hpBl[1];
+        glamourUI.settings.alliancePanel2.hpBarDim.g = hpBg[1];
+        imgui.End();
+    end
+end
+
+function render_pStatsPanelDim()
+    local Bl = {glamourUI.settings.playerStats.BarDim.l};
+    local Bg = {glamourUI.settings.playerStats.BarDim.g};
+
+    if(pStatsBarDim.is_open == true)then
+        imgui.SetNextWindowSize({300, 100}, ImGuiCond_FirstUseEver);
+        if(imgui.Begin('pStatsBarDim', {300, 100}, bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoDecoration)))then
+            imgui.Text('Player Stats Bar Dimensions');
+            imgui.BeginChild('hpBar', {300, 100});
+            imgui.Text('HP Bar');
+            imgui.BeginGroup('Length');
+            imgui.SliderInt('Length', Bl, 1, 500);
+            imgui.SameLine();
+            if(imgui.Button('-##l'))then
+                Bl[1] = Bl[1] - 1;
+            end
+            imgui.SameLine();
+            if(imgui.Button('+##l'))then
+                Bl[1] = Bl[1] + 1;
+            end
+            imgui.SliderInt('Girth', Bg, 1, 100);
+            imgui.SameLine();
+            if(imgui.Button('-##g'))then
+                Bg[1] = Bg[1] - 1;
+            end
+            imgui.SameLine();
+            if(imgui.Button('+##g'))then
+                Bg[1] = Bg[1] + 1;
+            end
+            imgui.EndChild();
+            if(imgui.Button('Close Editor'))then
+                pStatsBarDim.is_open = false;
+            end
+        end
+        glamourUI.settings.playerStats.BarDim.l = Bl[1];
+        glamourUI.settings.playerStats.BarDim.g = Bg[1];
         imgui.End();
     end
 end

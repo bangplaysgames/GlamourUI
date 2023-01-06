@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.3.3';
+addon.version = '0.4.0';
 
 local imgui = require('imgui')
 
@@ -38,6 +38,18 @@ local default_settings = T{
         themed = true,
         x = 12,
         y = 150,
+        hpBarDim = T{
+            l = 200,
+            g = 16
+        },
+        mpBarDim = T{
+            l = 200,
+            g = 16
+        },
+        tpBarDim = T{
+            l = 200,
+            g = 16
+        }
     },
 
     targetbar = T{
@@ -49,6 +61,10 @@ local default_settings = T{
          themed = true,
          x = 1000,
          y = 150,
+         hpBarDim = T{
+             l = 660,
+             g = 16
+         }
     },
 
     alliancePanel = T{
@@ -59,6 +75,10 @@ local default_settings = T{
         themed = true,
         x = 12,
         y = 700,
+        hpBarDim = T{
+            l = 200,
+            g = 16
+        }
     },
     alliancePanel2 = T{
         enabled = true,
@@ -68,6 +88,10 @@ local default_settings = T{
         themed = true,
         x = 400,
         y = 700,
+        hpBarDim = T{
+            l = 200,
+            g = 16
+        }
     },
     playerStats = T{
         enabled = true,
@@ -77,6 +101,10 @@ local default_settings = T{
         themed = true,
         x = 600,
         y = 800,
+        BarDim = T{
+            l = 200,
+            g = 16
+        }
     }
 
 };
@@ -378,10 +406,10 @@ function render_target_bar()
 
                     imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
                     imgui.SetWindowFontScale(1 * glamourUI.settings.targetbar.gui_scale);
-                    imgui.Image(hpbTex, {660 * glamourUI.settings.targetbar.gui_scale, 16 * glamourUI.settings.targetbar.gui_scale});
+                    imgui.Image(hpbTex, {glamourUI.settings.targetbar.hpBarDim.l * glamourUI.settings.targetbar.gui_scale, glamourUI.settings.targetbar.hpBarDim.g * glamourUI.settings.targetbar.gui_scale});
                     imgui.SameLine();
                     imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
-                    imgui.Image(hpfTex, {(660*(targetEntity.HPPercent /100) * glamourUI.settings.targetbar.gui_scale),(16 * glamourUI.settings.targetbar.gui_scale)});
+                    imgui.Image(hpfTex, {(glamourUI.settings.targetbar.hpBarDim.l*(targetEntity.HPPercent /100) * glamourUI.settings.targetbar.gui_scale),(glamourUI.settings.targetbar.hpBarDim.g * glamourUI.settings.targetbar.gui_scale)});
                     imgui.SameLine();
                     imgui.SetCursorPosX(340 * glamourUI.settings.targetbar.gui_scale);
                     imgui.Text(tostring(targetEntity.HPPercent) .. '%%');
@@ -400,13 +428,13 @@ function render_target_bar()
                     end
                     imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
                     imgui.SetWindowFontScale(1 * glamourUI.settings.targetbar.gui_scale);
-                    imgui.ProgressBar(targetEntity.HPPercent / 100, {660 * glamourUI.settings.targetbar.gui_scale, 16 * glamourUI.settings.targetbar.gui_scale}, tostring(targetEntity.HPPercent) .. '%');
+                    imgui.ProgressBar(targetEntity.HPPercent / 100, {glamourUI.settings.targetbar.hpBarDim.l * glamourUI.settings.targetbar.gui_scale, glamourUI.settings.targetbar.hpBarDim.g * glamourUI.settings.targetbar.gui_scale}, tostring(targetEntity.HPPercent) .. '%');
                     imgui.PopStyleColor(1);
 
                     if(IsTargetLocked() and glamourUI.settings.targetbar.lockIndicator == true) then
                         imgui.SetCursorPosX(0);
                         imgui.SetCursorPosY(0);
-                        imgui.Image(lockedTex, {723 * glamourUI.settings.targetbar.gui_scale, 59 * glamourUI.settings.targetbar.gui_scale});
+                        imgui.Image(lockedTex, {(63 + glamourUI.settings.targetbar.hpBarDim.l) * glamourUI.settings.targetbar.gui_scale, 59 * glamourUI.settings.targetbar.gui_scale});
                     end
 
                 end
@@ -688,6 +716,10 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         render_player_stats();
         render_config(glamourUI.settings);
         render_layout_editor(glamourUI.layout);
+        render_plistBarDim();
+        render_tbarDim();
+        render_aPanelDim();
+        render_pStatsPanelDim();
         render_debug_panel();
     end
 end)
