@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.4.2';
+addon.version = '0.4.3';
 
 local imgui = require('imgui')
 
@@ -191,67 +191,81 @@ function render_party_list()
                 local pet = GetEntity(player.PetTargetIndex);
 
                 imgui.SetWindowFontScale((glamourUI.settings.partylist.font_scale));
+                setHPColor(0);
                 renderPlayerThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 0);
                 renderPlayerThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 0);
                 renderPlayerThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 0);
                 renderPlayerThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 0);
+                imgui.PopStyleColor();
 
                 if(partyCount >= 2) then
                     if(getZone(1) == getZone(0))then
+                        setHPColor(1);
                         renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
                         renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
                         renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
                         renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
+                        imgui.PopStyleColor();
                     else
                         renderPartyZone(1);
                     end
                 end
                 if(partyCount >= 3) then
                     if(getZone(2) == getZone(0))then
+                        setHPColor(2);
                         renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
                         renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
                         renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
                         renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
+                        imgui.PopStyleColor();
                     else
                         renderPartyZone(2);
                     end
                 end
                 if(partyCount >= 4) then
                     if(getZone(3) == getZone(0))then
+                        setHPColor(3);
                         renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
                         renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
                         renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
                         renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
+                        imgui.PopStyleColor();
                     else
                         renderPartyZone(3);
                     end
                 end
                 if(partyCount >= 5) then
                     if(getZone(4) == getZone(0))then
+                        setHPColor(4);
                         renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
                         renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
                         renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
                         renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
+                        imgui.PopStyleColor();
                     else
                         renderPartyZone(4);
                     end
                 end
                 if(partyCount >= 6) then
                     if(getZone(5) == getZone(0))then
+                        setHPColor(5);
                         renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
                         renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
                         renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
                         renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
+                        imgui.PopStyleColor();
                     else
                         renderPartyZone(5);
                     end
                 end
 
                 if(pet ~= nil) then
+                    imgui.PushStyleColor(ImGuiCol_Text, {1.0, 1.0, 1.0, 1.0});
                     renderPetThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
                     renderPetThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
                     renderPetThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
                     renderPetThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
+                    imgui.PopStyleColor();
                 end
             end
             imgui.End();

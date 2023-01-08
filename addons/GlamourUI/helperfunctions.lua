@@ -70,6 +70,16 @@ function ToBoolean(b)
     end
 end
 
+function setHPColor(p)
+    local hp = getHPP(p);
+    if(hp >= 67)then
+        imgui.PushStyleColor(ImGuiCol_Text, {1.0, 1.0, 1.0, 1.0});
+    elseif(hp < 67 and hp >= 50)then
+        imgui.PushStyleColor(ImGuiCol_Text, {1.0, 1.0, 0.0, 1.0});
+    elseif(hp < 50)then
+        imgui.PushStyleColor(ImGuiCol_Text, {1.0, 0.0, 0.0, 1.0});
+    end
+end
 
 local d3d8_device = d3d8.get_device();
 
@@ -272,6 +282,7 @@ function renderPetThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, p, c)
         imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetTP()));
         return;
     end
+
 end
 
 function renderParty(p)
