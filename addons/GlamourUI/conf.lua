@@ -5,7 +5,8 @@ local imgui = require('imgui')
 confGUI = T{
     is_open = false,
     themeID = T{ getThemeID('Default')},
-    layoutID = T{ getLayoutID('Default')}
+    layoutID = T{ getLayoutID('Default')},
+    --fontID = T{ getFontID('Default')}
 };
 
 layoutGUI = T{
@@ -41,6 +42,8 @@ function render_config()
     local player_font_scale = {glamourUI.settings.playerStats.font_scale};
     local themedir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Themes\\'):fmt(AshitaCore:GetInstallPath()));
     local layoutdir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Layouts\\'):fmt(AshitaCore:GetInstallPath()));
+    --local fontdir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Fonts\\')):fmt(AshitaCore:GetInstallPath());
+
 
     if(confGUI.is_open == true)then
         imgui.SetNextWindowSize({-1,-1}, ImGuiCond_Always);

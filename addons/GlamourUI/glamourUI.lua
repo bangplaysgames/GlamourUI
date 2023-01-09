@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.4.4';
+addon.version = '0.4.5';
 
 local imgui = require('imgui')
 
@@ -31,6 +31,7 @@ local default_settings = T{
 
     partylist = T{
         enabled = true,
+        bgOpacity = 1,
         font_scale = 1.5,
         gui_scale = 1,
         layout = 'Default',
@@ -170,7 +171,7 @@ function render_party_list()
 
     if (glamourUI.settings.partylist.enabled and chatIsOpen == false) then
 
-        imgui.SetNextWindowBgAlpha(.3);
+        imgui.SetNextWindowBgAlpha(glamourUI.settings.partylist.bgOpacity);
         imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
         imgui.SetNextWindowPos({glamourUI.settings.partylist.x, glamourUI.settings.partylist.y}, ImGuiCond_FirstUseEver);
 
@@ -190,7 +191,7 @@ function render_party_list()
             end
 
 
-            if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
+            if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
                 local party = AshitaCore:GetMemoryManager():GetParty()
                 local partyCount = 0;
                 for i = 1,6,1 do
