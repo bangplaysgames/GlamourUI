@@ -159,7 +159,15 @@ local party = AshitaCore:GetMemoryManager():GetParty();
 function render_party_list()
     pokeCache(glamourUI.settings);
     local menu = getMenu();
-    if (glamourUI.settings.partylist.enabled and menu ~= 'fulllog') then
+    local chatIsOpen = false;
+
+    if(menu == 'fulllog')then
+        chatIsOpen = true;
+    elseif(menu == nil)then
+        chatIsOpen = false;
+    end
+
+    if (glamourUI.settings.partylist.enabled and chatIsOpen == true) then
 
         imgui.SetNextWindowBgAlpha(.3);
         imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
@@ -636,17 +644,12 @@ end
 
 function render_debug_panel()
     if(dbug == true) then
-        local menu = getMenu();
+        local rect = AshitaCore:GetProperties():GetFinalFantasyHwnd();
         imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
         imgui.SetNextWindowPos({12, 12}, ImGuiCond_FirstUseEver);
         if(imgui.Begin('Debug'))then
             --imgui.PushFont(glamourUI.font);
-            imgui.Text(glamourUI.settings.font);
-            imgui.Text(tostring(glamourUI.font));
-            imgui.Text(type(glamourUI.font));
-            if(imgui.Button('Load Font'))then
-                loadFont(glamourUI.settings.font);;
-            end
+            imgui.Text(tostring(rect));
             --imgui.PopFont();
         end
         imgui.End();
