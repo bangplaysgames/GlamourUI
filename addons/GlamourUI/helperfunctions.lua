@@ -62,12 +62,30 @@ function getLayoutID(layout)
     end
 end
 
+function getMenu()
+    local menuBase = ashita.memory.find('FFXiMain.dll', 0, '8B480C85C974??8B510885D274??3B05', 16, 0);
+
+    local subPointer = ashita.memory.read_uint32(menuBase);
+    local subValue = ashita.memory.read_uint32(subPointer);
+    if (subValue == 0) then
+        return '';
+    end
+    local menuHeader = ashita.memory.read_uint32(subValue + 4);
+    local menuName = ashita.memory.read_string(menuHeader + 0x46, 16);
+    local menuString = string.gsub(string.gsub(string.gsub(menuName, '\x00', ''), 'menu', ''), ' ', '');
+    return menuString;
+end
+
 function ToBoolean(b)
     if(b == 1)then
         return true;
     else
         return false;
     end
+end
+
+function loadFont(f)
+    glamourUI.font = imgui.lua_imgui_AddFontFromFileTTF(('%s\\config\\addons\\GlamourUI\\Fonts\\%s\\font.ttf'):fmt(AshitaCore:GetInstallPath(), f), 16.0);
 end
 
 function setHPColor(p)

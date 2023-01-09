@@ -105,7 +105,9 @@ local default_settings = T{
             l = 200,
             g = 16
         }
-    }
+    },
+
+    font = 'SpicyTaste'
 
 };
 
@@ -137,8 +139,12 @@ glamourUI = T{
             y = 0
         },
         padding = 0
-    }
+    },
+    font = nil
 }
+
+local font = nil;
+
 
 settings.register('settings', 'settings_update', function(s)
     if (s ~=nil) then
@@ -152,8 +158,8 @@ local party = AshitaCore:GetMemoryManager():GetParty();
 
 function render_party_list()
     pokeCache(glamourUI.settings);
-
-    if (glamourUI.settings.partylist.enabled) then
+    local menu = getMenu();
+    if (glamourUI.settings.partylist.enabled and menu ~= 'fulllog') then
 
         imgui.SetNextWindowBgAlpha(.3);
         imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
@@ -273,6 +279,7 @@ function render_party_list()
             if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
                 local party = AshitaCore:GetMemoryManager():GetParty()
                 local partyCount = 0;
+
                 for i = 1,6,1 do
                     if(AshitaCore:GetMemoryManager():GetParty():GetMemberIsActive(i-1) > 0) then
                         partyCount = partyCount +1;
@@ -284,6 +291,7 @@ function render_party_list()
                     player = 0;
                 end
                 local pet = GetEntity(player.PetTargetIndex);
+
 
                 -- PLayer Rendering
                 imgui.SetWindowFontScale((glamourUI.settings.partylist.font_scale));
@@ -395,6 +403,7 @@ function render_party_list()
                     imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetTP()));
                 end
             end
+
             imgui.End();
 
         end
@@ -627,14 +636,18 @@ end
 
 function render_debug_panel()
     if(dbug == true) then
+        local menu = getMenu();
         imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
         imgui.SetNextWindowPos({12, 12}, ImGuiCond_FirstUseEver);
         if(imgui.Begin('Debug'))then
-            imgui.Text(tostring(getZone(1)));
-            imgui.Text(tostring(AshitaCore:GetResourceManager():GetString('zones.names', AshitaCore:GetMemoryManager():GetParty():GetMemberZone(1))));
-            if(imgui.Button('Load value from Layout'))then
-                loadLayout('Default');
+            --imgui.PushFont(glamourUI.font);
+            imgui.Text(glamourUI.settings.font);
+            imgui.Text(tostring(glamourUI.font));
+            imgui.Text(type(glamourUI.font));
+            if(imgui.Button('Load Font'))then
+                loadFont(glamourUI.settings.font);;
             end
+            --imgui.PopFont();
         end
         imgui.End();
     end
@@ -773,6 +786,7 @@ ashita.events.register('load', 'load_cb', function()
     end
     require('conf')
     loadLayout(glamourUI.settings.partylist.layout);
+    loadFont(glamourUI.settings.font);
 end)
 
 ashita.events.register('unload', 'unload_cb', function()
