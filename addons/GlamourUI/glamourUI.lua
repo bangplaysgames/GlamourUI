@@ -156,14 +156,15 @@ end);
 
 local party = AshitaCore:GetMemoryManager():GetParty();
 
+local chatIsOpen = false;
+
 function render_party_list()
     pokeCache(glamourUI.settings);
     local menu = getMenu();
-    local chatIsOpen = false;
 
     if(menu == 'fulllog')then
         chatIsOpen = true;
-    elseif(menu == nil)then
+    elseif(menu == 'logwindo' or menu == nil)then
         chatIsOpen = false;
     end
 
@@ -649,7 +650,7 @@ function render_debug_panel()
         imgui.SetNextWindowPos({12, 12}, ImGuiCond_FirstUseEver);
         if(imgui.Begin('Debug'))then
             --imgui.PushFont(glamourUI.font);
-            imgui.Text(tostring(rect));
+            imgui.Text(tostring(getMenu()));
             --imgui.PopFont();
         end
         imgui.End();
