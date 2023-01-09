@@ -167,7 +167,7 @@ function render_party_list()
         chatIsOpen = false;
     end
 
-    if (glamourUI.settings.partylist.enabled and chatIsOpen == true) then
+    if (glamourUI.settings.partylist.enabled and chatIsOpen == false) then
 
         imgui.SetNextWindowBgAlpha(.3);
         imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
