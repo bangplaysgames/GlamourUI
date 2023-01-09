@@ -343,14 +343,14 @@ function renderPlayerStats(b, f, s, p, o)
         imgui.SetCursorPosX(o + 5);
         imgui.Image(b, {glamourUI.settings.playerStats.BarDim.l * glamourUI.settings.playerStats.gui_scale, glamourUI.settings.playerStats.BarDim.g * glamourUI.settings.playerStats.gui_scale});
         imgui.SameLine();
-        imgui.SetCursorPosX(o);
+        imgui.SetCursorPosX(o+5);
         if(p ~= nil)then
             imgui.Image(f, {(glamourUI.settings.playerStats.BarDim.l * glamourUI.settings.playerStats.gui_scale) * p / 100, glamourUI.settings.playerStats.BarDim.g * glamourUI.settings.playerStats.gui_scale});
         else
             imgui.Image(f, {glamourUI.settings.playerStats.BarDim.l  * (math.clamp((s / 1000), 0, 1) * glamourUI.settings.playerStats.gui_scale), glamourUI.settings.playerStats.BarDim.g * glamourUI.settings.playerStats.gui_scale});
         end
         imgui.SameLine();
-        imgui.SetCursorPosX(o + 5);
+        imgui.SetCursorPosX(o + 10);
         imgui.Text(tostring(s));
 end
 
