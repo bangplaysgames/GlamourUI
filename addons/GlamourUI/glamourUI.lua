@@ -512,6 +512,7 @@ function render_target_bar()
                     end
 
                 else
+                    local lockedTex = getTex(glamourUI.settings, 'targetbar', 'LockOn.png');
                     imgui.Text(targetEntity.Name);
                     if(IsTargetLocked() and glamourUI.settings.targetbar.lockIndicator == true) then
                         imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0 });
