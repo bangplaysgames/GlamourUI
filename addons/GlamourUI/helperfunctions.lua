@@ -14,6 +14,14 @@ function IsTargetLocked()
     return (bit.band(AshitaCore:GetMemoryManager():GetTarget():GetLockedOnFlags(), 1) == 1);
 end
 
+function isPartyLeader(p)
+    return (bit.band(AshitaCore:GetMemoryManager():GetParty():GetMemberFlagMask(p), 0x4) == 0x4);
+end
+
+function isLevelSync(p)
+    return (bit.band(AshitaCore:GetMemoryManager():GetParty():GetMemberFlagMask(p), 0x100) == 0x100);
+end
+
 function getName(index)
     return AshitaCore:GetMemoryManager():GetParty():GetMemberName(index);
 end
@@ -84,8 +92,38 @@ function ToBoolean(b)
     end
 end
 
-function loadFont(f)
-    glamourUI.font = imgui.lua_imgui_AddFontFromFileTTF(('%s\\config\\addons\\GlamourUI\\Fonts\\%s\\font.ttf'):fmt(AshitaCore:GetInstallPath(), f), 16.0);
+function ToBits(num)
+    -- returns a table of bits, least significant first.
+    local t={} -- will contain the bits
+    while num>0 do
+        rest=math.fmod(num,2)
+        t[#t+1]=rest
+        num=(num-rest)/2
+    end
+    return t
+end
+
+
+
+function GetPartyFlags(p)
+    local flags = AshitaCore:GetMemoryManager():GetParty():GetMemberFlagMask(p);
+    local t = ToBits(flags);
+    local FlagT = T{
+
+        ['lead'] = bits[3]
+    }
+end
+
+function loadFont(f, s, p)
+    if(p == 'partylist')then
+        glamourUI.pListFont = imgui.lua_imgui_AddFontFromFileTTF(('%s\\config\\addons\\GlamourUI\\Fonts\\%s\\font.ttf'):fmt(AshitaCore:GetInstallPath(), f), s);
+    elseif(p == 'targetbar')then
+        glamourUI.tBarFont = imgui.lua_imgui_AddFontFromFileTTF(('%s\\config\\addons\\GlamourUI\\Fonts\\%s\\font.ttf'):fmt(AshitaCore:GetInstallPath(), f), s);
+    elseif(p == 'playerStats')then
+        glamourUI.pStatsFont = imgui.lua_imgui_AddFontFromFileTTF(('%s\\config\\addons\\GlamourUI\\Fonts\\%s\\font.ttf'):fmt(AshitaCore:GetInstallPath(), f), s);
+    elseif(p == 'alliancePanel')then
+        glamourUI.aPanelFont = imgui.lua_imgui_AddFontFromFileTTF(('%s\\config\\addons\\GlamourUI\\Fonts\\%s\\font.ttf'):fmt(AshitaCore:GetInstallPath(), f), s);
+    end
 end
 
 function setHPColor(p)
@@ -161,93 +199,129 @@ function getTex(settings, type, texture)
     return nil;
 end
 
-function renderPlayerThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, p)
+function renderPlayerThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, plead, lsync, p)
     local element = glamourUI.layout.Priority;
+    local target = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(AshitaCore:GetMemoryManager():GetTarget():GetIsSubTargetActive())
+    local targetEntity = GetEntity(target);
+
     if element[e] == 'name' then
-        imgui.SetCursorPosX((5 + glamourUI.layout.NamePosition.x) * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(glamourUI.layout.NamePosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosY(glamourUI.layout.NamePosition.y * glamourUI.settings.partylist.gui_scale);
+        if(targetEntity ~= nil)then
+            if(targetEntity.Name == getName(p))then
+                imgui.Image(targ, {25 * glamourUI.settings.partylist.gui_scale, 25 * glamourUI.settings.partylist.gui_scale});
+            end
+        end
+        imgui.SetCursorPosX((glamourUI.layout.NamePosition.x + 27) * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosY(glamourUI.layout.NamePosition.y * glamourUI.settings.partylist.gui_scale);
+        if(isPartyLeader(p) == true)then
+            imgui.Image(plead, {10 * glamourUI.settings.partylist.gui_scale, 10 * glamourUI.settings.partylist.gui_scale});
+        end
+        imgui.SetCursorPosX((40 + glamourUI.layout.NamePosition.x) * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY(glamourUI.layout.NamePosition.y * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(getName(p)));
+        if(isLevelSync == true)then
+            imgui.SameLine();
+            imgui.Image(lsync, {10 * glamourUI.settings.partylist.gui_scale, 10 * glamourUI.settings.partylist.gui_scale});
+        end
+
         return;
     end
     if element[e] == 'hp' then
-        imgui.SetCursorPosX(glamourUI.layout.HPBarPosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(30 + glamourUI.layout.HPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY(glamourUI.layout.HPBarPosition.y * glamourUI.settings.partylist.gui_scale);
         imgui.Image(hpbT, {glamourUI.settings.partylist.hpBarDim.l * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.hpBarDim.g * glamourUI.settings.partylist.gui_scale});
-        imgui.SetCursorPosX(glamourUI.layout.HPBarPosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(30 + glamourUI.layout.HPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY(glamourUI.layout.HPBarPosition.y * glamourUI.settings.partylist.gui_scale);
         imgui.Image(hpfT, {(glamourUI.settings.partylist.hpBarDim.l * (getHPP(p) / 100)) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.hpBarDim.g * glamourUI.settings.partylist.gui_scale});
-        imgui.SetCursorPosX((glamourUI.layout.HPBarPosition.x + 2) * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX((30 + glamourUI.layout.HPBarPosition.x + 2) * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY(glamourUI.layout.HPBarPosition.y * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(getHP(p)));
         return;
     end
     if element[e] == 'mp' then
-        imgui.SetCursorPosX(glamourUI.layout.MPBarPosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(30 + glamourUI.layout.MPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY(glamourUI.layout.MPBarPosition.y * glamourUI.settings.partylist.gui_scale);
         imgui.Image(mpbT, {glamourUI.settings.partylist.mpBarDim.l * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.mpBarDim.g * glamourUI.settings.partylist.gui_scale});
-        imgui.SetCursorPosX(glamourUI.layout.MPBarPosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(30 + glamourUI.layout.MPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY(glamourUI.layout.MPBarPosition.y * glamourUI.settings.partylist.gui_scale);
         imgui.Image(mpfT, {(glamourUI.settings.partylist.mpBarDim.l * (getMPP(p) / 100)) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.mpBarDim.g * glamourUI.settings.partylist.gui_scale});
-        imgui.SetCursorPosX((glamourUI.layout.MPBarPosition.x + 2) * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX((30 + glamourUI.layout.MPBarPosition.x + 2) * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY(glamourUI.layout.MPBarPosition.y * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(getMP(p)));
         return;
     end
     if element[e] == 'tp' then
-        imgui.SetCursorPosX(glamourUI.layout.TPBarPosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(30 + glamourUI.layout.TPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY(glamourUI.layout.TPBarPosition.y * glamourUI.settings.partylist.gui_scale);
         imgui.Image(tpbT, {glamourUI.settings.partylist.tpBarDim.l * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.tpBarDim.g * glamourUI.settings.partylist.gui_scale});
-        imgui.SetCursorPosX(glamourUI.layout.TPBarPosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(30 + glamourUI.layout.TPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY(glamourUI.layout.TPBarPosition.y * glamourUI.settings.partylist.gui_scale);
         imgui.Image(tpfT, {(glamourUI.settings.partylist.tpBarDim.l * (math.clamp((getTP(p) / 1000), 0, 1) * glamourUI.settings.partylist.gui_scale)), glamourUI.settings.partylist.tpBarDim.g * glamourUI.settings.partylist.gui_scale});
-        imgui.SetCursorPosX((glamourUI.layout.TPBarPosition.x + 2)* glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX((30 + glamourUI.layout.TPBarPosition.x + 2)* glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY(glamourUI.layout.TPBarPosition.y * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(getTP(p)));
         return;
     end
 end
 
-function renderPartyThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, p)
+function renderPartyThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, plead, lsync, p)
     local element = glamourUI.layout.Priority;
+    local party = AshitaCore:GetMemoryManager():GetParty();
+    local partyLeader = party:GetAlliancePartyLeaderServerId1();
+    local target = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(AshitaCore:GetMemoryManager():GetTarget():GetIsSubTargetActive())
+    local targetEntity = GetEntity(target);
     local yOffset = (p * 40) + (p * glamourUI.layout.padding);
     if element[e] == 'name' then
-        imgui.SetCursorPosX((5 + glamourUI.layout.NamePosition.x) * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(glamourUI.layout.NamePosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosY((yOffset + glamourUI.layout.NamePosition.y) * glamourUI.settings.partylist.gui_scale);
+        if(targetEntity ~= nil)then
+            if(targetEntity.Name == getName(p))then
+                imgui.Image(targ, {25 * glamourUI.settings.partylist.gui_scale, 25 * glamourUI.settings.partylist.gui_scale});
+            end
+        end
+        imgui.SetCursorPosX((glamourUI.layout.NamePosition.x + 27) * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosY((yOffset + glamourUI.layout.NamePosition.y) * glamourUI.settings.partylist.gui_scale);
+        if(partyLeader == party:GetMemberServerId(p))then
+            imgui.Image(plead, {10 * glamourUI.settings.partylist.gui_scale, 10 * glamourUI.settings.partylist.gui_scale});
+        end
+        imgui.SetCursorPosX((40 + glamourUI.layout.NamePosition.x) * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.NamePosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(getName(p)));
         return;
     end
     if element[e] == 'hp' then
-        imgui.SetCursorPosX(glamourUI.layout.HPBarPosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(30 + glamourUI.layout.HPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.HPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Image(hpbT, {glamourUI.settings.partylist.hpBarDim.l * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.hpBarDim.g * glamourUI.settings.partylist.gui_scale});
-        imgui.SetCursorPosX(glamourUI.layout.HPBarPosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(30 + glamourUI.layout.HPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.HPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Image(hpfT, {(glamourUI.settings.partylist.hpBarDim.l * (getHPP(p) / 100)) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.hpBarDim.g * glamourUI.settings.partylist.gui_scale});
-        imgui.SetCursorPosX((glamourUI.layout.HPBarPosition.x + 2) * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX((30 + glamourUI.layout.HPBarPosition.x + 2) * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.HPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(getHP(p)));
         return;
     end
     if element[e] == 'mp' then
-        imgui.SetCursorPosX(glamourUI.layout.MPBarPosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(30 + glamourUI.layout.MPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.MPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Image(mpbT, {glamourUI.settings.partylist.mpBarDim.l * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.mpBarDim.g * glamourUI.settings.partylist.gui_scale});
-        imgui.SetCursorPosX(glamourUI.layout.MPBarPosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(30 + glamourUI.layout.MPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.MPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Image(mpfT, {(glamourUI.settings.partylist.mpBarDim.l * (getMPP(p) / 100)) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.mpBarDim.g * glamourUI.settings.partylist.gui_scale});
-        imgui.SetCursorPosX((glamourUI.layout.MPBarPosition.x + 2) * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX((30 + glamourUI.layout.MPBarPosition.x + 2) * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.MPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(getMP(p)));
         return;
     end
     if element[e] == 'tp' then
-        imgui.SetCursorPosX(glamourUI.layout.TPBarPosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(30 + glamourUI.layout.TPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.TPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Image(tpbT, {glamourUI.settings.partylist.tpBarDim.l * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.tpBarDim.g * glamourUI.settings.partylist.gui_scale});
-        imgui.SetCursorPosX(glamourUI.layout.TPBarPosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(30 + glamourUI.layout.TPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.TPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Image(tpfT, {(glamourUI.settings.partylist.tpBarDim.l * (math.clamp((getTP(p) / 1000), 0, 1) * glamourUI.settings.partylist.gui_scale)), glamourUI.settings.partylist.tpBarDim.g * glamourUI.settings.partylist.gui_scale});
-        imgui.SetCursorPosX((glamourUI.layout.TPBarPosition.x + 2)* glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX((30 + glamourUI.layout.TPBarPosition.x + 2)* glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.TPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(getTP(p)));
         return;

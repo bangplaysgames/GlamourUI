@@ -32,7 +32,8 @@ local default_settings = T{
     partylist = T{
         enabled = true,
         bgOpacity = 1,
-        font_scale = 1.5,
+        font_size = 16,
+        font = 'SpicyTaste',
         gui_scale = 1,
         layout = 'Default',
         theme = 'Default',
@@ -55,7 +56,8 @@ local default_settings = T{
 
     targetbar = T{
          enabled = true,
-         font_scale = 1.5,
+         font_size = 16,
+         font = 'SpicyTaste',
          gui_scale = 1,
          lockIndicator = true,
          theme = 'Default',
@@ -70,7 +72,8 @@ local default_settings = T{
 
     alliancePanel = T{
         enabled = true,
-        font_scale = 1.5,
+        font_size = 16,
+        font = 'SpicyTaste',
         gui_scale = 1,
         theme = 'Default',
         themed = true,
@@ -96,7 +99,8 @@ local default_settings = T{
     },
     playerStats = T{
         enabled = true,
-        font_scale = 1.5,
+        font_size = 16,
+        font = 'SpicyTaste',
         gui_scale = 1,
         theme = 'Default',
         themed = true,
@@ -108,7 +112,7 @@ local default_settings = T{
         }
     },
 
-    font = 'SpicyTaste'
+
 
 };
 
@@ -141,7 +145,10 @@ glamourUI = T{
         },
         padding = 0
     },
-    font = nil
+    pListFont = nil,
+    tBarFont = nil,
+    aPanelFont = nil,
+    pStatsFont = nil
 }
 
 local font = nil;
@@ -171,254 +178,260 @@ function render_party_list()
 
     if (glamourUI.settings.partylist.enabled and chatIsOpen == false) then
 
-        imgui.SetNextWindowBgAlpha(glamourUI.settings.partylist.bgOpacity);
-        imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
-        imgui.SetNextWindowPos({glamourUI.settings.partylist.x, glamourUI.settings.partylist.y}, ImGuiCond_FirstUseEver);
+
+            imgui.SetNextWindowBgAlpha(glamourUI.settings.partylist.bgOpacity);
+            imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
+            imgui.SetNextWindowPos({glamourUI.settings.partylist.x, glamourUI.settings.partylist.y}, ImGuiCond_FirstUseEver);
 
 
-        if(glamourUI.settings.partylist.themed == true) then
-            local hpbTex = getTex(glamourUI.settings, 'partylist', 'hpBar.png');
-            local hpfTex = getTex(glamourUI.settings, 'partylist', 'hpFill.png');
-            local mpbTex = getTex(glamourUI.settings, 'partylist', 'mpBar.png');
-            local mpfTex = getTex(glamourUI.settings, 'partylist', 'mpFill.png');
-            local tpbTex = getTex(glamourUI.settings, 'partylist', 'tpBar.png');
-            local tpfTex = getTex(glamourUI.settings, 'partylist', 'tpFill.png');
+            if(glamourUI.settings.partylist.themed == true) then
+                local hpbTex = getTex(glamourUI.settings, 'partylist', 'hpBar.png');
+                local hpfTex = getTex(glamourUI.settings, 'partylist', 'hpFill.png');
+                local mpbTex = getTex(glamourUI.settings, 'partylist', 'mpBar.png');
+                local mpfTex = getTex(glamourUI.settings, 'partylist', 'mpFill.png');
+                local tpbTex = getTex(glamourUI.settings, 'partylist', 'tpBar.png');
+                local tpfTex = getTex(glamourUI.settings, 'partylist', 'tpFill.png');
+                local targTex = getTex(glamourUI.settings, 'partylist', 'partyTarget.png');
+                local pleadTex = getTex(glamourUI.settings, 'partylist', 'partyLead.png');
+                local lsyncTex = getTex(glamourUI.settings, 'partylist', 'levelSync.png');
 
-            if (hpbTex == nil or hpfTex == nil or mpbTex == nil or mpfTex == nil or tpbTex == nil or tpfTex == nil) then
-                -- we're missing textures - disable theming for this element and skip the frame
-                glamourUI.settings.partylist.themed = false;
-                return;
-            end
+                if (hpbTex == nil or hpfTex == nil or mpbTex == nil or mpfTex == nil or tpbTex == nil or tpfTex == nil) then
+                    -- we're missing textures - disable theming for this element and skip the frame
+                    glamourUI.settings.partylist.themed = false;
+                    return;
+                end
 
 
-            if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
-                local party = AshitaCore:GetMemoryManager():GetParty()
-                local partyCount = 0;
-                for i = 1,6,1 do
-                    if(AshitaCore:GetMemoryManager():GetParty():GetMemberIsActive(i-1) > 0) then
-                        partyCount = partyCount +1;
+                if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
+
+                    local party = AshitaCore:GetMemoryManager():GetParty()
+                    local partyCount = 0;
+                    for i = 1,6,1 do
+                        if(AshitaCore:GetMemoryManager():GetParty():GetMemberIsActive(i-1) > 0) then
+                            partyCount = partyCount +1;
+                        end
                     end
-                end
 
-                local player = GetPlayerEntity();
-                if(player == nil) then
-                    player = 0;
-                end
-                local pet = GetEntity(player.PetTargetIndex);
+                    local player = GetPlayerEntity();
+                    if(player == nil) then
+                        player = 0;
+                    end
+                    local pet = GetEntity(player.PetTargetIndex);
 
-                imgui.SetWindowFontScale((glamourUI.settings.partylist.font_scale));
-                setHPColor(0);
-                renderPlayerThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 0);
-                renderPlayerThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 0);
-                renderPlayerThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 0);
-                renderPlayerThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 0);
-                imgui.PopStyleColor();
-
-                if(partyCount >= 2) then
-                    if(getZone(1) == getZone(0))then
-                        setHPColor(1);
-                        renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
-                        renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
-                        renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
-                        renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 1);
-                        imgui.PopStyleColor();
-                    else
-                        renderPartyZone(1);
-                    end
-                end
-                if(partyCount >= 3) then
-                    if(getZone(2) == getZone(0))then
-                        setHPColor(2);
-                        renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
-                        renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
-                        renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
-                        renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 2);
-                        imgui.PopStyleColor();
-                    else
-                        renderPartyZone(2);
-                    end
-                end
-                if(partyCount >= 4) then
-                    if(getZone(3) == getZone(0))then
-                        setHPColor(3);
-                        renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
-                        renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
-                        renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
-                        renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 3);
-                        imgui.PopStyleColor();
-                    else
-                        renderPartyZone(3);
-                    end
-                end
-                if(partyCount >= 5) then
-                    if(getZone(4) == getZone(0))then
-                        setHPColor(4);
-                        renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
-                        renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
-                        renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
-                        renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 4);
-                        imgui.PopStyleColor();
-                    else
-                        renderPartyZone(4);
-                    end
-                end
-                if(partyCount >= 6) then
-                    if(getZone(5) == getZone(0))then
-                        setHPColor(5);
-                        renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
-                        renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
-                        renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
-                        renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, 5);
-                        imgui.PopStyleColor();
-                    else
-                        renderPartyZone(5);
-                    end
-                end
-
-                if(pet ~= nil) then
-                    imgui.PushStyleColor(ImGuiCol_Text, {1.0, 1.0, 1.0, 1.0});
-                    renderPetThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
-                    renderPetThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
-                    renderPetThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
-                    renderPetThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
+                    imgui.SetWindowFontScale((glamourUI.settings.partylist.font_scale));
+                    setHPColor(0);
+                    renderPlayerThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 0);
+                    renderPlayerThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 0);
+                    renderPlayerThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 0);
+                    renderPlayerThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 0);
                     imgui.PopStyleColor();
-                end
-            end
-            imgui.End();
-        else
-            if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
-                local party = AshitaCore:GetMemoryManager():GetParty()
-                local partyCount = 0;
 
-                for i = 1,6,1 do
-                    if(AshitaCore:GetMemoryManager():GetParty():GetMemberIsActive(i-1) > 0) then
-                        partyCount = partyCount +1;
+                    if(partyCount >= 2) then
+                        if(getZone(1) == getZone(0))then
+                            setHPColor(1);
+                            renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 1);
+                            renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 1);
+                            renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 1);
+                            renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 1);
+                            imgui.PopStyleColor();
+                        else
+                            renderPartyZone(1);
+                        end
+                    end
+                    if(partyCount >= 3) then
+                        if(getZone(2) == getZone(0))then
+                            setHPColor(2);
+                            renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 2);
+                            renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 2);
+                            renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 2);
+                            renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 2);
+                            imgui.PopStyleColor();
+                        else
+                            renderPartyZone(2);
+                        end
+                    end
+                    if(partyCount >= 4) then
+                        if(getZone(3) == getZone(0))then
+                            setHPColor(3);
+                            renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 3);
+                            renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 3);
+                            renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 3);
+                            renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 3);
+                            imgui.PopStyleColor();
+                        else
+                            renderPartyZone(3);
+                        end
+                    end
+                    if(partyCount >= 5) then
+                        if(getZone(4) == getZone(0))then
+                            setHPColor(4);
+                            renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 4);
+                            renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 4);
+                            renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 4);
+                            renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 4);
+                            imgui.PopStyleColor();
+                        else
+                            renderPartyZone(4);
+                        end
+                    end
+                    if(partyCount >= 6) then
+                        if(getZone(5) == getZone(0))then
+                            setHPColor(5);
+                            renderPartyThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 5);
+                            renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 5);
+                            renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 5);
+                            renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 5);
+                            imgui.PopStyleColor();
+                        else
+                            renderPartyZone(5);
+                        end
+                    end
+
+                    if(pet ~= nil) then
+                        imgui.PushStyleColor(ImGuiCol_Text, {1.0, 1.0, 1.0, 1.0});
+                        renderPetThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
+                        renderPetThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
+                        renderPetThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
+                        renderPetThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
+                        imgui.PopStyleColor();
                     end
                 end
+                imgui.End();
+            else
+                if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
+                    local party = AshitaCore:GetMemoryManager():GetParty()
+                    local partyCount = 0;
 
-                local player = GetPlayerEntity();
-                if(player == nil) then
-                    player = 0;
-                end
-                local pet = GetEntity(player.PetTargetIndex);
+                    for i = 1,6,1 do
+                        if(AshitaCore:GetMemoryManager():GetParty():GetMemberIsActive(i-1) > 0) then
+                            partyCount = partyCount +1;
+                        end
+                    end
 
-
-                -- PLayer Rendering
-                imgui.SetWindowFontScale((glamourUI.settings.partylist.font_scale));
-                imgui.Text(tostring(getName(0)));
-                imgui.SetCursorPosX(25 * glamourUI.settings.partylist.gui_scale);
-                imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
-                imgui.ProgressBar(getHPP(0) / 100, { 200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale}, '');
-                imgui.PopStyleColor(1);
-                imgui.SameLine();
-                imgui.SetCursorPosX(27 * glamourUI.settings.partylist.gui_scale);
-                imgui.Text(tostring(getHP(0)));
-                imgui.SameLine();
-                imgui.SetCursorPosX(240 * glamourUI.settings.partylist.gui_scale);
-                imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.5, 0.0, 1.0 });
-                imgui.ProgressBar(getMPP(0) / 100, { 200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale}, '');
-                imgui.PopStyleColor(1);
-                imgui.SameLine();
-                imgui.SetCursorPosX(242 * glamourUI.settings.partylist.gui_scale);
-                imgui.Text(tostring(getMP(0)));
-                imgui.SameLine();
-                imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
-                imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.45, 1.0, 1.0});
-                imgui.ProgressBar(getTP(0) / 1000, {200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale}, '');
-                imgui.PopStyleColor(1);
-                if(getTP(0) > 1000) then
-                    imgui.SameLine();
-                    imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
-                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0});
-                    imgui.ProgressBar((getTP(0) -1000) /1000, {200 * glamourUI.settings.partylist.gui_scale, 10 * glamourUI.settings.partylist.gui_scale}, '');
-                    imgui.PopStyleColor(1);
-                end
-                if(getTP(0) > 2000) then
-                    imgui.SameLine();
-                    imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
-                    imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0});
-                    imgui.ProgressBar((getTP(0) -2000) /1000, {200 * glamourUI.settings.partylist.gui_scale, 4 * glamourUI.settings.partylist.gui_scale}, '');
-                    imgui.PopStyleColor(1);
-                end
-                imgui.SameLine();
-                imgui.SetCursorPosX(457 * glamourUI.settings.partylist.gui_scale);
-                imgui.Text(tostring(getTP(0)));
-
-                --Party Member 1 Rendering
-                if(partyCount >= 2) then
-                    renderParty(1);
-                end
+                    local player = GetPlayerEntity();
+                    if(player == nil) then
+                        player = 0;
+                    end
+                    local pet = GetEntity(player.PetTargetIndex);
 
 
-                --Party Member 2 Rendering
-                if(partyCount >= 3) then
-                    renderParty(2);
-                end
-
-                --Party Member 3 Rendering
-                if(partyCount >= 4) then
-                    renderParty(3);
-                end
-
-                --Party Member 4 Rendering
-                if(partyCount >= 5) then
-                    renderParty(4);
-                end
-
-                --Party Member 5 Rendering
-                if(partyCount >= 6) then
-                    renderParty(5);
-                end
-
-                --Pet Rendering
-                if(pet ~= nil) then
-                    imgui.Text('');
-                    imgui.Text(tostring(pet.Name));
-                    imgui.SetCursorPosX(25);
+                    -- PLayer Rendering
+                    imgui.SetWindowFontScale((glamourUI.settings.partylist.font_scale));
+                    imgui.Text(tostring(getName(0)));
+                    imgui.SetCursorPosX(25 * glamourUI.settings.partylist.gui_scale);
                     imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
-                    imgui.ProgressBar(pet.HPPercent / 100, { 200, 14 }, '');
-                    imgui.SameLine();
+                    imgui.ProgressBar(getHPP(0) / 100, { 200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale}, '');
                     imgui.PopStyleColor(1);
-                    imgui.SetCursorPosX(27);
-                    imgui.Text(tostring(pet.HPPercent ) .. '%%');
                     imgui.SameLine();
-                    imgui.SetCursorPosX(240);
+                    imgui.SetCursorPosX(27 * glamourUI.settings.partylist.gui_scale);
+                    imgui.Text(tostring(getHP(0)));
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(240 * glamourUI.settings.partylist.gui_scale);
                     imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.5, 0.0, 1.0 });
-                    imgui.ProgressBar(AshitaCore:GetMemoryManager():GetPlayer():GetPetMPPercent() / 100, { 200, 14}, '');
+                    imgui.ProgressBar(getMPP(0) / 100, { 200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale}, '');
                     imgui.PopStyleColor(1);
                     imgui.SameLine();
-                    imgui.SetCursorPosX(242);
-                    imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetMPPercent()) .. '%%');
+                    imgui.SetCursorPosX(242 * glamourUI.settings.partylist.gui_scale);
+                    imgui.Text(tostring(getMP(0)));
                     imgui.SameLine();
-                    imgui.SetCursorPosX(455);
+                    imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
                     imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.45, 1.0, 1.0});
-                    imgui.ProgressBar(AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() / 1000, {200, 14}, '');
+                    imgui.ProgressBar(getTP(0) / 1000, {200 * glamourUI.settings.partylist.gui_scale, 16 * glamourUI.settings.partylist.gui_scale}, '');
                     imgui.PopStyleColor(1);
-                    if(getTP(5) > 1000) then
+                    if(getTP(0) > 1000) then
                         imgui.SameLine();
-                        imgui.SetCursorPosX(455);
+                        imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
                         imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0});
-                        imgui.ProgressBar((AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() -1000) /1000, {200, 10}, '');
+                        imgui.ProgressBar((getTP(0) -1000) /1000, {200 * glamourUI.settings.partylist.gui_scale, 10 * glamourUI.settings.partylist.gui_scale}, '');
                         imgui.PopStyleColor(1);
                     end
-                    if(getTP(5) > 2000) then
+                    if(getTP(0) > 2000) then
                         imgui.SameLine();
-                        imgui.SetCursorPosX(455);
+                        imgui.SetCursorPosX(455 * glamourUI.settings.partylist.gui_scale);
                         imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0});
-                        imgui.ProgressBar((AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() -2000) /1000, {200, 4}, '');
+                        imgui.ProgressBar((getTP(0) -2000) /1000, {200 * glamourUI.settings.partylist.gui_scale, 4 * glamourUI.settings.partylist.gui_scale}, '');
                         imgui.PopStyleColor(1);
                     end
                     imgui.SameLine();
-                    imgui.SetCursorPosX(457);
-                    imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetTP()));
-                end
-            end
+                    imgui.SetCursorPosX(457 * glamourUI.settings.partylist.gui_scale);
+                    imgui.Text(tostring(getTP(0)));
 
-            imgui.End();
+                    --Party Member 1 Rendering
+                    if(partyCount >= 2) then
+                        renderParty(1);
+                    end
+
+
+                    --Party Member 2 Rendering
+                    if(partyCount >= 3) then
+                        renderParty(2);
+                    end
+
+                    --Party Member 3 Rendering
+                    if(partyCount >= 4) then
+                        renderParty(3);
+                    end
+
+                    --Party Member 4 Rendering
+                    if(partyCount >= 5) then
+                        renderParty(4);
+                    end
+
+                    --Party Member 5 Rendering
+                    if(partyCount >= 6) then
+                        renderParty(5);
+                    end
+
+                    --Pet Rendering
+                    if(pet ~= nil) then
+                        imgui.Text('');
+                        imgui.Text(tostring(pet.Name));
+                        imgui.SetCursorPosX(25);
+                        imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
+                        imgui.ProgressBar(pet.HPPercent / 100, { 200, 14 }, '');
+                        imgui.SameLine();
+                        imgui.PopStyleColor(1);
+                        imgui.SetCursorPosX(27);
+                        imgui.Text(tostring(pet.HPPercent ) .. '%%');
+                        imgui.SameLine();
+                        imgui.SetCursorPosX(240);
+                        imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.5, 0.0, 1.0 });
+                        imgui.ProgressBar(AshitaCore:GetMemoryManager():GetPlayer():GetPetMPPercent() / 100, { 200, 14}, '');
+                        imgui.PopStyleColor(1);
+                        imgui.SameLine();
+                        imgui.SetCursorPosX(242);
+                        imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetMPPercent()) .. '%%');
+                        imgui.SameLine();
+                        imgui.SetCursorPosX(455);
+                        imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.45, 1.0, 1.0});
+                        imgui.ProgressBar(AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() / 1000, {200, 14}, '');
+                        imgui.PopStyleColor(1);
+                        if(getTP(5) > 1000) then
+                            imgui.SameLine();
+                            imgui.SetCursorPosX(455);
+                            imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0});
+                            imgui.ProgressBar((AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() -1000) /1000, {200, 10}, '');
+                            imgui.PopStyleColor(1);
+                        end
+                        if(getTP(5) > 2000) then
+                            imgui.SameLine();
+                            imgui.SetCursorPosX(455);
+                            imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0});
+                            imgui.ProgressBar((AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() -2000) /1000, {200, 4}, '');
+                            imgui.PopStyleColor(1);
+                        end
+                        imgui.SameLine();
+                        imgui.SetCursorPosX(457);
+                        imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetTP()));
+                    end
+                    imgui.PopStyleVar();
+                end
+
+                imgui.End();
+
+            end
 
         end
-
-    end
 
 end
 
@@ -647,11 +660,12 @@ end
 function render_debug_panel()
     if(dbug == true) then
         local rect = AshitaCore:GetProperties():GetFinalFantasyHwnd();
+        local bits = AshitaCore:GetMemoryManager():GetParty():GetMemberFlagMask(0);
         imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
         imgui.SetNextWindowPos({12, 12}, ImGuiCond_FirstUseEver);
         if(imgui.Begin('Debug'))then
             --imgui.PushFont(glamourUI.font);
-            imgui.Text(tostring(getMenu()));
+
             --imgui.PopFont();
         end
         imgui.End();
@@ -791,7 +805,7 @@ ashita.events.register('load', 'load_cb', function()
     end
     require('conf')
     loadLayout(glamourUI.settings.partylist.layout);
-    loadFont(glamourUI.settings.font);
+    --loadFont(glamourUI.settings.font);
 end)
 
 ashita.events.register('unload', 'unload_cb', function()
