@@ -24,6 +24,7 @@ local chat = require('chat')
 require('helperfunctions')
 local ffi = require('ffi')
 local d3d8 = require('d3d8')
+local primlib = require('primitives');
 
 local dbug = false;
 
@@ -153,6 +154,27 @@ glamourUI = T{
 
 local font = nil;
 
+local primData = {
+    texture_offset_x= 0.0,
+    texture_offset_y= 0.0,
+    border_visible  = false,
+    border_color    = 0x80000000,
+    border_flags    = FontBorderFlags.None,
+    border_sizes    = '0,0,0,0',
+    visible         = true,
+    position_x      = 0,
+    position_y      = 0,
+    can_focus       = false,
+    locked          = false,
+    lockedz         = true,
+    scale_x         = 1.0,
+    scale_y         = 1.0,
+    width           = 0.0,
+    height          = 0.0,
+    color           = 0x80000000,
+};
+
+local bgIMG = nil;
 
 settings.register('settings', 'settings_update', function(s)
     if (s ~=nil) then
@@ -179,9 +201,10 @@ function render_party_list()
     if (glamourUI.settings.partylist.enabled and chatIsOpen == false) then
 
 
-            imgui.SetNextWindowBgAlpha(glamourUI.settings.partylist.bgOpacity);
+
             imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
             imgui.SetNextWindowPos({glamourUI.settings.partylist.x, glamourUI.settings.partylist.y}, ImGuiCond_FirstUseEver);
+
 
 
             if(glamourUI.settings.partylist.themed == true) then
@@ -203,7 +226,9 @@ function render_party_list()
 
 
                 if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
-
+                    local pos = {imgui.GetCursorScreenPos()};
+                    bgIMG.position_x = pos[1] - 20;
+                    bgIMG.position_y = pos[2] - 40;
                     local party = AshitaCore:GetMemoryManager():GetParty()
                     local partyCount = 0;
                     for i = 1,6,1 do
@@ -296,6 +321,8 @@ function render_party_list()
                         imgui.PopStyleColor();
                     end
                 end
+                bgIMG.width = imgui.GetWindowWidth() + 50;
+                bgIMG.height = imgui.GetWindowHeight() + 50;
                 imgui.End();
             else
                 if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
@@ -426,7 +453,6 @@ function render_party_list()
                     end
                     imgui.PopStyleVar();
                 end
-
                 imgui.End();
 
             end
@@ -806,8 +832,17 @@ ashita.events.register('load', 'load_cb', function()
     require('conf')
     loadLayout(glamourUI.settings.partylist.layout);
     --loadFont(glamourUI.settings.font);
+    bgIMG = primlib.new(primData);
+    setBGTex(glamourUI.settings.partylist.theme);
 end)
 
 ashita.events.register('unload', 'unload_cb', function()
     settings.save();
+    bgIMG:destroy();
 end)
+
+
+function setBGTex(theme)
+    bgIMG.texture = ('%s\\config\\addons\\GlamourUI\\Themes\\%s\\background.png'):fmt(AshitaCore:GetInstallPath(), theme);
+    bgIMG.color = 0xFFFFFFFF;
+end

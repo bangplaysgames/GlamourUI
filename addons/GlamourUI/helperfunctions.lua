@@ -3,6 +3,7 @@ local d3d8 = require('d3d8')
 local imgui = require('imgui')
 require('common')
 local chat = require('chat')
+local primlib = require('primitives');
 
 local cache = T{
     theme = nil,
