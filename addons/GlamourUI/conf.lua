@@ -6,7 +6,7 @@ confGUI = T{
     is_open = false,
     themeID = T{ getThemeID('Default')},
     layoutID = T{ getLayoutID('Default')},
-    --fontID = T{ getFontID('Default')}
+    fontID = T{ getFontID('Default')}
 };
 
 layoutGUI = T{
@@ -35,14 +35,14 @@ function render_config()
     local alliance_gui_scale = {glamourUI.settings.alliancePanel.gui_scale};
     local alliance2_gui_scale = {glamourUI.settings.alliancePanel2.gui_scale};
     local player_gui_scale = {glamourUI.settings.playerStats.gui_scale};
-    local party_font_scale = {glamourUI.settings.partylist.font_scale};
-    local target_font_scale = {glamourUI.settings.targetbar.font_scale};
-    local alliance_font_scale = {glamourUI.settings.alliancePanel.font_scale};
-    local alliance2_font_scale = {glamourUI.settings.alliancePanel2.font_scale};
-    local player_font_scale = {glamourUI.settings.playerStats.font_scale};
+    local party_font_scale = {glamourUI.settings.partylist.font_size};
+    local target_font_scale = {glamourUI.settings.targetbar.font_size};
+    local alliance_font_scale = {glamourUI.settings.alliancePanel.font_size};
+    local alliance2_font_scale = {glamourUI.settings.alliancePanel2.font_size};
+    local player_font_scale = {glamourUI.settings.playerStats.font_size};
     local themedir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Themes\\'):fmt(AshitaCore:GetInstallPath()));
     local layoutdir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Layouts\\'):fmt(AshitaCore:GetInstallPath()));
-    --local fontdir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Fonts\\')):fmt(AshitaCore:GetInstallPath());
+    local fontdir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Fonts\\'):fmt(AshitaCore:GetInstallPath()));
 
 
     if(confGUI.is_open == true)then
@@ -50,7 +50,7 @@ function render_config()
         if(imgui.Begin('GlamourUI Configuration', confGUI.is_open, ImGuiWindowFlags_NoDecoration,ImGuiWindowFlags_AlwaysAutoResize)) then
             imgui.Text('GlamourUI Configuration');
             imgui.BeginGroup();
-            imgui.BeginChild('conf_partylist', {500,160}, true);
+            imgui.BeginChild('conf_partylist', {500,180}, true);
             imgui.Text('PartyList');
             imgui.SameLine();
             imgui.SetCursorPosX(200);
@@ -66,9 +66,10 @@ function render_config()
             if(glamourUI.settings.partylist.gui_scale ~= party_gui_scale[1]) then
                 glamourUI.settings.partylist.gui_scale = party_gui_scale[1];
             end
-            imgui.SliderFloat('Font Scale', party_font_scale, 0.1, 5.0, '%.1f');
-            if(glamourUI.settings.partylist.font_scale ~= party_font_scale[1])then
-                glamourUI.settings.partylist.font_scale = party_font_scale[1];
+            imgui.SliderInt('Font Size', party_font_scale, 1, 50);
+            if(glamourUI.settings.partylist.font_size ~= party_font_scale[1])then
+                glamourUI.settings.partylist.font_size = party_font_scale[1];
+                loadFont(glamourUI.settings.partylist.font, glamourUI.settings.partylist.font_size, 'partylist');
             end
             if(imgui.BeginCombo('Theme  ', glamourUI.settings.partylist.theme, combo_flags))then
                 for i = 1,#themedir,1 do
@@ -99,11 +100,26 @@ function render_config()
                 end
                 imgui.EndCombo();
             end
+            if(imgui.BeginCombo('Font  ', glamourUI.settings.partylist.font, combo_flags))then
+                for i = 1,#fontdir,1 do
+                    local is_selected = i == confGUI.fontID;
+
+                    if (glamourUI.settings.partylist.font ~= fontdir[i] and imgui.Selectable(fontdir[i], is_selected))then
+                        confGUI.fontID = i;
+                        glamourUI.settings.partylist.font = fontdir[i];
+                        loadFont(fontdir[i], glamourUI.settings.partylist.font_size, 'partylist');
+                    end
+                    if(is_selected) then
+                        imgui.SetItemDefaultFocus();
+                    end
+                end
+                imgui.EndCombo();
+            end
             if(imgui.Button('Bar Dimensions'))then
                 plistBarDim.is_open = not plistBarDim.is_open;
             end
             imgui.EndChild();
-            imgui.BeginChild('conf_targetbar', {500,145}, true);
+            imgui.BeginChild('conf_targetbar', {500,165}, true);
             imgui.Text('Target Bar');
             imgui.SameLine();
             imgui.SetCursorPosX(200);
@@ -119,9 +135,10 @@ function render_config()
             if(glamourUI.settings.targetbar.gui_scale ~= target_gui_scale[1]) then
                 glamourUI.settings.targetbar.gui_scale = target_gui_scale[1];
             end
-            imgui.SliderFloat('Font Scale', target_font_scale, 0.1, 5.0, '%.1f');
-            if(glamourUI.settings.targetbar.font_scale ~= target_font_scale[1])then
-                glamourUI.settings.targetbar.font_scale = target_font_scale[1];
+            imgui.SliderInt('Font Size', target_font_scale, 1, 50);
+            if(glamourUI.settings.targetbar.font_size ~= target_font_scale[1])then
+                glamourUI.settings.targetbar.font_size = target_font_scale[1];
+                loadFont(glamourUI.settings.targetbar.font, glamourUI.settings.targetbar.font_size, 'targetbar');
             end
             if(imgui.BeginCombo('Theme  ', glamourUI.settings.targetbar.theme, combo_flags))then
                 for i = 1,#themedir,1 do
@@ -137,11 +154,26 @@ function render_config()
                 end
                 imgui.EndCombo();
             end
+            if(imgui.BeginCombo('Font  ', glamourUI.settings.targetbar.font, combo_flags))then
+                for i = 1,#fontdir,1 do
+                    local is_selected = i == confGUI.fontID;
+
+                    if (glamourUI.settings.targetbar.font ~= fontdir[i] and imgui.Selectable(fontdir[i], is_selected))then
+                        confGUI.fontID = i;
+                        glamourUI.settings.targetbar.font = fontdir[i];
+                        loadFont(fontdir[i], glamourUI.settings.targetbar.font_size, 'targetbar');
+                    end
+                    if(is_selected) then
+                        imgui.SetItemDefaultFocus();
+                    end
+                end
+                imgui.EndCombo();
+            end
             if(imgui.Button('Bar Dimensions'))then
                 tBarDim.is_open = not tBarDim.is_open;
             end
             imgui.EndChild();
-            imgui.BeginChild('conf_alliancePanel', {500,145}, true);
+            imgui.BeginChild('conf_alliancePanel', {500,165}, true);
             imgui.Text('Alliance Panels');
             imgui.SameLine();
             imgui.SetCursorPosX(200);
@@ -160,10 +192,11 @@ function render_config()
                 glamourUI.settings.alliancePanel.gui_scale = alliance_gui_scale[1];
                 glamourUI.settings.alliancePanel.gui_scale = alliance2_gui_scale[1];
             end
-            imgui.SliderFloat('Font Scale', alliance_font_scale, 0.1, 5.0, '%.1f');
-            if(glamourUI.settings.alliancePanel.font_scale ~= alliance_font_scale[1])then
-                glamourUI.settings.alliancePanel.font_scale = alliance_font_scale[1];
-                glamourUI.settings.alliancePanel.font_scale = alliance_font_scale[1];
+            imgui.SliderInt('Font Scale', alliance_font_scale, 1, 50);
+            if(glamourUI.settings.alliancePanel.font_size ~= alliance_font_scale[1])then
+                glamourUI.settings.alliancePanel.font_size = alliance_font_scale[1];
+                glamourUI.settings.alliancePanel2.font_size = alliance_font_scale[1];
+                loadFont(glamourUI.settings.alliancePanel.font, glamourUI.settings.alliancePanel.font_size, 'alliancePanel');
             end
             if(imgui.BeginCombo('Theme  ', glamourUI.settings.alliancePanel.theme, combo_flags))then
                 for i = 1,#themedir,1 do
@@ -180,11 +213,26 @@ function render_config()
                 end
                 imgui.EndCombo();
             end
+            if(imgui.BeginCombo('Font  ', glamourUI.settings.alliancePanel.font, combo_flags))then
+                for i = 1,#fontdir,1 do
+                    local is_selected = i == confGUI.fontID;
+
+                    if (glamourUI.settings.alliancePanel.font ~= fontdir[i] and imgui.Selectable(fontdir[i], is_selected))then
+                        confGUI.fontID = i;
+                        glamourUI.settings.alliancePanel.font = fontdir[i];
+                        loadFont(fontdir[i], glamourUI.settings.alliancePanel.font_size, 'alliancePanel');
+                    end
+                    if(is_selected) then
+                        imgui.SetItemDefaultFocus();
+                    end
+                end
+                imgui.EndCombo();
+            end
             if(imgui.Button('BarDimensions'))then
                 aPanelBarDim.is_open = not aPanelBarDim.is_open;
             end
             imgui.EndChild();
-            imgui.BeginChild('conf_playerStats', {500,145}, true);
+            imgui.BeginChild('conf_playerStats', {500,165}, true);
             imgui.Text('Player Stats');
             imgui.SameLine();
             imgui.SetCursorPosX(200);
@@ -200,9 +248,10 @@ function render_config()
             if(glamourUI.settings.playerStats.gui_scale ~= player_gui_scale[1]) then
                 glamourUI.settings.playerStats.gui_scale = player_gui_scale[1];
             end
-            imgui.SliderFloat('Font Scale', player_font_scale, 0.1, 5.0, '%.1f');
-            if(glamourUI.settings.playerStats.font_scale ~= player_font_scale[1])then
-                glamourUI.settings.playerStats.font_scale = player_font_scale[1];
+            imgui.SliderInt('Font Size', player_font_scale, 1, 50);
+            if(glamourUI.settings.playerStats.font_size ~= player_font_scale[1])then
+                glamourUI.settings.playerStats.font_size = player_font_scale[1];
+                loadFont(glamourUI.settings.playerStats.font, glamourUI.settings.playerStats.font_size, 'playerStats');
             end
             if(imgui.BeginCombo('Theme  ', glamourUI.settings.playerStats.theme, combo_flags))then
                 for i = 1,#themedir,1 do
@@ -211,6 +260,21 @@ function render_config()
                     if (glamourUI.settings.playerStats.theme ~= themedir[i] and imgui.Selectable(themedir[i], is_selected))then
                         confGUI.themeID = i;
                         glamourUI.settings.playerStats.theme = themedir[i];
+                    end
+                    if(is_selected) then
+                        imgui.SetItemDefaultFocus();
+                    end
+                end
+                imgui.EndCombo();
+            end
+            if(imgui.BeginCombo('Font  ', glamourUI.settings.playerStats.font, combo_flags))then
+                for i = 1,#fontdir,1 do
+                    local is_selected = i == confGUI.fontID;
+
+                    if (glamourUI.settings.playerStats.font ~= fontdir[i] and imgui.Selectable(fontdir[i], is_selected))then
+                        confGUI.fontID = i;
+                        glamourUI.settings.playerStats.font = fontdir[i];
+                        loadFont(fontdir[i], glamourUI.settings.playerStats.font_size, 'playerStats');
                     end
                     if(is_selected) then
                         imgui.SetItemDefaultFocus();

@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.5.0';
+addon.version = '0.6.0';
 
 local imgui = require('imgui')
 
@@ -87,7 +87,7 @@ local default_settings = T{
     },
     alliancePanel2 = T{
         enabled = true,
-        font_scale = 1.5,
+        font_size = 16,
         gui_scale = 1,
         theme = 'Default',
         themed = true,
@@ -149,32 +149,20 @@ glamourUI = T{
     pListFont = nil,
     tBarFont = nil,
     aPanelFont = nil,
-    pStatsFont = nil
+    pStatsFont = nil,
+    bgSize = T{
+        x = 0,
+        y = 0
+    },
+    bgPos = T{
+        x = 0,
+        y = 0
+    }
 }
 
 local font = nil;
 
-local primData = {
-    texture_offset_x= 0.0,
-    texture_offset_y= 0.0,
-    border_visible  = false,
-    border_color    = 0x80000000,
-    border_flags    = FontBorderFlags.None,
-    border_sizes    = '0,0,0,0',
-    visible         = true,
-    position_x      = 0,
-    position_y      = 0,
-    can_focus       = false,
-    locked          = false,
-    lockedz         = true,
-    scale_x         = 1.0,
-    scale_y         = 1.0,
-    width           = 0.0,
-    height          = 0.0,
-    color           = 0x80000000,
-};
 
-local bgIMG = nil;
 
 settings.register('settings', 'settings_update', function(s)
     if (s ~=nil) then
@@ -201,6 +189,15 @@ function render_party_list()
     if (glamourUI.settings.partylist.enabled and chatIsOpen == false) then
 
 
+        local bgTex = getTex(glamourUI.settings, 'partylist', 'background.png');
+
+        imgui.SetNextWindowSize({glamourUI.bgSize.x + 15, glamourUI.bgSize.y + 15}, ImGuiCond_Always);
+        imgui.SetNextWindowPos({glamourUI.bgPos.x, glamourUI.bgPos.y}, ImGuiCond_Always);
+
+        if(imgui.Begin('pListBG', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_NoBackground)))then
+            imgui.Image(bgTex, {glamourUI.bgSize.x, glamourUI.bgSize.y});
+            imgui.End();
+        end
 
             imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
             imgui.SetNextWindowPos({glamourUI.settings.partylist.x, glamourUI.settings.partylist.y}, ImGuiCond_FirstUseEver);
@@ -227,8 +224,6 @@ function render_party_list()
 
                 if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
                     local pos = {imgui.GetCursorScreenPos()};
-                    bgIMG.position_x = pos[1] - 20;
-                    bgIMG.position_y = pos[2] - 40;
                     local party = AshitaCore:GetMemoryManager():GetParty()
                     local partyCount = 0;
                     for i = 1,6,1 do
@@ -237,13 +232,13 @@ function render_party_list()
                         end
                     end
 
+                    imgui.PushFont(glamourUI.pListFont);
                     local player = GetPlayerEntity();
                     if(player == nil) then
                         player = 0;
                     end
                     local pet = GetEntity(player.PetTargetIndex);
 
-                    imgui.SetWindowFontScale((glamourUI.settings.partylist.font_scale));
                     setHPColor(0);
                     renderPlayerThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 0);
                     renderPlayerThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 0);
@@ -321,13 +316,19 @@ function render_party_list()
                         imgui.PopStyleColor();
                     end
                 end
-                bgIMG.width = imgui.GetWindowWidth() + 50;
-                bgIMG.height = imgui.GetWindowHeight() + 50;
+                glamourUI.bgSize.x = imgui.GetWindowWidth() + 50;
+                glamourUI.bgSize.y = imgui.GetWindowHeight() + 50;
+                local pos = {imgui.GetWindowPos()};
+                glamourUI.bgPos.x = pos[1] - 25;
+                glamourUI.bgPos.y = pos[2] - 25;
+                imgui.PopFont();
                 imgui.End();
             else
                 if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
                     local party = AshitaCore:GetMemoryManager():GetParty()
                     local partyCount = 0;
+
+                    imgui.PushFont(glamourUI.pListFont);
 
                     for i = 1,6,1 do
                         if(AshitaCore:GetMemoryManager():GetParty():GetMemberIsActive(i-1) > 0) then
@@ -343,7 +344,6 @@ function render_party_list()
 
 
                     -- PLayer Rendering
-                    imgui.SetWindowFontScale((glamourUI.settings.partylist.font_scale));
                     imgui.Text(tostring(getName(0)));
                     imgui.SetCursorPosX(25 * glamourUI.settings.partylist.gui_scale);
                     imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
@@ -453,6 +453,7 @@ function render_party_list()
                     end
                     imgui.PopStyleVar();
                 end
+                imgui.PopFont();
                 imgui.End();
 
             end
@@ -476,9 +477,10 @@ function render_target_bar()
 
         if(targetEntity ~= nil) then
             if(imgui.Begin('Target Bar', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground))) then
-                imgui.SetWindowFontScale(glamourUI.settings.targetbar.font_scale * glamourUI.settings.targetbar.gui_scale);
+
                 imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
                 imgui.SetCursorPosY(10 * glamourUI.settings.targetbar.gui_scale);
+                imgui.PushFont(glamourUI.tBarFont);
 
                 if(glamourUI.settings.targetbar.themed == true) then
 
@@ -497,7 +499,6 @@ function render_target_bar()
 
 
                     imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
-                    imgui.SetWindowFontScale(1 * glamourUI.settings.targetbar.font_scale);
                     imgui.Image(hpbTex, {glamourUI.settings.targetbar.hpBarDim.l * glamourUI.settings.targetbar.gui_scale, glamourUI.settings.targetbar.hpBarDim.g * glamourUI.settings.targetbar.gui_scale});
                     imgui.SameLine();
                     imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
@@ -531,6 +532,7 @@ function render_target_bar()
                     end
 
                 end
+                imgui.PopFont();
                 imgui.End();
             end
         end
@@ -691,16 +693,23 @@ function render_debug_panel()
         imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
         imgui.SetNextWindowPos({12, 12}, ImGuiCond_FirstUseEver);
         if(imgui.Begin('Debug'))then
-            --imgui.PushFont(glamourUI.font);
 
-            --imgui.PopFont();
+            imgui.Text('Font');
+
+            imgui.PushFont(glamourUI.pListFont);
+            imgui.Text(glamourUI.settings.partylist.font);
+
+            imgui.Text(tostring(glamourUI.pListFont));
+            imgui.PopFont();
+            if(imgui.Button("Load Font")) then
+                loadFont(glamourUI.settings.partylist.font, 12, 'partylist');
+            end
         end
         imgui.End();
     end
 end
 
 function render_player_stats()
-    imgui.SetNextWindowBgAlpha(.3);
     imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
     imgui.SetNextWindowPos({glamourUI.settings.partylist.x, glamourUI.settings.partylist.y}, ImGuiCond_FirstUseEver);
     local hp = getHP(0);
@@ -711,6 +720,7 @@ function render_player_stats()
 
     if(glamourUI.settings.playerStats.enabled == true)then
         if (imgui.Begin('Player Stats', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
+            imgui.PushFont(glamourUI.pStatsFont);
             if(glamourUI.settings.playerStats.themed == true) then
 
                 local hpbTex = getTex(glamourUI.settings, 'playerStats', 'hpBar.png');
@@ -721,7 +731,6 @@ function render_player_stats()
                 local tpfTex = getTex(glamourUI.settings, 'playerStats', 'tpFill.png');
 
 
-                imgui.SetWindowFontScale(glamourUI.settings.playerStats.font_scale);
                 renderPlayerStats(hpbTex, hpfTex, hp, hpp, 0);
                 imgui.SameLine();
                 renderPlayerStats(mpbTex, mpfTex, mp, mpp, 250);
@@ -730,7 +739,6 @@ function render_player_stats()
 
             else
 
-                imgui.SetWindowFontScale(glamourUI.settings.playerStats.font_scale);
                 renderPlayerNoTheme(0, { 1.0, 0.25, 0.25, 1.0 }, hp, hpp);
                 imgui.SameLine();
                 renderPlayerNoTheme(250, { 0.0, 0.5, 0.0, 1.0 }, mp, mpp);
@@ -738,7 +746,7 @@ function render_player_stats()
                 renderPlayerNoTheme(500, { 0.0, 0.45, 1.0, 1.0}, tp, nil);
 
             end
-
+            imgui.PopFont();
         end
         imgui.End();
     end
@@ -832,18 +840,13 @@ ashita.events.register('load', 'load_cb', function()
     end
     require('conf')
     loadLayout(glamourUI.settings.partylist.layout);
-    --loadFont(glamourUI.settings.font);
-    bgIMG = primlib.new(primData);
-    setBGTex(glamourUI.settings.partylist.theme);
+    loadFont(glamourUI.settings.partylist.font, glamourUI.settings.partylist.font_size, 'partylist');
+    loadFont(glamourUI.settings.targetbar.font, glamourUI.settings.targetbar.font_size, 'targetbar');
+    loadFont(glamourUI.settings.alliancePanel.font, glamourUI.settings.alliancePanel.font_size, 'alliancePanel');
+    loadFont(glamourUI.settings.playerStats.font, glamourUI.settings.playerStats.font_size, 'playerStats');
 end)
 
 ashita.events.register('unload', 'unload_cb', function()
     settings.save();
-    bgIMG:destroy();
 end)
 
-
-function setBGTex(theme)
-    bgIMG.texture = ('%s\\config\\addons\\GlamourUI\\Themes\\%s\\background.png'):fmt(AshitaCore:GetInstallPath(), theme);
-    bgIMG.color = 0xFFFFFFFF;
-end

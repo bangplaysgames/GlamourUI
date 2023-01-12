@@ -71,6 +71,16 @@ function getLayoutID(layout)
     end
 end
 
+function getFontID(font)
+    local dir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Fonts\\'):fmt(AshitaCore:GetInstallPath()));
+
+    for i = 1,#dir,1 do
+        if(dir[i] == font) then
+            return i;
+        end
+    end
+end
+
 function getMenu()
     local menuBase = ashita.memory.find('FFXiMain.dll', 0, '8B480C85C974??8B510885D274??3B05', 16, 0);
 
@@ -117,13 +127,13 @@ end
 
 function loadFont(f, s, p)
     if(p == 'partylist')then
-        glamourUI.pListFont = imgui.lua_imgui_AddFontFromFileTTF(('%s\\config\\addons\\GlamourUI\\Fonts\\%s\\font.ttf'):fmt(AshitaCore:GetInstallPath(), f), s);
+        glamourUI.pListFont = imgui.AddFontFromFileTTF(('%s\\config\\addons\\GlamourUI\\Fonts\\%s\\font.ttf'):fmt(AshitaCore:GetInstallPath(), f), s);
     elseif(p == 'targetbar')then
-        glamourUI.tBarFont = imgui.lua_imgui_AddFontFromFileTTF(('%s\\config\\addons\\GlamourUI\\Fonts\\%s\\font.ttf'):fmt(AshitaCore:GetInstallPath(), f), s);
+        glamourUI.tBarFont = imgui.AddFontFromFileTTF(('%s\\config\\addons\\GlamourUI\\Fonts\\%s\\font.ttf'):fmt(AshitaCore:GetInstallPath(), f), s);
     elseif(p == 'playerStats')then
-        glamourUI.pStatsFont = imgui.lua_imgui_AddFontFromFileTTF(('%s\\config\\addons\\GlamourUI\\Fonts\\%s\\font.ttf'):fmt(AshitaCore:GetInstallPath(), f), s);
+        glamourUI.pStatsFont = imgui.AddFontFromFileTTF(('%s\\config\\addons\\GlamourUI\\Fonts\\%s\\font.ttf'):fmt(AshitaCore:GetInstallPath(), f), s);
     elseif(p == 'alliancePanel')then
-        glamourUI.aPanelFont = imgui.lua_imgui_AddFontFromFileTTF(('%s\\config\\addons\\GlamourUI\\Fonts\\%s\\font.ttf'):fmt(AshitaCore:GetInstallPath(), f), s);
+        glamourUI.aPanelFont = imgui.AddFontFromFileTTF(('%s\\config\\addons\\GlamourUI\\Fonts\\%s\\font.ttf'):fmt(AshitaCore:GetInstallPath(), f), s);
     end
 end
 
