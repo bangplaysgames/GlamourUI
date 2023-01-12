@@ -29,6 +29,8 @@ pStatsBarDim = T{
     is_open = false
 };
 
+local confFont = loadFont('MysticGate', 16, 'partylist');
+
 function render_config()
     local party_gui_scale = {glamourUI.settings.partylist.gui_scale};
     local target_gui_scale = {glamourUI.settings.targetbar.gui_scale};
@@ -44,10 +46,10 @@ function render_config()
     local layoutdir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Layouts\\'):fmt(AshitaCore:GetInstallPath()));
     local fontdir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Fonts\\'):fmt(AshitaCore:GetInstallPath()));
 
-
     if(confGUI.is_open == true)then
         imgui.SetNextWindowSize({-1,-1}, ImGuiCond_Always);
         if(imgui.Begin('GlamourUI Configuration', confGUI.is_open, ImGuiWindowFlags_NoDecoration,ImGuiWindowFlags_AlwaysAutoResize)) then
+            imgui.PushFont(confFont);
             imgui.Text('GlamourUI Configuration');
             imgui.BeginGroup();
             imgui.BeginChild('conf_partylist', {500,180}, true);
@@ -291,6 +293,7 @@ function render_config()
             end
             imgui.EndGroup();
         end
+        imgui.PopFont();
         imgui.End();
     end
 end
@@ -318,6 +321,7 @@ function render_layout_editor()
     if(layoutGUI.is_open == true)then
         imgui.SetNextWindowSize({400,515});
         if(imgui.Begin('Layout Editor', layoutGUI.is_open, ImGuiWindowFlags_NoDecoration))then
+            imgui.PushFont(confFont);
             imgui.Text('Layout Editor');
             imgui.BeginChild('layoutName', {400, 100}, true);
             imgui.Text('Name')
@@ -446,6 +450,7 @@ function render_layout_editor()
                 layoutGUI.is_open = false;
                 updateLayoutFile(glamourUI.settings.partylist.layout);
             end
+            imgui.PopFont();
         end
         imgui.End();
     end
@@ -461,6 +466,7 @@ function render_plistBarDim()
     if(plistBarDim.is_open == true)then
         imgui.SetNextWindowSize({300, 100}, ImGuiCond_FirstUseEver);
         if(imgui.Begin('plistBarDim', {300, 100}, bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoDecoration)))then
+            imgui.PushFont(confFont);
             imgui.Text('Party List Bar Dimensions');
             imgui.BeginChild('hpBar', {300, 100});
             imgui.Text('HP Bar');
@@ -528,6 +534,7 @@ function render_plistBarDim()
             if(imgui.Button('Close Editor'))then
                 plistBarDim.is_open = false;
             end
+            imgui.PopFont();
         end
         glamourUI.settings.partylist.hpBarDim.l = hpBl[1];
         glamourUI.settings.partylist.hpBarDim.g = hpBg[1];
@@ -546,6 +553,7 @@ function render_tbarDim()
     if(tBarDim.is_open == true)then
         imgui.SetNextWindowSize({300, 100}, ImGuiCond_FirstUseEver);
         if(imgui.Begin('tBarDim', {300, 100}, bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoDecoration)))then
+            imgui.PushFont(confFont);
             imgui.Text('Target Bar Dimensions');
             imgui.BeginChild('hpBar', {300, 100});
             imgui.Text('HP Bar');
@@ -571,6 +579,7 @@ function render_tbarDim()
             if(imgui.Button('Close Editor'))then
                 tBarDim.is_open = false;
             end
+            imgui.PopFont();
         end
         glamourUI.settings.targetbar.hpBarDim.l = hpBl[1];
         glamourUI.settings.targetbar.hpBarDim.g = hpBg[1];
@@ -585,6 +594,7 @@ function render_aPanelDim()
     if(aPanelBarDim.is_open == true)then
         imgui.SetNextWindowSize({300, 100}, ImGuiCond_FirstUseEver);
         if(imgui.Begin('aPanelBarDim', {300, 100}, bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoDecoration)))then
+            imgui.PushFont(confFont);
             imgui.Text('Alliance Panel Bar Dimensions');
             imgui.BeginChild('hpBar', {300, 100});
             imgui.Text('HP Bar');
@@ -610,6 +620,7 @@ function render_aPanelDim()
             if(imgui.Button('Close Editor'))then
                 aPanelBarDim.is_open = false;
             end
+            imgui.PopFont();
         end
         glamourUI.settings.alliancePanel.hpBarDim.l = hpBl[1];
         glamourUI.settings.alliancePanel.hpBarDim.g = hpBg[1];
@@ -626,6 +637,7 @@ function render_pStatsPanelDim()
     if(pStatsBarDim.is_open == true)then
         imgui.SetNextWindowSize({300, 100}, ImGuiCond_FirstUseEver);
         if(imgui.Begin('pStatsBarDim', {300, 100}, bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoDecoration)))then
+            imgui.PushFont(confFont);
             imgui.Text('Player Stats Bar Dimensions');
             imgui.BeginChild('hpBar', {300, 100});
             imgui.Text('HP Bar');
@@ -655,6 +667,7 @@ function render_pStatsPanelDim()
         end
         glamourUI.settings.playerStats.BarDim.l = Bl[1];
         glamourUI.settings.playerStats.BarDim.g = Bg[1];
+        imgui.PopFont();
         imgui.End();
     end
 end
