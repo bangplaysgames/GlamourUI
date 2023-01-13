@@ -47,6 +47,30 @@ function getTP(index)
     return AshitaCore:GetMemoryManager():GetParty():GetMemberTP(index);
 end
 
+function getInventory(cont_id)
+    return AshitaCore:GetMemoryManager():GetInventory():GetContainerCount(cont_id);
+end
+
+function getInventoryMax(cont_id)
+    return AshitaCore:GetMemoryManager():GetInventory():GetContainerCountMax(cont_id);
+end
+
+function GetSubTargetIndex()
+    local targetMgr = AshitaCore:GetMemoryManager():GetTarget();
+    if (targetMgr:GetIsSubTargetActive() == 1) then
+        return targetMgr:GetTargetIndex(0);
+    end
+    return 0;
+end
+
+function getSubTargetEntity()
+    local subTargetIndex = GetSubTargetIndex();
+    if subTargetIndex ~= 0 then
+        return GetEntity(subTargetIndex);
+    end
+    return nil;
+end
+
 function getZone(index)
     local id = AshitaCore:GetMemoryManager():GetParty():GetMemberZone(index);
     return AshitaCore:GetResourceManager():GetString('zones.names', id);
@@ -114,7 +138,9 @@ function ToBits(num)
     return t
 end
 
-
+function reloadGUI()
+    AshitaCore:GetChatManager():QueueCommand(-1, '/addon reload GlamourUI');
+end
 
 function GetPartyFlags(p)
     local flags = AshitaCore:GetMemoryManager():GetParty():GetMemberFlagMask(p);
@@ -134,6 +160,8 @@ function loadFont(f, s, p)
         glamourUI.pStatsFont = imgui.AddFontFromFileTTF(('%s\\config\\addons\\GlamourUI\\Fonts\\%s\\font.ttf'):fmt(AshitaCore:GetInstallPath(), f), s);
     elseif(p == 'alliancePanel')then
         glamourUI.aPanelFont = imgui.AddFontFromFileTTF(('%s\\config\\addons\\GlamourUI\\Fonts\\%s\\font.ttf'):fmt(AshitaCore:GetInstallPath(), f), s);
+    elseif(p == 'invPanel')then
+        glamourUI.iPanelFont = imgui.AddFontFromFileTTF(('%s\\config\\addons\\GlamourUI\\Fonts\\%s\\font.ttf'):fmt(AshitaCore:GetInstallPath(), f), s);
     end
 end
 

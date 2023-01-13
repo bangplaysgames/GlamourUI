@@ -42,6 +42,7 @@ function render_config()
     local alliance_font_scale = {glamourUI.settings.alliancePanel.font_size};
     local alliance2_font_scale = {glamourUI.settings.alliancePanel2.font_size};
     local player_font_scale = {glamourUI.settings.playerStats.font_size};
+    local inv_font_scale = {glamourUI.settings.invPanel.font_size};
     local themedir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Themes\\'):fmt(AshitaCore:GetInstallPath()));
     local layoutdir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Layouts\\'):fmt(AshitaCore:GetInstallPath()));
     local fontdir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Fonts\\'):fmt(AshitaCore:GetInstallPath()));
@@ -51,7 +52,6 @@ function render_config()
         if(imgui.Begin('GlamourUI Configuration', confGUI.is_open, ImGuiWindowFlags_NoDecoration,ImGuiWindowFlags_AlwaysAutoResize)) then
             imgui.PushFont(confFont);
             imgui.Text('GlamourUI Configuration');
-            imgui.BeginGroup();
             imgui.BeginChild('conf_partylist', {500,180}, true);
             imgui.Text('PartyList');
             imgui.SameLine();
@@ -288,10 +288,50 @@ function render_config()
                 pStatsBarDim.is_open = not pStatsBarDim.is_open;
             end
             imgui.EndChild();
+            imgui.BeginChild('invPanel', {500,165});
+            if(imgui.Checkbox('Enabled##inv', {glamourUI.settings.invPanel.enabled}))then
+                glamourUI.settings.invPanel.enabled = not glamourUI.settings.invPanel.enabled;
+            end
+            imgui.SliderInt('Font Size##inv', inv_font_scale, 1, 50);
+            if(glamourUI.settings.invPanel.font_size ~= inv_font_scale[1])then
+                glamourUI.settings.invPanel.font_size = inv_font_scale[1];
+            end
+            if(imgui.BeginCombo('Theme  ##inv', glamourUI.settings.invPanel.theme, combo_flags))then
+                for i = 1,#themedir,1 do
+                    local is_selected = i == confGUI.themeID;
+
+                    if (glamourUI.settings.invPanel.theme ~= themedir[i] and imgui.Selectable(themedir[i], is_selected))then
+                        confGUI.themeID = i;
+                        glamourUI.settings.invPanel.theme = themedir[i];
+                    end
+                    if(is_selected) then
+                        imgui.SetItemDefaultFocus();
+                    end
+                end
+                imgui.EndCombo();
+            end
+            if(imgui.BeginCombo('Font  ##inv', glamourUI.settings.invPanel.font, combo_flags))then
+                for i = 1,#fontdir,1 do
+                    local is_selected = i == confGUI.fontID;
+
+                    if (glamourUI.settings.invPanel.font ~= fontdir[i] and imgui.Selectable(fontdir[i], is_selected))then
+                        confGUI.fontID = i;
+                        glamourUI.settings.invPanel.font = fontdir[i];
+                        reloadGUI();
+                    end
+                    if(is_selected) then
+                        imgui.SetItemDefaultFocus();
+                    end
+                end
+                imgui.EndCombo();
+            end
+            if(imgui.Button('Reload Inventory Panel Font'))then
+                reloadGUI();
+            end
+            imgui.EndChild();
             if(imgui.Button('Close Config'))then
                 confGUI.is_open = false;
             end
-            imgui.EndGroup();
         end
         imgui.PopFont();
         imgui.End();

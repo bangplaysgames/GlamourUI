@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.6.0';
+addon.version = '0.7.0';
 
 local imgui = require('imgui')
 
@@ -24,8 +24,8 @@ local chat = require('chat')
 require('helperfunctions')
 local ffi = require('ffi')
 local d3d8 = require('d3d8')
-local primlib = require('primitives');
-
+local primlib = require('primitives')
+local env = require('scaling')
 local dbug = false;
 
 local default_settings = T{
@@ -111,8 +111,14 @@ local default_settings = T{
             l = 200,
             g = 16
         }
-    },
 
+    },
+    invPanel  = T{
+        theme = 'Default',
+        font = 'SpicyTaste',
+        font_size = 20,
+        enabled = true
+    }
 
 
 };
@@ -150,6 +156,7 @@ glamourUI = T{
     tBarFont = nil,
     aPanelFont = nil,
     pStatsFont = nil,
+    iPanelFont = nil,
     bgSize = T{
         x = 0,
         y = 0
@@ -468,7 +475,7 @@ function render_target_bar()
         local player = AshitaCore:GetMemoryManager():GetPlayer();
         local target = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(AshitaCore:GetMemoryManager():GetTarget():GetIsSubTargetActive())
         local targetEntity = GetEntity(target);
-
+        local subtarg = getSubTargetEntity();
 
 
         imgui.SetNextWindowBgAlpha(0);
@@ -477,6 +484,8 @@ function render_target_bar()
 
         if(targetEntity ~= nil) then
             if(imgui.Begin('Target Bar', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground))) then
+                local hpbTex = getTex(glamourUI.settings, 'targetbar', 'hpBar.png');
+                local hpfTex = getTex(glamourUI.settings, 'targetbar', 'hpFill.png');
 
                 imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
                 imgui.SetCursorPosY(10 * glamourUI.settings.targetbar.gui_scale);
@@ -530,7 +539,19 @@ function render_target_bar()
                         imgui.SetCursorPosY(0);
                         imgui.Image(lockedTex, {(63 + glamourUI.settings.targetbar.hpBarDim.l) * glamourUI.settings.targetbar.gui_scale, 59 * glamourUI.settings.targetbar.gui_scale});
                     end
-
+                end
+                if(subtarg ~= nil)then
+                    imgui.SetWindowFontScale(glamourUI.settings.targetbar.gui_scale + 0.5);
+                    imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
+                    imgui.Text('Sub Target:   ');
+                    imgui.SameLine();
+                    imgui.Text(subtarg.Name);
+                    imgui.SetCursorPosY(77);
+                    imgui.SetCursorPosX(350 * glamourUI.settings.targetbar.gui_scale);
+                    imgui.Image(hpbTex, {(glamourUI.settings.targetbar.hpBarDim.l * 0.5),(glamourUI.settings.targetbar.hpBarDim.g * 0.5)});
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(350 * glamourUI.settings.targetbar.gui_scale);
+                    imgui.Image(hpfTex, {(glamourUI.settings.targetbar.hpBarDim.l * 0.5 * (subtarg.HPPercent / 100)), (glamourUI.settings.targetbar.hpBarDim.g * 0.5)});
                 end
                 imgui.PopFont();
                 imgui.End();
@@ -688,22 +709,19 @@ end
 
 function render_debug_panel()
     if(dbug == true) then
-        local rect = AshitaCore:GetProperties():GetFinalFantasyHwnd();
-        local bits = AshitaCore:GetMemoryManager():GetParty():GetMemberFlagMask(0);
+        local player = AshitaCore:GetMemoryManager():GetPlayer();
+        local pEntity = AshitaCore:GetMemoryManager():GetEntity(player);
+        local party = AshitaCore:GetMemoryManager():GetParty();
+
         imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
         imgui.SetNextWindowPos({12, 12}, ImGuiCond_FirstUseEver);
         if(imgui.Begin('Debug'))then
 
             imgui.Text('Font');
 
+            imgui.Text(tostring(party:GetStatusIcons(0)));
             imgui.PushFont(glamourUI.pListFont);
-            imgui.Text(glamourUI.settings.partylist.font);
-
-            imgui.Text(tostring(glamourUI.pListFont));
             imgui.PopFont();
-            if(imgui.Button("Load Font")) then
-                loadFont(glamourUI.settings.partylist.font, 12, 'partylist');
-            end
         end
         imgui.End();
     end
@@ -751,6 +769,78 @@ function render_player_stats()
         imgui.End();
     end
 
+end
+
+function render_inventory_panel()
+    if(glamourUI.settings.invPanel.enabled == true)then
+        local invTex = getTex(glamourUI.settings, 'invPanel', 'lootbag.png');
+        local wardTex = getTex(glamourUI.settings, 'invPanel', 'wardrobe.png');
+        local safeTex = getTex(glamourUI.settings, 'invPanel', 'safe.png');
+        local tPoolTex = getTex(glamourUI.settings, 'invPanel', 'treasure.png');
+        local gilTex = getTex(glamourUI.settings, 'invPanel', 'gil.png');
+        local mX = env.menu.w;
+        local mY = env.menu.h;
+        local wX = env.window.w;
+        local wY = env.window.h;
+        local scaleX = wX / mX;
+        local scaleY = wY / mY;
+        local size = {(115 * scaleX), (185 * scaleY)};
+        local menu = {wX - (128 * scaleX), wY - (200 * scaleY)};
+        local gil = AshitaCore:GetMemoryManager():GetInventory():GetContainerItem(0, 0).Count;
+        local wardCount = getInventory(8) + getInventory(10) + getInventory(11) + getInventory(12) + getInventory(13) + getInventory(14) + getInventory(15) + getInventory(16);
+        local wardMax = getInventoryMax(8) + getInventoryMax(10) + getInventoryMax(11) + getInventoryMax(12) + getInventoryMax(13)+ getInventoryMax(14) + getInventoryMax(15) + getInventoryMax(16);
+        local tPoolCount = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItemCount();
+
+        imgui.SetNextWindowBgAlpha(1);
+        imgui.SetNextWindowSize(size, ImGuiCond_Always);
+        imgui.SetNextWindowPos(menu);
+        if(imgui.Begin("InventoryPanel", glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration)))then
+            imgui.PushFont(glamourUI.iPanelFont);
+
+            --Inventory Counts
+            imgui.SetCursorPosX(15 * scaleX);
+            imgui.SetCursorPosY(20 * scaleY);
+            imgui.Text(tostring(getInventory(0)) .. '/' .. tostring(getInventoryMax(0)));
+            imgui.SameLine();
+            imgui.SetCursorPosX(85 * scaleX);
+            imgui.SetCursorPosY(16 * scaleY);
+            imgui.Image(invTex, {15 * scaleX, 20 * scaleY})
+
+            --Wardrobe Counts
+            imgui.SetCursorPosX(15 * scaleX);
+            imgui.SetCursorPosY(50 * scaleY);
+            imgui.Text(tostring(wardCount).. '/' .. tostring(wardMax));
+            imgui.SetCursorPosX(85 * scaleX);
+            imgui.SetCursorPosY(51 * scaleY);
+            imgui.Image(wardTex, {15 * scaleX, 20 * scaleY});
+
+            --MogSafe Counts
+            imgui.SetCursorPosX(15 * scaleX);
+            imgui.SetCursorPosY(80 * scaleY);
+            imgui.Text(tostring(getInventory(1) .. '/' .. tostring(getInventoryMax(1))));
+            imgui.SetCursorPosX(85 * scaleX);
+            imgui.SetCursorPosY(81 * scaleY);
+            imgui.Image(safeTex, {15 * scaleX, 20 * scaleY});
+
+            --Treasure Pool
+            imgui.SetCursorPosX(15 * scaleX);
+            imgui.SetCursorPosY(110 * scaleY);
+            imgui.Text(tostring(tPoolCount));
+            imgui.SetCursorPosX(80 * scaleX);
+            imgui.SetCursorPosY(114 * scaleY);
+            imgui.Image(tPoolTex, {25 * scaleX, 20 * scaleY});
+
+            --Gil Count
+            imgui.SetCursorPosX(15 * scaleX);
+            imgui.SetCursorPosY(145 * scaleY);
+            imgui.Text(tostring(gil));
+            imgui.SetCursorPosX(85 * scaleX);
+            imgui.SetCursorPosY(147 * scaleY);
+            imgui.Image(gilTex, {15 * scaleX, 15 * scaleY});
+            imgui.PopFont();
+            imgui.End();
+        end
+    end
 end
 
 ashita.events.register('command', 'command_cb', function (e)
@@ -823,6 +913,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         render_aPanelDim();
         render_pStatsPanelDim();
         render_debug_panel();
+        render_inventory_panel();
     end
 end)
 
@@ -839,11 +930,14 @@ ashita.events.register('load', 'load_cb', function()
         print(chat.header('Creating Default Layout'));
     end
     require('conf')
+
+    local scaleY = env.window.h / env.menu.h;
     loadLayout(glamourUI.settings.partylist.layout);
     loadFont(glamourUI.settings.partylist.font, glamourUI.settings.partylist.font_size, 'partylist');
     loadFont(glamourUI.settings.targetbar.font, glamourUI.settings.targetbar.font_size, 'targetbar');
     loadFont(glamourUI.settings.alliancePanel.font, glamourUI.settings.alliancePanel.font_size, 'alliancePanel');
     loadFont(glamourUI.settings.playerStats.font, glamourUI.settings.playerStats.font_size, 'playerStats');
+    loadFont(glamourUI.settings.invPanel.font, glamourUI.settings.invPanel.font_size * scaleY, 'invPanel');
 end)
 
 ashita.events.register('unload', 'unload_cb', function()
