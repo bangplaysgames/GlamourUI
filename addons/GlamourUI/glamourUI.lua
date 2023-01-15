@@ -1,4 +1,4 @@
---[[]
+--[[
 ---MIT License---
 Copyright 2022 Banggugyangu
 
@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.7.0';
+addon.version = '0.7.1';
 
 local imgui = require('imgui')
 
@@ -512,7 +512,8 @@ function render_target_bar()
                     imgui.SameLine();
                     imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
                     imgui.Image(hpfTex, {(glamourUI.settings.targetbar.hpBarDim.l*(targetEntity.HPPercent /100) * glamourUI.settings.targetbar.gui_scale),(glamourUI.settings.targetbar.hpBarDim.g * glamourUI.settings.targetbar.gui_scale)});
-                    imgui.SameLine();
+                    imgui.SetCursorPosY(30 * glamourUI.settings.targetbar.gui_scale);
+                    imgui.SetCursorPosY(30 * glamourUI.settings.targetbar.gui_scale);
                     imgui.SetCursorPosX(340 * glamourUI.settings.targetbar.gui_scale);
                     imgui.Text(tostring(targetEntity.HPPercent) .. '%%');
                     if(IsTargetLocked() and glamourUI.settings.targetbar.lockIndicator == true) then
@@ -772,74 +773,82 @@ function render_player_stats()
 end
 
 function render_inventory_panel()
-    if(glamourUI.settings.invPanel.enabled == true)then
-        local invTex = getTex(glamourUI.settings, 'invPanel', 'lootbag.png');
-        local wardTex = getTex(glamourUI.settings, 'invPanel', 'wardrobe.png');
-        local safeTex = getTex(glamourUI.settings, 'invPanel', 'safe.png');
-        local tPoolTex = getTex(glamourUI.settings, 'invPanel', 'treasure.png');
-        local gilTex = getTex(glamourUI.settings, 'invPanel', 'gil.png');
-        local mX = env.menu.w;
-        local mY = env.menu.h;
-        local wX = env.window.w;
-        local wY = env.window.h;
-        local scaleX = wX / mX;
-        local scaleY = wY / mY;
-        local size = {(115 * scaleX), (185 * scaleY)};
-        local menu = {wX - (128 * scaleX), wY - (200 * scaleY)};
-        local gil = AshitaCore:GetMemoryManager():GetInventory():GetContainerItem(0, 0).Count;
-        local wardCount = getInventory(8) + getInventory(10) + getInventory(11) + getInventory(12) + getInventory(13) + getInventory(14) + getInventory(15) + getInventory(16);
-        local wardMax = getInventoryMax(8) + getInventoryMax(10) + getInventoryMax(11) + getInventoryMax(12) + getInventoryMax(13)+ getInventoryMax(14) + getInventoryMax(15) + getInventoryMax(16);
-        local tPoolCount = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItemCount();
+    local player = AshitaCore:GetMemoryManager():GetPlayer();
+    local zoning = player:GetIsZoning();
 
-        imgui.SetNextWindowBgAlpha(1);
-        imgui.SetNextWindowSize(size, ImGuiCond_Always);
-        imgui.SetNextWindowPos(menu);
-        if(imgui.Begin("InventoryPanel", glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration)))then
-            imgui.PushFont(glamourUI.iPanelFont);
+    if (zoning == 0) then
+        if(glamourUI.settings.invPanel.enabled == true)then
+            local invTex = getTex(glamourUI.settings, 'invPanel', 'lootbag.png');
+            local wardTex = getTex(glamourUI.settings, 'invPanel', 'wardrobe.png');
+            local safeTex = getTex(glamourUI.settings, 'invPanel', 'safe.png');
+            local tPoolTex = getTex(glamourUI.settings, 'invPanel', 'treasure.png');
+            local gilTex = getTex(glamourUI.settings, 'invPanel', 'gil.png');
+            local mX = env.menu.w;
+            local mY = env.menu.h;
+            local wX = env.window.w;
+            local wY = env.window.h;
+            local scaleX = wX / mX;
+            local scaleY = wY / mY;
+            local size = {(115 * scaleX), (185 * scaleY)};
+            local menu = {wX - (128 * scaleX), wY - (200 * scaleY)};
+            if(AshitaCore:GetMemoryManager():GetInventory():GetContainerItem(0,0) ~= nil)then
+                local gil = AshitaCore:GetMemoryManager():GetInventory():GetContainerItem(0, 0).Count;
+            end
+            local wardCount = getInventory(8) + getInventory(10) + getInventory(11) + getInventory(12) + getInventory(13) + getInventory(14) + getInventory(15) + getInventory(16);
+            local wardMax = getInventoryMax(8) + getInventoryMax(10) + getInventoryMax(11) + getInventoryMax(12) + getInventoryMax(13)+ getInventoryMax(14) + getInventoryMax(15) + getInventoryMax(16);
+            local tPoolCount = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItemCount();
 
-            --Inventory Counts
-            imgui.SetCursorPosX(15 * scaleX);
-            imgui.SetCursorPosY(20 * scaleY);
-            imgui.Text(tostring(getInventory(0)) .. '/' .. tostring(getInventoryMax(0)));
-            imgui.SameLine();
-            imgui.SetCursorPosX(85 * scaleX);
-            imgui.SetCursorPosY(16 * scaleY);
-            imgui.Image(invTex, {15 * scaleX, 20 * scaleY})
+            imgui.SetNextWindowBgAlpha(1);
+            imgui.SetNextWindowSize(size, ImGuiCond_Always);
+            imgui.SetNextWindowPos(menu);
+            if(imgui.Begin("InventoryPanel", glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration)))then
+                imgui.PushFont(glamourUI.iPanelFont);
 
-            --Wardrobe Counts
-            imgui.SetCursorPosX(15 * scaleX);
-            imgui.SetCursorPosY(50 * scaleY);
-            imgui.Text(tostring(wardCount).. '/' .. tostring(wardMax));
-            imgui.SetCursorPosX(85 * scaleX);
-            imgui.SetCursorPosY(51 * scaleY);
-            imgui.Image(wardTex, {15 * scaleX, 20 * scaleY});
+                --Inventory Counts
+                imgui.SetCursorPosX(15 * scaleX);
+                imgui.SetCursorPosY(20 * scaleY);
+                imgui.Text(tostring(getInventory(0)) .. '/' .. tostring(getInventoryMax(0)));
+                imgui.SameLine();
+                imgui.SetCursorPosX(85 * scaleX);
+                imgui.SetCursorPosY(16 * scaleY);
+                imgui.Image(invTex, {15 * scaleX, 20 * scaleY})
 
-            --MogSafe Counts
-            imgui.SetCursorPosX(15 * scaleX);
-            imgui.SetCursorPosY(80 * scaleY);
-            imgui.Text(tostring(getInventory(1) .. '/' .. tostring(getInventoryMax(1))));
-            imgui.SetCursorPosX(85 * scaleX);
-            imgui.SetCursorPosY(81 * scaleY);
-            imgui.Image(safeTex, {15 * scaleX, 20 * scaleY});
+                --Wardrobe Counts
+                imgui.SetCursorPosX(15 * scaleX);
+                imgui.SetCursorPosY(50 * scaleY);
+                imgui.Text(tostring(wardCount).. '/' .. tostring(wardMax));
+                imgui.SetCursorPosX(85 * scaleX);
+                imgui.SetCursorPosY(51 * scaleY);
+                imgui.Image(wardTex, {15 * scaleX, 20 * scaleY});
 
-            --Treasure Pool
-            imgui.SetCursorPosX(15 * scaleX);
-            imgui.SetCursorPosY(110 * scaleY);
-            imgui.Text(tostring(tPoolCount));
-            imgui.SetCursorPosX(80 * scaleX);
-            imgui.SetCursorPosY(114 * scaleY);
-            imgui.Image(tPoolTex, {25 * scaleX, 20 * scaleY});
+                --MogSafe Counts
+                imgui.SetCursorPosX(15 * scaleX);
+                imgui.SetCursorPosY(80 * scaleY);
+                imgui.Text(tostring(getInventory(1) .. '/' .. tostring(getInventoryMax(1))));
+                imgui.SetCursorPosX(85 * scaleX);
+                imgui.SetCursorPosY(81 * scaleY);
+                imgui.Image(safeTex, {15 * scaleX, 20 * scaleY});
 
-            --Gil Count
-            imgui.SetCursorPosX(15 * scaleX);
-            imgui.SetCursorPosY(145 * scaleY);
-            imgui.Text(tostring(gil));
-            imgui.SetCursorPosX(85 * scaleX);
-            imgui.SetCursorPosY(147 * scaleY);
-            imgui.Image(gilTex, {15 * scaleX, 15 * scaleY});
-            imgui.PopFont();
-            imgui.End();
+                --Treasure Pool
+                imgui.SetCursorPosX(15 * scaleX);
+                imgui.SetCursorPosY(110 * scaleY);
+                imgui.Text(tostring(tPoolCount));
+                imgui.SetCursorPosX(80 * scaleX);
+                imgui.SetCursorPosY(114 * scaleY);
+                imgui.Image(tPoolTex, {25 * scaleX, 20 * scaleY});
+
+                --Gil Count
+                imgui.SetCursorPosX(15 * scaleX);
+                imgui.SetCursorPosY(145 * scaleY);
+                imgui.Text(tostring(gil));
+                imgui.SetCursorPosX(85 * scaleX);
+                imgui.SetCursorPosY(147 * scaleY);
+                imgui.Image(gilTex, {15 * scaleX, 15 * scaleY});
+                imgui.PopFont();
+                imgui.End();
+            end
         end
+
     end
 end
 
