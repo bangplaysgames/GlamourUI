@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.7.1';
+addon.version = '0.7.2';
 
 local imgui = require('imgui')
 
@@ -791,9 +791,7 @@ function render_inventory_panel()
             local scaleY = wY / mY;
             local size = {(115 * scaleX), (185 * scaleY)};
             local menu = {wX - (128 * scaleX), wY - (200 * scaleY)};
-            if(AshitaCore:GetMemoryManager():GetInventory():GetContainerItem(0,0) ~= nil)then
-                local gil = AshitaCore:GetMemoryManager():GetInventory():GetContainerItem(0, 0).Count;
-            end
+            local gil = AshitaCore:GetMemoryManager():GetInventory():GetContainerItem(0, 0);
             local wardCount = getInventory(8) + getInventory(10) + getInventory(11) + getInventory(12) + getInventory(13) + getInventory(14) + getInventory(15) + getInventory(16);
             local wardMax = getInventoryMax(8) + getInventoryMax(10) + getInventoryMax(11) + getInventoryMax(12) + getInventoryMax(13)+ getInventoryMax(14) + getInventoryMax(15) + getInventoryMax(16);
             local tPoolCount = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItemCount();
@@ -840,7 +838,9 @@ function render_inventory_panel()
                 --Gil Count
                 imgui.SetCursorPosX(15 * scaleX);
                 imgui.SetCursorPosY(145 * scaleY);
-                imgui.Text(tostring(gil));
+                if gil ~= nil then
+                    imgui.Text(tostring(gil.Count));
+                end
                 imgui.SetCursorPosX(85 * scaleX);
                 imgui.SetCursorPosY(147 * scaleY);
                 imgui.Image(gilTex, {15 * scaleX, 15 * scaleY});
@@ -910,7 +910,8 @@ end)
 
 ashita.events.register('d3d_present', 'present_cb', function ()
     local player = GetPlayerEntity();
-    if (player ~= nil) then
+    local playerSID = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(0);
+    if (player ~= nil and playerSID ~= 0) then
         render_party_list();
         render_target_bar();
         render_alliance_panel();
