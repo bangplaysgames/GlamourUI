@@ -13,7 +13,9 @@ local d3d8 = require('d3d8')
 local imgui = require('imgui')
 require('common')
 local chat = require('chat')
-local primlib = require('primitives');
+local buffTable = require('buffTable')
+local buffHandler = require('buffHandler')
+local resources = require('resources')
 
 local cache = T{
     theme = nil,
@@ -55,6 +57,28 @@ end
 
 function getTP(index)
     return AshitaCore:GetMemoryManager():GetParty():GetMemberTP(index);
+end
+
+function getBuffs(p, t)
+    local name = getName(p);
+    local sid = buffHandler:get_member_id_by_name(name);
+    print(chat.header(tostring(sid)));
+    local pbuffs = buffHandler:get_member_status(sid);
+    local buffs = {};
+    local debuffs = {};
+    for i = 0, #buffs do
+        if (buffTable.IsBuff(pbuffs[i])) then
+            table.insert(buffs, pbuffs[i]);
+            if(t == 'buffs')then
+                return buffs;
+            end
+        else
+            table.insert(debuffs, pbuffs[i]);
+            if(t == 'debuffs')then
+                return debuffs;
+            end
+        end
+    end
 end
 
 function getInventory(cont_id)
@@ -137,28 +161,8 @@ function ToBoolean(b)
     end
 end
 
-function ToBits(num)
-    -- returns a table of bits, least significant first.
-    local t={} -- will contain the bits
-    while num>0 do
-        rest=math.fmod(num,2)
-        t[#t+1]=rest
-        num=(num-rest)/2
-    end
-    return t
-end
-
 function reloadGUI()
     AshitaCore:GetChatManager():QueueCommand(-1, '/addon reload GlamourUI');
-end
-
-function GetPartyFlags(p)
-    local flags = AshitaCore:GetMemoryManager():GetParty():GetMemberFlagMask(p);
-    local t = ToBits(flags);
-    local FlagT = T{
-
-        ['lead'] = bits[3]
-    }
 end
 
 function loadFont(f, s, p)
@@ -183,6 +187,32 @@ function setHPColor(p)
         imgui.PushStyleColor(ImGuiCol_Text, {1.0, 1.0, 0.0, 1.0});
     elseif(hp < 50)then
         imgui.PushStyleColor(ImGuiCol_Text, {1.0, 0.0, 0.0, 1.0});
+    end
+end
+
+--Function by Tirem.  Modified to apply to GlamourUI
+function DrawStatusIcons(statusIds, iconSize, maxColumns, maxRows)
+    if (statusIds ~= nil and #statusIds > 0) then
+        local currentRow = 1;
+        local currentColumn = 0;
+
+        for i = 0,#statusIds do
+            local icon = resources.load_status_icon_from_resource(statusIds[i]);
+            if (icon ~= nil) then
+                imgui.Image(icon, { iconSize, iconSize }, { 0, 0 }, { 1, 1 });
+                currentColumn = currentColumn + 1;
+                -- Handle multiple rows
+                if (currentColumn < maxColumns) then
+                    imgui.SameLine();
+                else
+                    currentRow = currentRow + 1;
+                    if (currentRow > maxRows) then
+                        return;
+                    end
+                    currentColumn = 0;
+                end
+            end
+        end
     end
 end
 
@@ -314,6 +344,25 @@ function renderPlayerThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, plead, 
     end
 end
 
+function renderPlayerBuffs()
+    local buffs = getBuffs(0, 'buffs');
+    local debuffs = getBuffs(0, 'debuffs');
+
+    if (buffs ~= nil and #buffs > 0)then
+        imgui.SetNextWindowPos({glamourUI.partylist.x + partylistW, glamourUI.partylist.y}, ImGuiCond_FirstUseEver);;
+        if(imgui.Begin('Status', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_AlwaysAutoResize)))then
+            imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {5,1});
+            DrawBuffs(buffs, 25, 6, 2);
+            imgui.PopStyleVar();
+            imgui.End();
+        end
+        if(imgui.Begin('Status'))then
+            imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {5,1});
+            DrawBuffs(debuffs, 25, 6, 2);
+        end
+    end
+end
+
 function renderPartyThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, plead, lsync, p)
     local element = glamourUI.layout.Priority;
     local party = AshitaCore:GetMemoryManager():GetParty();
@@ -377,48 +426,57 @@ function renderPartyThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, plead, l
     end
 end
 
-function renderPetThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, p, c)
+function renderPetThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, p, c)
     local yOffset = (c * 40) + (c * glamourUI.layout.padding);
     local element = glamourUI.layout.Priority;
+    local target = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(AshitaCore:GetMemoryManager():GetTarget():GetIsSubTargetActive())
+    local targetEntity = GetEntity(target);
 
     if element[e] == 'name' then
-        imgui.SetCursorPosX((5 + glamourUI.layout.NamePosition.x) * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(glamourUI.layout.NamePosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosY((yOffset + glamourUI.layout.NamePosition.y) * glamourUI.settings.partylist.gui_scale);
+        if(targetEntity ~= nil)then
+            if(targetEntity.Name == p.Name)then
+                imgui.Image(targ, {25 * glamourUI.settings.partylist.gui_scale, 25 * glamourUI.settings.partylist.gui_scale});
+            end
+        end
+        imgui.SetCursorPosX((40 + glamourUI.layout.NamePosition.x) * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.NamePosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Text(p.Name);
         return;
     end
     if element[e] == 'hp' then
-        imgui.SetCursorPosX(glamourUI.layout.HPBarPosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(30 + glamourUI.layout.HPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.HPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Image(hpbT, {glamourUI.settings.partylist.hpBarDim.l * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.hpBarDim.g * glamourUI.settings.partylist.gui_scale});
-        imgui.SetCursorPosX(glamourUI.layout.HPBarPosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(30 + glamourUI.layout.HPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.HPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Image(hpfT, {(glamourUI.settings.partylist.hpBarDim.l * (p.HPPercent / 100)) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.hpBarDim.g * glamourUI.settings.partylist.gui_scale});
-        imgui.SetCursorPosX((glamourUI.layout.HPBarPosition.x + 2) * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX((30 + glamourUI.layout.HPBarPosition.x + 2) * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.HPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(p.HPPercent));
         return;
     end
     if element[e] == 'mp' then
-        imgui.SetCursorPosX(glamourUI.layout.MPBarPosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(30 + glamourUI.layout.MPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.MPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Image(mpbT, {glamourUI.settings.partylist.mpBarDim.l * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.mpBarDim.g * glamourUI.settings.partylist.gui_scale});
-        imgui.SetCursorPosX(glamourUI.layout.MPBarPosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(30 + glamourUI.layout.MPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.MPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Image(mpfT, {(glamourUI.settings.partylist.mpBarDim.l * (AshitaCore:GetMemoryManager():GetPlayer():GetPetMPPercent() / 100)) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.mpBarDim.g * glamourUI.settings.partylist.gui_scale});
-        imgui.SetCursorPosX((glamourUI.layout.MPBarPosition.x + 2) * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX((30 + glamourUI.layout.MPBarPosition.x + 2) * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.MPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetMPPercent()));
         return;
     end
     if element[e] == 'tp' then
-        imgui.SetCursorPosX(glamourUI.layout.TPBarPosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(30 + glamourUI.layout.TPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.TPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Image(tpbT, {glamourUI.settings.partylist.tpBarDim.l * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.tpBarDim.g * glamourUI.settings.partylist.gui_scale});
-        imgui.SetCursorPosX(glamourUI.layout.TPBarPosition.x * glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX(30 + glamourUI.layout.TPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.TPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Image(tpfT, {(glamourUI.settings.partylist.tpBarDim.l * (math.clamp((AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() / 1000), 0, 1))), glamourUI.settings.partylist.tpBarDim.g * glamourUI.settings.partylist.gui_scale});
-        imgui.SetCursorPosX((glamourUI.layout.TPBarPosition.x + 2)* glamourUI.settings.partylist.gui_scale);
+        imgui.SetCursorPosX((30 + glamourUI.layout.TPBarPosition.x + 2)* glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.TPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetTP()));
         return;

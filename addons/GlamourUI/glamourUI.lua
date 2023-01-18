@@ -167,8 +167,10 @@ glamourUI = T{
     }
 }
 
-local font = nil;
+partylistW = 0;
 
+local font = nil;
+local firstLoad = true;
 
 
 settings.register('settings', 'settings_update', function(s)
@@ -316,10 +318,10 @@ function render_party_list()
 
                     if(pet ~= nil) then
                         imgui.PushStyleColor(ImGuiCol_Text, {1.0, 1.0, 1.0, 1.0});
-                        renderPetThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
-                        renderPetThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
-                        renderPetThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
-                        renderPetThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, pet, partyCount);
+                        renderPetThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pet, partyCount);
+                        renderPetThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pet, partyCount);
+                        renderPetThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pet, partyCount);
+                        renderPetThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pet, partyCount);
                         imgui.PopStyleColor();
                     end
                 end
@@ -330,6 +332,7 @@ function render_party_list()
                 glamourUI.bgPos.y = pos[2] - 25;
                 imgui.PopFont();
                 imgui.End();
+                --renderPlayerBuffs();
             else
                 if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
                     local party = AshitaCore:GetMemoryManager():GetParty()
@@ -461,6 +464,7 @@ function render_party_list()
                     imgui.PopStyleVar();
                 end
                 imgui.PopFont();
+                partylistW = imgui.GetWindowWidth();
                 imgui.End();
 
             end
@@ -912,6 +916,10 @@ ashita.events.register('d3d_present', 'present_cb', function ()
     local player = GetPlayerEntity();
     local playerSID = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(0);
     if (player ~= nil and playerSID ~= 0) then
+        if(firstLoad == true)then
+            loadLayout(glamourUI.settings.partylist.layout);
+            firstLoad = false;
+        end
         render_party_list();
         render_target_bar();
         render_alliance_panel();
@@ -942,12 +950,11 @@ ashita.events.register('load', 'load_cb', function()
     require('conf')
 
     local scaleY = env.window.h / env.menu.h;
-    loadLayout(glamourUI.settings.partylist.layout);
     loadFont(glamourUI.settings.partylist.font, glamourUI.settings.partylist.font_size, 'partylist');
     loadFont(glamourUI.settings.targetbar.font, glamourUI.settings.targetbar.font_size, 'targetbar');
     loadFont(glamourUI.settings.alliancePanel.font, glamourUI.settings.alliancePanel.font_size, 'alliancePanel');
     loadFont(glamourUI.settings.playerStats.font, glamourUI.settings.playerStats.font_size, 'playerStats');
-    loadFont(glamourUI.settings.invPanel.font, glamourUI.settings.invPanel.font_size * scaleY, 'invPanel');
+    loadFont(glamourUI.settings.invPanel.font, glamourUI.settings.invPanel.font_size * scaleY, 'invPanel')
 end)
 
 ashita.events.register('unload', 'unload_cb', function()
