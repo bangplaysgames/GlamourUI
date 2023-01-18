@@ -1,7 +1,7 @@
 GlamourUI Is a UI enhancement addon for Ashita v4.  While it's currently in its early stages, I have big plans for it in the future.
 
 
-Initially, the addon is adding a Party list and a target bar.  The current aesthetic is just the default Ashita UI, but one of the plans is to build a theming engine and a layout engine.  These two components combined will allow the player to customize the look of each element of the UI entirely.  Want the different components of your party list rearranged?  The layout engine will provide an easy means to do so.  Want to make custom textures for everything?  The theming engine will easily accomplish that.
+Want the different components of your party list rearranged?  The layout engine provides an easy means to do so.  Want to make custom textures for everything?  The theming engine can easily accomplish that.
 
 
 Download and Setup Instructions:
