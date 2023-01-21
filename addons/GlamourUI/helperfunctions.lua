@@ -299,7 +299,7 @@ function renderPlayerThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, plead, 
         imgui.SetCursorPosX((40 + glamourUI.layout.NamePosition.x) * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY(glamourUI.layout.NamePosition.y * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(getName(p)));
-        if(isLevelSync == true)then
+        if(isLevelSync(p) == true)then
             imgui.SameLine();
             imgui.Image(lsync, {10 * glamourUI.settings.partylist.gui_scale, 10 * glamourUI.settings.partylist.gui_scale});
         end
@@ -386,6 +386,10 @@ function renderPartyThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, plead, l
         imgui.SetCursorPosX((40 + glamourUI.layout.NamePosition.x) * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.NamePosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(getName(p)));
+        if(isLevelSync(p) == true)then
+            imgui.SameLine();
+            imgui.Image(lsync, {10 * glamourUI.settings.partylist.gui_scale, 10 * glamourUI.settings.partylist.gui_scale});
+        end
         return;
     end
     if element[e] == 'hp' then

@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.7.3';
+addon.version = '0.8.0';
 
 local imgui = require('imgui')
 
@@ -588,7 +588,7 @@ function render_alliance_panel()
             end
 
 
-            if (imgui.Begin('Alliance List', glamourUI.alliancePanel.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
+            if (imgui.Begin('Alliance List', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
 
                 if(a1Count >= 1) then
                     if(glamourUI.settings.alliancePanel.themed == true)then
@@ -649,7 +649,7 @@ function render_alliance_panel()
             imgui.SetNextWindowBgAlpha(.3);
             imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
             imgui.SetNextWindowPos({glamourUI.settings.alliancePanel2.x, glamourUI.settings.alliancePanel2.y}, ImGuiCond_FirstUseEver);
-            if (imgui.Begin('Alliance List', glamourUI.alliancePanel.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
+            if (imgui.Begin('Alliance List', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
 
                 if(a2Count >= 1) then
                     if(glamourUI.settings.alliancePanel.themed == true)then
@@ -714,19 +714,24 @@ end
 
 function render_debug_panel()
     if(dbug == true) then
+        local menu = getMenu();
         local player = AshitaCore:GetMemoryManager():GetPlayer();
         local pEntity = AshitaCore:GetMemoryManager():GetEntity(player);
         local party = AshitaCore:GetMemoryManager():GetParty();
+        local allowRender = true;
+
+        if(menu == 'cnqframe' or menu == 'map0')then
+            allowRender = false;
+        else
+            allowRender = true;
+        end
 
         imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
         imgui.SetNextWindowPos({12, 12}, ImGuiCond_FirstUseEver);
         if(imgui.Begin('Debug'))then
 
-            imgui.Text('Font');
+            imgui.Text(menu);
 
-            imgui.Text(tostring(party:GetStatusIcons(0)));
-            imgui.PushFont(glamourUI.pListFont);
-            imgui.PopFont();
         end
         imgui.End();
     end
@@ -915,7 +920,16 @@ end)
 ashita.events.register('d3d_present', 'present_cb', function ()
     local player = GetPlayerEntity();
     local playerSID = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(0);
-    if (player ~= nil and playerSID ~= 0) then
+    local menu = getMenu();
+    local allowRender = true;
+
+    if(menu == 'cnqframe' or menu == 'map0')then
+        allowRender = false;
+    else
+        allowRender = true;
+    end
+
+    if (player ~= nil and playerSID ~= 0 and allowRender == true) then
         if(firstLoad == true)then
             loadLayout(glamourUI.settings.partylist.layout);
             firstLoad = false;
