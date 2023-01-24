@@ -23,6 +23,17 @@ local cache = T{
     textures = T{}
 };
 
+ffi.cdef[[
+    typedef bool (__cdecl* isevent_f)(int8_t flag);
+]];
+
+local ptr = ashita.memory.find('FFXiMain.dll', 0, 'A0????????84C074??B001C366833DEA', 0, 0);
+if (ptr == 0) then
+    error('bad pointer');
+end
+
+is_event = ffi.cast('isevent_f', ptr);
+
 function IsTargetLocked()
     return (bit.band(AshitaCore:GetMemoryManager():GetTarget():GetLockedOnFlags(), 1) == 1);
 end
@@ -87,6 +98,142 @@ end
 
 function getInventoryMax(cont_id)
     return AshitaCore:GetMemoryManager():GetInventory():GetContainerCountMax(cont_id);
+end
+
+function getNameplateColor(e)
+    local flags1 = e.Render.Flags1;
+    local flags3 = e.Render.Flags3;
+    local status = getNameStatus(flags1, flags3, e);
+
+    if(status.mob == true)then
+        if(status.partyClaimed == true)then
+            imgui.PushStyleColor(ImGuiCol_Text, {1.0, 0.2, 0.2, 1.0});
+            return;
+        elseif(status.otherClaimed == true)then
+            imgui.PushStyleColor(ImGuiCol_Text, {1.0, 0.2, 0.8, 1.0});
+            return;
+        elseif(status.cfh == true) then
+            imgui.PushStyleColor(ImGuiCol_Text, {1.0, 0.7, 0.3, 1.0});
+            return;
+        else
+            imgui.PushStyleColor(ImGuiCol_Text, {1.0, 1.0, 0.2, 1.0});
+            return;
+        end
+    end
+    if(status.npc == true)then
+        imgui.PushStyleColor(ImGuiCol_Text, {0.2, 0.8, 0.2, 1.0});
+        return;
+    end
+
+    if(status.seekParty == true)then
+        imgui.PushStyleColor(ImGuiCol_Text, {0.8, 0.8, 1.0, 1.0});
+        return;
+    end
+    if(status.player == true or status.otherPlayer == true) then
+        if(status.anon == true)then
+            imgui.PushStyleColor(ImGuiCol_Text, {0.24, 0.56, 0.73, 1.0});
+            return;
+        else
+            imgui.PushStyleColor(ImGuiCol_Text, {1.0, 1.0, 1.0, 1.0});
+            return;
+        end
+    end
+end
+
+function getClaimed(e)
+    local c = {
+        [0] = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(0);
+        [1] = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(1);
+        [2] = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(2);
+        [3] = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(3);
+        [4] = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(4);
+        [5] = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(5);
+        [6] = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(6);
+        [7] = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(7);
+        [8] = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(8);
+        [9] = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(9);
+        [10] = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(10);
+        [11] = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(11);
+        [12] = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(12);
+        [13] = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(13);
+        [14] = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(14);
+        [15] = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(15);
+        [16] = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(16);
+        [17] = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(17);
+    }
+    if (e.ClaimStatus ~= nil)then
+        if(e.ClaimStatus == 0)then
+            return 'unclaimed';
+        else
+            if(table.contains(c, e.ClaimStatus))then
+                return 'party';
+            else
+                return 'other';
+            end
+        end
+    end
+end
+
+function table.contains(table, element)
+    for _, value in pairs(table) do
+        if value == element then
+            return true
+        end
+    end
+    return false
+end
+
+function getNameStatus(f1, f2, e)
+    local t = {
+        mob = false,
+        player = false,
+        otherPlayer = false,
+        cfh = false,
+        partyClaimed = false,
+        otherClaimed = false,
+        charmed = false,
+        anon = false,
+        seekParty = false,
+        npc = false
+    }
+    if(bit.band(f1, 0x800))then
+        t.npc = true;
+    end
+    if(bit.band(f1, 0x2000000) == 0x2000000)then
+        t.mob = true;
+
+        if(bit.band(f2, 0x2000) == 0x2000)then
+            t.charmed = true;
+        end
+        if(bit.band(f1, 0x1000000) == 0x1000000)then
+            t.cfh = true;
+        end
+        if(getClaimed(e) == 'party')then
+            t.partyClaimed = true;
+        elseif(getClaimed(e) == 'other')then
+            t.otherClaimed = true;
+        end
+    end
+    if(bit.band(f1, 0x3000000) == 0x3000000)then
+        t.cfh = true;
+    end
+    if(bit.band(f1, 0x8000000) == 0x8000000)then
+        if(bit.band(f1, 0x2000800) == 0x2000800)then
+            t.mob = false;
+            t.otherPlayer = true;
+            t.npc = false;
+        else
+            t.player = true;
+            t.npc = false;
+        end
+    end
+    if(bit.band(f1, 0x800000) == 0x800000)then
+        t.anon = true;
+    end
+    if(bit.band(f1, 0x100000) == 0x100000)then
+        t.seekParty = true;
+    end
+    return t;
 end
 
 function GetSubTargetIndex()
@@ -584,12 +731,19 @@ function renderPlayerNoTheme(o, c, p, pp)
     imgui.Text(tostring(p));
 end
 
-function renderPartyZone(p)
+function renderPartyZone(p, plead)
     local yOffset = (p * 40) + (p * glamourUI.layout.padding);
-    imgui.SetCursorPosX((5 + glamourUI.layout.NamePosition.x) * glamourUI.settings.partylist.gui_scale);
+    local party = AshitaCore:GetMemoryManager():GetParty();
+    local partyLeader = party:GetAlliancePartyLeaderServerId1();
+    imgui.SetCursorPosX(5+(glamourUI.layout.NamePosition.x * glamourUI.settings.partylist.gui_scale));
+    imgui.SetCursorPosY((yOffset + glamourUI.layout.NamePosition.y) * glamourUI.settings.partylist.gui_scale);
+    if(partyLeader == party:GetMemberServerId(p))then
+        imgui.Image(plead, {10 * glamourUI.settings.partylist.gui_scale, 10 * glamourUI.settings.partylist.gui_scale});
+    end
+    imgui.SetCursorPosX((35 + glamourUI.layout.NamePosition.x) * glamourUI.settings.partylist.gui_scale);
     imgui.SetCursorPosY((yOffset + glamourUI.layout.NamePosition.y) * glamourUI.settings.partylist.gui_scale);
     imgui.Text(getName(p));
-    imgui.SetCursorPosX(25 * glamourUI.settings.partylist.gui_scale);
+    imgui.SetCursorPosX(55 * glamourUI.settings.partylist.gui_scale);
     imgui.Text('(|  '..getZone(p)..'  |)');
 end
 

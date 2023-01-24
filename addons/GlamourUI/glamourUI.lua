@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.8.0';
+addon.version = '0.9.0';
 
 local imgui = require('imgui')
 
@@ -264,7 +264,7 @@ function render_party_list()
                             renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 1);
                             imgui.PopStyleColor();
                         else
-                            renderPartyZone(1);
+                            renderPartyZone(1, pleadTex);
                         end
                     end
                     if(partyCount >= 3) then
@@ -276,7 +276,7 @@ function render_party_list()
                             renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 2);
                             imgui.PopStyleColor();
                         else
-                            renderPartyZone(2);
+                            renderPartyZone(2, pleadTex);
                         end
                     end
                     if(partyCount >= 4) then
@@ -288,7 +288,7 @@ function render_party_list()
                             renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 3);
                             imgui.PopStyleColor();
                         else
-                            renderPartyZone(3);
+                            renderPartyZone(3, pleadTex);
                         end
                     end
                     if(partyCount >= 5) then
@@ -300,7 +300,7 @@ function render_party_list()
                             renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 4);
                             imgui.PopStyleColor();
                         else
-                            renderPartyZone(4);
+                            renderPartyZone(4, pleadTex);
                         end
                     end
                     if(partyCount >= 6) then
@@ -312,7 +312,7 @@ function render_party_list()
                             renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 5);
                             imgui.PopStyleColor();
                         else
-                            renderPartyZone(5);
+                            renderPartyZone(5, pleadTex);
                         end
                     end
 
@@ -508,10 +508,12 @@ function render_target_bar()
                         return;
                     end
 
+                    getNameplateColor(targetEntity);
                     imgui.Text(targetEntity.Name);
-
+                    imgui.PopStyleColor();
 
                     imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
+                    imgui.PushStyleColor(ImGuiCol_Text, {1.0, 1.0, 1.0, 1.0});
                     imgui.Image(hpbTex, {glamourUI.settings.targetbar.hpBarDim.l * glamourUI.settings.targetbar.gui_scale, glamourUI.settings.targetbar.hpBarDim.g * glamourUI.settings.targetbar.gui_scale});
                     imgui.SameLine();
                     imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
@@ -520,6 +522,7 @@ function render_target_bar()
                     imgui.SetCursorPosY(30 * glamourUI.settings.targetbar.gui_scale);
                     imgui.SetCursorPosX(340 * glamourUI.settings.targetbar.gui_scale);
                     imgui.Text(tostring(targetEntity.HPPercent) .. '%%');
+                    imgui.PopStyleColor();
                     if(IsTargetLocked() and glamourUI.settings.targetbar.lockIndicator == true) then
                         imgui.SetCursorPosX(0);
                         imgui.SetCursorPosY(0);
@@ -550,7 +553,9 @@ function render_target_bar()
                     imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
                     imgui.Text('Sub Target:   ');
                     imgui.SameLine();
+                    getNameplateColor(subtarg);
                     imgui.Text(subtarg.Name);
+                    imgui.PopStyleColor();
                     imgui.SetCursorPosY(77);
                     imgui.SetCursorPosX(350 * glamourUI.settings.targetbar.gui_scale);
                     imgui.Image(hpbTex, {(glamourUI.settings.targetbar.hpBarDim.l * 0.5),(glamourUI.settings.targetbar.hpBarDim.g * 0.5)});
@@ -718,7 +723,13 @@ function render_debug_panel()
         local player = AshitaCore:GetMemoryManager():GetPlayer();
         local pEntity = AshitaCore:GetMemoryManager():GetEntity(player);
         local party = AshitaCore:GetMemoryManager():GetParty();
+        local target = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(AshitaCore:GetMemoryManager():GetTarget():GetIsSubTargetActive())
+        local targetEntity = GetEntity(target);
         local allowRender = true;
+        local pentity = GetPlayerEntity();
+        local pSID = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(0);
+
+
 
         if(menu == 'cnqframe' or menu == 'map0')then
             allowRender = false;
@@ -729,9 +740,25 @@ function render_debug_panel()
         imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
         imgui.SetNextWindowPos({12, 12}, ImGuiCond_FirstUseEver);
         if(imgui.Begin('Debug'))then
+            if targetEntity ~= nil then
+                local targStatus = getNameStatus(targetEntity.Render.Flags1, targetEntity.Render.Flags2, targetEntity);
+                imgui.Text(string.format('%x', targetEntity.ClaimStatus));
+                imgui.Text(string.format('%x', pSID));
+                imgui.Text(tostring(getClaimed(targetEntity)));
+                imgui.Text('Player:  ' .. tostring(targStatus.player));
+                imgui.Text('Anon:  ' .. tostring(targStatus.anon));
+                imgui.Text('Other Player:  ' .. tostring(targStatus.otherPlayer));
+                imgui.Text('Mob:  ' .. tostring(targStatus.mob));
+                imgui.Text('Party Claimed:  ' .. tostring(targStatus.partyClaimed));
+                imgui.Text('Call for Help:  ' .. tostring(targStatus.cfh));
+                imgui.Text('Charmed:  ' .. tostring(targStatus.charmed));
 
-            imgui.Text(menu);
-
+                imgui.Text(string.format('%x', targetEntity.Render.Flags1));
+                imgui.Text(string.format('%x', targetEntity.Render.Flags3));
+                imgui.Text(string.format('%x', targetEntity.Render.Flags2));
+                imgui.Text(string.format('%x', targetEntity.Render.Flags0));
+                imgui.Text(string.format('%x', targetEntity.Render.Flags4));
+            end
         end
         imgui.End();
     end
@@ -929,7 +956,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         allowRender = true;
     end
 
-    if (player ~= nil and playerSID ~= 0 and allowRender == true) then
+    if (player ~= nil and playerSID ~= 0 and allowRender == true and not is_event(0)) then
         if(firstLoad == true)then
             loadLayout(glamourUI.settings.partylist.layout);
             firstLoad = false;
@@ -944,9 +971,9 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         render_tbarDim();
         render_aPanelDim();
         render_pStatsPanelDim();
-        render_debug_panel();
         render_inventory_panel();
     end
+    render_debug_panel();
 end)
 
 ashita.events.register('load', 'load_cb', function()
