@@ -27,11 +27,10 @@ ffi.cdef[[
     typedef bool (__cdecl* isevent_f)(int8_t flag);
 ]];
 
-local ptr = ashita.memory.find('FFXiMain.dll', 0, 'A0????????84C074??B001C366833DEA', 0, 0);
+local ptr = ashita.memory.find('FFXiMain.dll', 0, 'A0????????84C074??B001C366', 0, 0);
 if (ptr == 0) then
     error('bad pointer');
 end
-
 is_event = ffi.cast('isevent_f', ptr);
 
 function IsTargetLocked()
@@ -459,7 +458,7 @@ function renderPlayerThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, plead, 
         imgui.Image(hpbT, {glamourUI.settings.partylist.hpBarDim.l * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.hpBarDim.g * glamourUI.settings.partylist.gui_scale});
         imgui.SetCursorPosX(30 + glamourUI.layout.HPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY(glamourUI.layout.HPBarPosition.y * glamourUI.settings.partylist.gui_scale);
-        imgui.Image(hpfT, {(glamourUI.settings.partylist.hpBarDim.l * (getHPP(p) / 100)) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.hpBarDim.g * glamourUI.settings.partylist.gui_scale});
+        imgui.Image(hpfT, {((getHPP(p) / 100) *glamourUI.settings.partylist.hpBarDim.l) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.hpBarDim.g * glamourUI.settings.partylist.gui_scale}, { 0, 0 }, { (getHPP(p) / 100), 1 });
         imgui.SetCursorPosX((30 + glamourUI.layout.HPBarPosition.x + 2) * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY(glamourUI.layout.HPBarPosition.y * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(getHP(p)));
@@ -471,7 +470,7 @@ function renderPlayerThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, plead, 
         imgui.Image(mpbT, {glamourUI.settings.partylist.mpBarDim.l * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.mpBarDim.g * glamourUI.settings.partylist.gui_scale});
         imgui.SetCursorPosX(30 + glamourUI.layout.MPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY(glamourUI.layout.MPBarPosition.y * glamourUI.settings.partylist.gui_scale);
-        imgui.Image(mpfT, {(glamourUI.settings.partylist.mpBarDim.l * (getMPP(p) / 100)) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.mpBarDim.g * glamourUI.settings.partylist.gui_scale});
+        imgui.Image(mpfT, {((getMPP(p) / 100) * glamourUI.settings.partylist.mpBarDim.l) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.mpBarDim.g * glamourUI.settings.partylist.gui_scale}, { 0, 0 }, { (getMPP(p) / 100), 1 });
         imgui.SetCursorPosX((30 + glamourUI.layout.MPBarPosition.x + 2) * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY(glamourUI.layout.MPBarPosition.y * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(getMP(p)));
@@ -483,7 +482,7 @@ function renderPlayerThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, plead, 
         imgui.Image(tpbT, {glamourUI.settings.partylist.tpBarDim.l * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.tpBarDim.g * glamourUI.settings.partylist.gui_scale});
         imgui.SetCursorPosX(30 + glamourUI.layout.TPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY(glamourUI.layout.TPBarPosition.y * glamourUI.settings.partylist.gui_scale);
-        imgui.Image(tpfT, {(glamourUI.settings.partylist.tpBarDim.l * (math.clamp((getTP(p) / 1000), 0, 1) * glamourUI.settings.partylist.gui_scale)), glamourUI.settings.partylist.tpBarDim.g * glamourUI.settings.partylist.gui_scale});
+        imgui.Image(tpfT, {(math.clamp((getTP(p) / 1000), 0, 1) *glamourUI.settings.partylist.tpBarDim.l) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.tpBarDim.g * glamourUI.settings.partylist.gui_scale}, {0, 0}, {(math.clamp((getTP(p) / 1000), 0, 1)), 1});
         imgui.SetCursorPosX((30 + glamourUI.layout.TPBarPosition.x + 2)* glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY(glamourUI.layout.TPBarPosition.y * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(getTP(p)));
@@ -545,7 +544,7 @@ function renderPartyThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, plead, l
         imgui.Image(hpbT, {glamourUI.settings.partylist.hpBarDim.l * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.hpBarDim.g * glamourUI.settings.partylist.gui_scale});
         imgui.SetCursorPosX(30 + glamourUI.layout.HPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.HPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
-        imgui.Image(hpfT, {(glamourUI.settings.partylist.hpBarDim.l * (getHPP(p) / 100)) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.hpBarDim.g * glamourUI.settings.partylist.gui_scale});
+        imgui.Image(hpfT, {((getHPP(p) / 100) *glamourUI.settings.partylist.hpBarDim.l) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.hpBarDim.g * glamourUI.settings.partylist.gui_scale}, { 0, 0 }, { (getHPP(p) / 100), 1 });
         imgui.SetCursorPosX((30 + glamourUI.layout.HPBarPosition.x + 2) * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.HPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(getHP(p)));
@@ -557,7 +556,7 @@ function renderPartyThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, plead, l
         imgui.Image(mpbT, {glamourUI.settings.partylist.mpBarDim.l * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.mpBarDim.g * glamourUI.settings.partylist.gui_scale});
         imgui.SetCursorPosX(30 + glamourUI.layout.MPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.MPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
-        imgui.Image(mpfT, {(glamourUI.settings.partylist.mpBarDim.l * (getMPP(p) / 100)) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.mpBarDim.g * glamourUI.settings.partylist.gui_scale});
+        imgui.Image(mpfT, {((getMPP(p) / 100) * glamourUI.settings.partylist.mpBarDim.l) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.mpBarDim.g * glamourUI.settings.partylist.gui_scale}, { 0, 0 }, { (getMPP(p) / 100), 1 });
         imgui.SetCursorPosX((30 + glamourUI.layout.MPBarPosition.x + 2) * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.MPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(getMP(p)));
@@ -569,7 +568,7 @@ function renderPartyThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, plead, l
         imgui.Image(tpbT, {glamourUI.settings.partylist.tpBarDim.l * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.tpBarDim.g * glamourUI.settings.partylist.gui_scale});
         imgui.SetCursorPosX(30 + glamourUI.layout.TPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.TPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
-        imgui.Image(tpfT, {(glamourUI.settings.partylist.tpBarDim.l * (math.clamp((getTP(p) / 1000), 0, 1) * glamourUI.settings.partylist.gui_scale)), glamourUI.settings.partylist.tpBarDim.g * glamourUI.settings.partylist.gui_scale});
+        imgui.Image(tpfT, {(math.clamp((getTP(p) / 1000), 0, 1) *glamourUI.settings.partylist.tpBarDim.l) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.tpBarDim.g * glamourUI.settings.partylist.gui_scale}, {0, 0}, {(math.clamp((getTP(p) / 1000), 0, 1)), 1});
         imgui.SetCursorPosX((30 + glamourUI.layout.TPBarPosition.x + 2)* glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.TPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(getTP(p)));
@@ -602,10 +601,10 @@ function renderPetThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, p, c)
         imgui.Image(hpbT, {glamourUI.settings.partylist.hpBarDim.l * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.hpBarDim.g * glamourUI.settings.partylist.gui_scale});
         imgui.SetCursorPosX(30 + glamourUI.layout.HPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.HPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
-        imgui.Image(hpfT, {(glamourUI.settings.partylist.hpBarDim.l * (p.HPPercent / 100)) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.hpBarDim.g * glamourUI.settings.partylist.gui_scale});
+        imgui.Image(hpfT, {(glamourUI.settings.partylist.hpBarDim.l * (p.HPPercent / 100)) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.hpBarDim.g * glamourUI.settings.partylist.gui_scale}, {0, 0}, {(p.HPPercent / 100), 1});
         imgui.SetCursorPosX((30 + glamourUI.layout.HPBarPosition.x + 2) * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.HPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
-        imgui.Text(tostring(p.HPPercent));
+        imgui.Text(tostring(p.HPPercent) .. '%%');
         return;
     end
     if element[e] == 'mp' then
@@ -614,7 +613,7 @@ function renderPetThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, p, c)
         imgui.Image(mpbT, {glamourUI.settings.partylist.mpBarDim.l * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.mpBarDim.g * glamourUI.settings.partylist.gui_scale});
         imgui.SetCursorPosX(30 + glamourUI.layout.MPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.MPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
-        imgui.Image(mpfT, {(glamourUI.settings.partylist.mpBarDim.l * (AshitaCore:GetMemoryManager():GetPlayer():GetPetMPPercent() / 100)) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.mpBarDim.g * glamourUI.settings.partylist.gui_scale});
+        imgui.Image(mpfT, {(glamourUI.settings.partylist.mpBarDim.l * (AshitaCore:GetMemoryManager():GetPlayer():GetPetMPPercent() / 100)) * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.mpBarDim.g * glamourUI.settings.partylist.gui_scale}, {0,0},{(AshitaCore:GetMemoryManager():GetPlayer():GetPetMPPercent() / 100),1});
         imgui.SetCursorPosX((30 + glamourUI.layout.MPBarPosition.x + 2) * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.MPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetMPPercent()));
@@ -626,7 +625,7 @@ function renderPetThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, p, c)
         imgui.Image(tpbT, {glamourUI.settings.partylist.tpBarDim.l * glamourUI.settings.partylist.gui_scale, glamourUI.settings.partylist.tpBarDim.g * glamourUI.settings.partylist.gui_scale});
         imgui.SetCursorPosX(30 + glamourUI.layout.TPBarPosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.TPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
-        imgui.Image(tpfT, {(glamourUI.settings.partylist.tpBarDim.l * (math.clamp((AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() / 1000), 0, 1))), glamourUI.settings.partylist.tpBarDim.g * glamourUI.settings.partylist.gui_scale});
+        imgui.Image(tpfT, {(glamourUI.settings.partylist.tpBarDim.l * (math.clamp((AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() / 1000), 0, 1))), glamourUI.settings.partylist.tpBarDim.g * glamourUI.settings.partylist.gui_scale}, {0, 0}, {(math.clamp((AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() / 1000), 0, 1)), 1});
         imgui.SetCursorPosX((30 + glamourUI.layout.TPBarPosition.x + 2)* glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY((yOffset + glamourUI.layout.TPBarPosition.y) * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetTP()));
@@ -683,21 +682,25 @@ function renderAllianceMember(a)
 end
 
 function renderAllianceThemed(hpbT, hpfT, a, o)
-    imgui.SetCursorPosX(o);
+    imgui.SetCursorPosX(o + 10);
     imgui.Image(hpbT, {glamourUI.settings.alliancePanel.hpBarDim.l * glamourUI.settings.alliancePanel.gui_scale, glamourUI.settings.alliancePanel.hpBarDim.g * glamourUI.settings.alliancePanel.gui_scale});
     imgui.SameLine();
-    imgui.Image(hpfT, {glamourUI.settings.alliancePanel.hpBarDim.l * glamourUI.Settings.AlliancePanel.gui_scale, glamourUI.settings.alliancePanel.hpBarDim.g * glamourUI.settings.alliancePanel.gui_scale});
+    imgui.SetCursorPosX(o + 10);
+    imgui.Image(hpfT, {(glamourUI.settings.alliancePanel.hpBarDim.l * glamourUI.settings.alliancePanel.gui_scale) * (getHPP(a)/100), glamourUI.settings.alliancePanel.hpBarDim.g * glamourUI.settings.alliancePanel.gui_scale}, {0, 0}, { getHPP(a) / 100, 1});
+    imgui.SameLine();
+    imgui.SetCursorPosX(o + 15);
+    imgui.Text(getName(a));
 end
 
 function renderPlayerStats(b, f, s, p, o)
         imgui.SetCursorPosX(o + 5);
         imgui.Image(b, {glamourUI.settings.playerStats.BarDim.l * glamourUI.settings.playerStats.gui_scale, glamourUI.settings.playerStats.BarDim.g * glamourUI.settings.playerStats.gui_scale});
         imgui.SameLine();
-        imgui.SetCursorPosX(o+5);
+        imgui.SetCursorPosX(o + 5);
         if(p ~= nil)then
-            imgui.Image(f, {(glamourUI.settings.playerStats.BarDim.l * glamourUI.settings.playerStats.gui_scale) * p / 100, glamourUI.settings.playerStats.BarDim.g * glamourUI.settings.playerStats.gui_scale});
+            imgui.Image(f, {(((p / 100) * glamourUI.settings.playerStats.BarDim.l) * glamourUI.settings.playerStats.gui_scale), glamourUI.settings.playerStats.BarDim.g * glamourUI.settings.playerStats.gui_scale}, { 0, 0 }, { p / 100, 1 });
         else
-            imgui.Image(f, {glamourUI.settings.playerStats.BarDim.l  * (math.clamp((s / 1000), 0, 1) * glamourUI.settings.playerStats.gui_scale), glamourUI.settings.playerStats.BarDim.g * glamourUI.settings.playerStats.gui_scale});
+            imgui.Image(f, {glamourUI.settings.playerStats.BarDim.l  * (glamourUI.settings.playerStats.gui_scale), glamourUI.settings.playerStats.BarDim.g * glamourUI.settings.playerStats.gui_scale}, { 0, 0 }, { math.clamp((s / 1000), 0, 1), 1 });
         end
         imgui.SameLine();
         imgui.SetCursorPosX(o + 10);
@@ -864,4 +867,17 @@ function setscale(a,v)
     if(a == 'targetbar') then
         glamourUI.settings.targetbar.gui_scale = v + 0.0;
     end
+end
+
+function makeChat(e)
+    local newline = AshitaCore:GetChatManager():ParseAutoTranslate(e.message, true);
+    if(table.getn(chatTable) <= 10000)then
+        table.insert(chatTable, newline);
+        chatScroll = true;
+    else
+        table.remove(chatTable, 1);
+        table.insert(chatTable, newline);
+        chatScroll = true;
+    end
+
 end

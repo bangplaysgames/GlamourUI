@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.9.0';
+addon.version = '0.9.1';
 
 local imgui = require('imgui')
 
@@ -122,6 +122,9 @@ local default_settings = T{
 
 
 };
+
+chatTable = {};
+chatScroll = false;
 
 glamourUI = T{
     is_open = true,
@@ -517,7 +520,7 @@ function render_target_bar()
                     imgui.Image(hpbTex, {glamourUI.settings.targetbar.hpBarDim.l * glamourUI.settings.targetbar.gui_scale, glamourUI.settings.targetbar.hpBarDim.g * glamourUI.settings.targetbar.gui_scale});
                     imgui.SameLine();
                     imgui.SetCursorPosX(30 * glamourUI.settings.targetbar.gui_scale);
-                    imgui.Image(hpfTex, {(glamourUI.settings.targetbar.hpBarDim.l*(targetEntity.HPPercent /100) * glamourUI.settings.targetbar.gui_scale),(glamourUI.settings.targetbar.hpBarDim.g * glamourUI.settings.targetbar.gui_scale)});
+                    imgui.Image(hpfTex, {(glamourUI.settings.targetbar.hpBarDim.l*(targetEntity.HPPercent /100) * glamourUI.settings.targetbar.gui_scale),(glamourUI.settings.targetbar.hpBarDim.g * glamourUI.settings.targetbar.gui_scale)}, {0, 0}, {targetEntity.HPPercent / 100, 1 });
                     imgui.SetCursorPosY(30 * glamourUI.settings.targetbar.gui_scale);
                     imgui.SetCursorPosY(30 * glamourUI.settings.targetbar.gui_scale);
                     imgui.SetCursorPosX(340 * glamourUI.settings.targetbar.gui_scale);
@@ -654,7 +657,7 @@ function render_alliance_panel()
             imgui.SetNextWindowBgAlpha(.3);
             imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
             imgui.SetNextWindowPos({glamourUI.settings.alliancePanel2.x, glamourUI.settings.alliancePanel2.y}, ImGuiCond_FirstUseEver);
-            if (imgui.Begin('Alliance List', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
+            if (imgui.Begin('Alliance List2', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
 
                 if(a2Count >= 1) then
                     if(glamourUI.settings.alliancePanel.themed == true)then
@@ -888,6 +891,22 @@ function render_inventory_panel()
     end
 end
 
+function render_chat()
+    imgui.SetNextWindowSize({500, 500}, ImGuiCond_FirstUseEver);
+    if(imgui.Begin('ChatLog', true))then
+        imgui.PushFont(glamourUI.pListFont);
+        imgui.PushTextWrapPos(imgui.GetWindowWidth() - 15);
+        for i = 1,#chatTable,1 do
+            imgui.Text(tostring(chatTable[i]));
+        end
+        if(chatScroll == true)then
+            imgui.SetScrollHereY(1);
+        end
+        imgui.PopTextWrapPos();
+        imgui.PopFont();
+    end
+end
+
 ashita.events.register('command', 'command_cb', function (e)
     --Parse Arguments
     local args = e.command:args();
@@ -956,7 +975,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         allowRender = true;
     end
 
-    if (player ~= nil and playerSID ~= 0 and allowRender == true and not is_event(0)) then
+    if (player ~= nil and playerSID ~= 0 and allowRender == true --[[and not is_event(0)]]) then
         if(firstLoad == true)then
             loadLayout(glamourUI.settings.partylist.layout);
             firstLoad = false;
@@ -972,6 +991,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         render_aPanelDim();
         render_pStatsPanelDim();
         render_inventory_panel();
+        --render_chat();
     end
     render_debug_panel();
 end)
@@ -1002,3 +1022,6 @@ ashita.events.register('unload', 'unload_cb', function()
     settings.save();
 end)
 
+ashita.events.register('text_in', 'text_in_cb', function(e)
+    makeChat(e);
+end)
