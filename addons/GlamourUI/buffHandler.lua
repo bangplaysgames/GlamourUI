@@ -32,9 +32,9 @@ local module = {};
 ---@return table status_ids a list of the targets status ids or nil
 module.get_member_status = function(server_id)
     local party = AshitaCore:GetMemoryManager():GetParty();
-    --[[if (party == nil or not valid_server_id(server_id)) then
+    if (party == nil or not valid_server_id(server_id)) then
         return nil;
-    end]]--
+    end
 
     -- try and find a party member with a matching server id
     for i = 0,4,1 do

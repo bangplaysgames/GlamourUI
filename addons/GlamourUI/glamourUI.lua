@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.9.1';
+addon.version = '0.9.2';
 
 local imgui = require('imgui')
 
@@ -574,7 +574,8 @@ function render_target_bar()
 end
 
 function render_alliance_panel()
-    if(glamourUI.settings.alliancePanel.enabled == true) then
+
+    if(glamourUI.settings.alliancePanel.enabled == true and chatIsOpen == false) then
         local a1Count = AshitaCore:GetMemoryManager():GetParty():GetAlliancePartyMemberCount2();
         local a2Count = AshitaCore:GetMemoryManager():GetParty():GetAlliancePartyMemberCount3();
         if(a1Count >= 1 or a2Count >=1)then
