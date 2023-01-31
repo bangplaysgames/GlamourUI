@@ -335,7 +335,6 @@ function render_party_list()
                 glamourUI.bgPos.y = pos[2] - 25;
                 imgui.PopFont();
                 imgui.End();
-                --renderPlayerBuffs();
             else
                 if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
                     local party = AshitaCore:GetMemoryManager():GetParty()
@@ -746,22 +745,7 @@ function render_debug_panel()
         if(imgui.Begin('Debug'))then
             if targetEntity ~= nil then
                 local targStatus = getNameStatus(targetEntity.Render.Flags1, targetEntity.Render.Flags2, targetEntity);
-                imgui.Text(string.format('%x', targetEntity.ClaimStatus));
-                imgui.Text(string.format('%x', pSID));
-                imgui.Text(tostring(getClaimed(targetEntity)));
-                imgui.Text('Player:  ' .. tostring(targStatus.player));
-                imgui.Text('Anon:  ' .. tostring(targStatus.anon));
-                imgui.Text('Other Player:  ' .. tostring(targStatus.otherPlayer));
-                imgui.Text('Mob:  ' .. tostring(targStatus.mob));
-                imgui.Text('Party Claimed:  ' .. tostring(targStatus.partyClaimed));
-                imgui.Text('Call for Help:  ' .. tostring(targStatus.cfh));
-                imgui.Text('Charmed:  ' .. tostring(targStatus.charmed));
-
-                imgui.Text(string.format('%x', targetEntity.Render.Flags1));
-                imgui.Text(string.format('%x', targetEntity.Render.Flags3));
-                imgui.Text(string.format('%x', targetEntity.Render.Flags2));
-                imgui.Text(string.format('%x', targetEntity.Render.Flags0));
-                imgui.Text(string.format('%x', targetEntity.Render.Flags4));
+                
             end
         end
         imgui.End();
@@ -976,8 +960,9 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         allowRender = true;
     end
 
-    if (player ~= nil and playerSID ~= 0 and allowRender == true --[[and not is_event(0)]]) then
+    if (player ~= nil and playerSID ~= 0 and allowRender == true and not is_event(0)) then
         if(firstLoad == true)then
+            glamourUI.settings = settings.load(default_settings);
             loadLayout(glamourUI.settings.partylist.layout);
             firstLoad = false;
         end

@@ -14,8 +14,6 @@ local imgui = require('imgui')
 require('common')
 local chat = require('chat')
 local buffTable = require('buffTable')
-local buffHandler = require('buffHandler')
-local resources = require('resources')
 
 local cache = T{
     theme = nil,
@@ -69,28 +67,6 @@ function getTP(index)
     return AshitaCore:GetMemoryManager():GetParty():GetMemberTP(index);
 end
 
-function getBuffs(p, t)
-    local name = getName(p);
-    local sid = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(p);
-    print(chat.header(tostring(sid)));
-    local pbuffs = buffHandler:get_member_status(sid);
-    print(chat.header(tostring(pbuffs)));
-    local buffs = {};
-    local debuffs = {};
-    for i = 0, #buffs do
-        if (buffTable.IsBuff(pbuffs[i])) then
-            table.insert(buffs, pbuffs[i]);
-            if(t == 'buffs')then
-                return buffs;
-            end
-        else
-            table.insert(debuffs, pbuffs[i]);
-            if(t == 'debuffs')then
-                return debuffs;
-            end
-        end
-    end
-end
 
 function getInventory(cont_id)
     return AshitaCore:GetMemoryManager():GetInventory():GetContainerCount(cont_id);
@@ -337,32 +313,6 @@ function setHPColor(p)
     end
 end
 
---Function by Tirem.  Modified to apply to GlamourUI
-function DrawBuffs(statusIds, iconSize, maxColumns, maxRows)
-    if (statusIds ~= nil and #statusIds > 0) then
-        local currentRow = 1;
-        local currentColumn = 0;
-
-        for i = 0,#statusIds do
-            local icon = resources.load_status_icon_from_resource(statusIds[i]);
-            if (icon ~= nil) then
-                imgui.Image(icon, { iconSize, iconSize }, { 0, 0 }, { 1, 1 });
-                currentColumn = currentColumn + 1;
-                -- Handle multiple rows
-                if (currentColumn < maxColumns) then
-                    imgui.SameLine();
-                else
-                    currentRow = currentRow + 1;
-                    if (currentRow > maxRows) then
-                        return;
-                    end
-                    currentColumn = 0;
-                end
-            end
-        end
-    end
-end
-
 local d3d8_device = d3d8.get_device();
 
 function pokeCache(settings)
@@ -488,39 +438,6 @@ function renderPlayerThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, plead, 
         imgui.SetCursorPosY(glamourUI.layout.TPBarPosition.y * glamourUI.settings.partylist.gui_scale);
         imgui.Text(tostring(getTP(p)));
         return;
-    end
-end
-
-function renderPlayerBuffs()
-    local partyCount = 0;
-    for i = 1,6,1 do
-        if(AshitaCore:GetMemoryManager():GetParty():GetMemberIsActive(i-1) > 0) then
-            partyCount = partyCount +1;
-        end
-    end
-    if (buffs ~= nil and #buffs > 0)then
-        imgui.SetNextWindowPos({glamourUI.partylist.x + partylistW, glamourUI.partylist.y}, ImGuiCond_Always);;
-        if(imgui.Begin('Status', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_AlwaysAutoResize)))then
-            local yOffset = p * 40;
-            imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {5,1});
-            for i=0,partyCount,1 do
-                local p = i - 1;
-                local buffs = getBuffs(p, 'buffs');
-                imgui.SetCursorPosY(yOffset);
-                DrawBuffs(buffs, 25, 6, 2);
-
-            end
-            imgui.PopStyleVar();
-            imgui.End();
-        end
-        if(imgui.Begin('Status'))then
-            local p = i - 1;
-            local debuffs = getBuffs(0, 'debuffs');
-            imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {5,1});
-            --DrawBuffs(debuffs, 25, 6, 2);
-            imgui.PopStyleVar();
-            imgui.End();
-        end
     end
 end
 
@@ -896,3 +813,4 @@ function makeChat(e)
     end
 
 end
+
