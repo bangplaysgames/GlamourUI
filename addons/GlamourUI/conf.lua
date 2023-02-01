@@ -356,26 +356,32 @@ function render_layout_editor()
     };
     local hpB = T{
         x = {glamourUI.layout.HPBarPosition.x},
-        y = {glamourUI.layout.HPBarPosition.y}
+        y = {glamourUI.layout.HPBarPosition.y},
+        textx = {glamourUI.layout.HPBarPosition.textX},
+        texty = {glamourUI.layout.HPBarPosition.textY}
     };
     local mpB = T{
         x = {glamourUI.layout.MPBarPosition.x},
-        y = {glamourUI.layout.MPBarPosition.y}
+        y = {glamourUI.layout.MPBarPosition.y},
+        textx = {glamourUI.layout.MPBarPosition.textX},
+        texty = {glamourUI.layout.MPBarPosition.textY}
     };
     local tpB = T{
         x = {glamourUI.layout.TPBarPosition.x},
-        y = {glamourUI.layout.TPBarPosition.y}
+        y = {glamourUI.layout.TPBarPosition.y},
+        textx = {glamourUI.layout.TPBarPosition.textX},
+        texty = {glamourUI.layout.TPBarPosition.textY}
     };
     local pad = {glamourUI.layout.padding};
 
     if(layoutGUI.is_open == true)then
-        imgui.SetNextWindowSize({400,515});
+        imgui.SetNextWindowSize({465,665});
         if(imgui.Begin('Layout Editor', layoutGUI.is_open, ImGuiWindowFlags_NoDecoration))then
             imgui.PushFont(confFont);
             imgui.Text('Layout Editor');
-            imgui.BeginChild('layoutName', {400, 100}, true);
+            imgui.BeginChild('layoutName', {450, 100}, true);
             imgui.Text('Name')
-            imgui.InputInt("X  ", nPos.x, 0, 700);
+            imgui.SliderInt("X          ##N", nPos.x, 0, 700);
             if(glamourUI.layout.NamePosition.x ~= nPos.x[1])then
                 glamourUI.layout.NamePosition.x = nPos.x[1];
             end
@@ -387,7 +393,7 @@ function render_layout_editor()
             if(imgui.ArrowButton('nXright', ImGuiDir_Right))then
                 glamourUI.layout.NamePosition.x = glamourUI.layout.NamePosition.x + 1;
             end
-            imgui.InputInt("Y  ", nPos.y, 0, 100);
+            imgui.SliderInt("Y          ##N", nPos.y, 0, 100);
             if(glamourUI.layout.NamePosition.y ~= nPos.y[1])then
                 glamourUI.layout.NamePosition.y = nPos.y[1];
             end
@@ -399,10 +405,11 @@ function render_layout_editor()
             if(imgui.ArrowButton('nYright', ImGuiDir_Down))then
                 glamourUI.layout.NamePosition.y = glamourUI.layout.NamePosition.y + 1;
             end
+            
             imgui.EndChild()
-            imgui.BeginChild('layoutHP', {400, 100}, true);
+            imgui.BeginChild('layoutHP', {450, 150}, true);
             imgui.Text('HP Bar');
-            imgui.InputInt("X  ", hpB.x, 0, 700);
+            imgui.SliderInt("X          ##HP", hpB.x, 0, 700);
             if(glamourUI.layout.HPBarPosition.x ~= hpB.x[1])then
                 glamourUI.layout.HPBarPosition.x = hpB.x[1];
             end
@@ -414,7 +421,7 @@ function render_layout_editor()
             if(imgui.ArrowButton('hXright', ImGuiDir_Right))then
                 glamourUI.layout.HPBarPosition.x = glamourUI.layout.HPBarPosition.x + 1;
             end
-            imgui.InputInt("Y  ", hpB.y, 0, 100);
+            imgui.SliderInt("Y          ##HP", hpB.y, 0, 100);
             if(glamourUI.layout.HPBarPosition.y ~= hpB.y[1])then
                 glamourUI.layout.HPBarPosition.y = hpB.y[1];
             end
@@ -426,10 +433,34 @@ function render_layout_editor()
             if(imgui.ArrowButton('hyright', ImGuiDir_Down))then
                 glamourUI.layout.HPBarPosition.y = glamourUI.layout.HPBarPosition.y + 1;
             end
+            imgui.SliderInt('HP Text X  ##HP', hpB.textx, 0, 700);
+            if(glamourUI.layout.HPBarPosition.textX ~= hpB.textx[1])then
+                glamourUI.layout.HPBarPosition.textX = hpB.textx[1];
+            end
+            imgui.SameLine();
+            if(imgui.ArrowButton('htxleft', ImGuiDir_Left))then
+                glamourUI.layout.HPBarPosition.textX = glamourUI.layout.HPBarPosition.textX -1;
+            end
+            imgui.SameLine();
+            if(imgui.ArrowButton('htxright', ImGuiDir_Right))then
+                glamourUI.layout.HPBarPosition.textX = glamourUI.layout.HPBarPosition.textX + 1
+            end
+            imgui.SliderInt('HP Text Y  ##HP', hpB.texty, 0, 100);
+            if(glamourUI.layout.HPBarPosition.textY ~= hpB.texty[1])then
+                glamourUI.layout.HPBarPosition.textY = hpB.texty[1];
+            end
+            imgui.SameLine();
+            if(imgui.ArrowButton('htyUp', ImGuiDir_Up))then
+                glamourUI.layout.HPBarPosition.textY = glamourUI.layout.HPBarPosition.textX -1;
+            end
+            imgui.SameLine();
+            if(imgui.ArrowButton('htyDown', ImGuiDir_Down))then
+                glamourUI.layout.HPBarPosition.textY = glamourUI.layout.HPBarPosition.textY + 1
+            end
             imgui.EndChild();
-            imgui.BeginChild('layoutMP', {400,100}, true);
+            imgui.BeginChild('layoutMP', {450,150}, true);
             imgui.Text('MP Bar');
-            imgui.InputInt("X  ", mpB.x, 0, 700);
+            imgui.SliderInt("X          ##MP", mpB.x, 0, 700);
             if(glamourUI.layout.MPBarPosition.x ~= mpB.x[1])then
                 glamourUI.layout.MPBarPosition.x = mpB.x[1];
             end
@@ -441,7 +472,7 @@ function render_layout_editor()
             if(imgui.ArrowButton('hXright', ImGuiDir_Right))then
                 glamourUI.layout.MPBarPosition.x = glamourUI.layout.MPBarPosition.x + 1;
             end
-            imgui.InputInt("Y  ", mpB.y, 0, 100);
+            imgui.SliderInt("Y          ##MP", mpB.y, 0, 100);
             if(glamourUI.layout.MPBarPosition.y ~= mpB.y[1])then
                 glamourUI.layout.MPBarPosition.y = mpB.y[1];
             end
@@ -453,10 +484,34 @@ function render_layout_editor()
             if(imgui.ArrowButton('hyright', ImGuiDir_Down))then
                 glamourUI.layout.MPBarPosition.y = glamourUI.layout.MPBarPosition.y + 1;
             end
+            imgui.SliderInt('MP Text X  ##MP', mpB.textx, 0, 700);
+            if(glamourUI.layout.MPBarPosition.textX ~= mpB.textx[1])then
+                glamourUI.layout.MPBarPosition.textX = mpB.textx[1];
+            end
+            imgui.SameLine();
+            if(imgui.ArrowButton('mtxleft', ImGuiDir_Left))then
+                glamourUI.layout.MPBarPosition.textX = glamourUI.layout.MPBarPosition.textX - 1;
+            end
+            imgui.SameLine();
+            if(imgui.ArrowButton('mtxright', ImGuiDir_Right))then
+                glamourUI.layout.MPBarPosition.textX = glamourUI.layout.MPBarPosition.textX + 1
+            end
+            imgui.SliderInt('MP Text Y  ##MP', mpB.texty, 0, 100);
+            if(glamourUI.layout.MPBarPosition.textY ~= mpB.texty[1])then
+                glamourUI.layout.MPBarPosition.textY = mpB.texty[1];
+            end
+            imgui.SameLine();
+            if(imgui.ArrowButton('mtyUp', ImGuiDir_Up))then
+                glamourUI.layout.MPBarPosition.textY = glamourUI.layout.MPBarPosition.textX - 1;
+            end
+            imgui.SameLine();
+            if(imgui.ArrowButton('mtyDown', ImGuiDir_Down))then
+                glamourUI.layout.MPBarPosition.textY = glamourUI.layout.MPBarPosition.textY + 1
+            end
             imgui.EndChild();
-            imgui.BeginChild('layoutTP', {400,100}, true);
+            imgui.BeginChild('layoutTP', {450,150}, true);
             imgui.Text('TP Bar');
-            imgui.InputInt("X  ", tpB.x, 0, 700);
+            imgui.SliderInt("X          ##TP", tpB.x, 0, 700);
             if(glamourUI.layout.TPBarPosition.x ~= tpB.x[1])then
                 glamourUI.layout.TPBarPosition.x = tpB.x[1];
             end
@@ -468,7 +523,7 @@ function render_layout_editor()
             if(imgui.ArrowButton('tXright', ImGuiDir_Right))then
                 glamourUI.layout.TPBarPosition.x = glamourUI.layout.TPBarPosition.x + 1;
             end
-            imgui.InputInt("Y  ", tpB.y, 0, 100);
+            imgui.SliderInt("Y          ##TP", tpB.y, 0, 100);
             if(glamourUI.layout.TPBarPosition.y ~= tpB.y[1])then
                 glamourUI.layout.TPBarPosition.y = tpB.y[1];
             end
@@ -480,10 +535,34 @@ function render_layout_editor()
             if(imgui.ArrowButton('tyright', ImGuiDir_Down))then
                 glamourUI.layout.TPBarPosition.y = glamourUI.layout.TPBarPosition.y + 1;
             end
+            imgui.SliderInt('TP Text X  ##TP', tpB.textx, 0, 700);
+            if(glamourUI.layout.TPBarPosition.textX ~= tpB.textx[1])then
+                glamourUI.layout.TPBarPosition.textX = tpB.textx[1];
+            end
+            imgui.SameLine();
+            if(imgui.ArrowButton('ttxleft', ImGuiDir_Left))then
+                glamourUI.layout.TPBarPosition.textX = glamourUI.layout.TPBarPosition.textX -1;
+            end
+            imgui.SameLine();
+            if(imgui.ArrowButton('ttxright', ImGuiDir_Right))then
+                glamourUI.layout.TPBarPosition.textX = glamourUI.layout.TPBarPosition.textX + 1
+            end
+            imgui.SliderInt('TP Text Y  ##TP', tpB.texty, 0, 100);
+            if(glamourUI.layout.TPBarPosition.textY ~= tpB.texty[1])then
+                glamourUI.layout.TPBarPosition.textY = tpB.texty[1];
+            end
+            imgui.SameLine();
+            if(imgui.ArrowButton('htyUp', ImGuiDir_Up))then
+                glamourUI.layout.TPBarPosition.textY = glamourUI.layout.TPBarPosition.textY -1;
+            end
+            imgui.SameLine();
+            if(imgui.ArrowButton('htyDown', ImGuiDir_Down))then
+                glamourUI.layout.TPBarPosition.textY = glamourUI.layout.TPBarPosition.textY + 1
+            end
             imgui.EndChild();
-            imgui.BeginChild('layoutPadding', {400, 50}, true);
+            imgui.BeginChild('layoutPadding', {450, 60}, true);
             imgui.Text('Padding');
-            imgui.InputInt("", pad, 0, 100);
+            imgui.SliderInt("          ", pad, 0, 100);
             if(glamourUI.layout.padding ~= pad[1])then
                 glamourUI.layout.padding = pad[1];
             end

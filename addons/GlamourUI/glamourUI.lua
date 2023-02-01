@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.9.2';
+addon.version = '0.9.3';
 
 local imgui = require('imgui')
 
@@ -143,15 +143,21 @@ glamourUI = T{
         },
         HPBarPosition = {
             x = 0,
-            y = 0
+            y = 0,
+            textX = 0,
+            textY = 0
         },
         MPBarPosition = {
             x = 0,
-            y = 0
+            y = 0,
+            textX = 0,
+            textY = 0
         },
         TPBarPosition = {
             x = 0,
-            y = 0
+            y = 0,
+            textX = 0,
+            textY = 0
         },
         padding = 0
     },
@@ -577,6 +583,7 @@ function render_alliance_panel()
     if(glamourUI.settings.alliancePanel.enabled == true and chatIsOpen == false) then
         local a1Count = AshitaCore:GetMemoryManager():GetParty():GetAlliancePartyMemberCount2();
         local a2Count = AshitaCore:GetMemoryManager():GetParty():GetAlliancePartyMemberCount3();
+        
         if(a1Count >= 1 or a2Count >=1)then
             imgui.SetNextWindowBgAlpha(.3);
             imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
@@ -597,7 +604,7 @@ function render_alliance_panel()
 
 
             if (imgui.Begin('Alliance List', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
-
+                imgui.PushFont(glamourUI.settings.aPanelFont);
                 if(a1Count >= 1) then
                     if(glamourUI.settings.alliancePanel.themed == true)then
                         renderAllianceThemed(hpbTex1, hpfTex1, 6, 0);
@@ -635,7 +642,7 @@ function render_alliance_panel()
                 if(a1Count >= 5) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex1, hpfTex1, 10, 0);
+                        renderAllianceThemed(hpbTex1, hpfTex1, 10, 100);
                     else
                         renderAllianceMember(10);
 
@@ -644,12 +651,13 @@ function render_alliance_panel()
                 if(a1Count >= 6) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex1, hpfTex1, 11, 0);
+                        renderAllianceThemed(hpbTex1, hpfTex1, 11, 200);
                     else
                         renderAllianceMember(11);
 
                     end
                 end
+                imgui.PopFont();
             end
             imgui.End()
 
@@ -658,9 +666,10 @@ function render_alliance_panel()
             imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
             imgui.SetNextWindowPos({glamourUI.settings.alliancePanel2.x, glamourUI.settings.alliancePanel2.y}, ImGuiCond_FirstUseEver);
             if (imgui.Begin('Alliance List2', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
-
+                imgui.PushFont(glamourUI.settings.aPanelFont);
                 if(a2Count >= 1) then
                     if(glamourUI.settings.alliancePanel.themed == true)then
+                        
                         renderAllianceThemed(hpbTex2, hpfTex2, 12, 0);
                     else
                         renderAllianceMember(12);
@@ -696,7 +705,7 @@ function render_alliance_panel()
                 if(a2Count >= 5) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex2, hpfTex2, 16, 0);
+                        renderAllianceThemed(hpbTex2, hpfTex2, 16, 100);
                     else
                         renderAllianceMember(16);
 
@@ -705,12 +714,13 @@ function render_alliance_panel()
                 if(a2Count >= 6) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex2, hpfTex2, 17, 0);
+                        renderAllianceThemed(hpbTex2, hpfTex2, 17, 200);
                     else
                         renderAllianceMember(17);
 
                     end
                 end
+                imgui.PopFont();
             end
             imgui.End()
 
@@ -722,31 +732,14 @@ end
 
 function render_debug_panel()
     if(dbug == true) then
-        local menu = getMenu();
-        local player = AshitaCore:GetMemoryManager():GetPlayer();
-        local pEntity = AshitaCore:GetMemoryManager():GetEntity(player);
-        local party = AshitaCore:GetMemoryManager():GetParty();
-        local target = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(AshitaCore:GetMemoryManager():GetTarget():GetIsSubTargetActive())
-        local targetEntity = GetEntity(target);
-        local allowRender = true;
-        local pentity = GetPlayerEntity();
-        local pSID = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(0);
+        local tItem = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItem();
 
 
-
-        if(menu == 'cnqframe' or menu == 'map0')then
-            allowRender = false;
-        else
-            allowRender = true;
-        end
 
         imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
         imgui.SetNextWindowPos({12, 12}, ImGuiCond_FirstUseEver);
         if(imgui.Begin('Debug'))then
-            if targetEntity ~= nil then
-                local targStatus = getNameStatus(targetEntity.Render.Flags1, targetEntity.Render.Flags2, targetEntity);
-                
-            end
+            imgui.Text(tostring(tItem));
         end
         imgui.End();
     end
@@ -819,6 +812,8 @@ function render_inventory_panel()
             local wardCount = getInventory(8) + getInventory(10) + getInventory(11) + getInventory(12) + getInventory(13) + getInventory(14) + getInventory(15) + getInventory(16);
             local wardMax = getInventoryMax(8) + getInventoryMax(10) + getInventoryMax(11) + getInventoryMax(12) + getInventoryMax(13)+ getInventoryMax(14) + getInventoryMax(15) + getInventoryMax(16);
             local tPoolCount = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItemCount();
+            local houseCount = getInventory(1) + getInventory(2) + getInventory(4) + getInventory(9);
+            local houseMax = getInventoryMax(1) + getInventoryMax(2) + getInventoryMax(4) + getInventoryMax(10);
 
             imgui.SetNextWindowBgAlpha(1);
             imgui.SetNextWindowSize(size, ImGuiCond_Always);
@@ -846,7 +841,7 @@ function render_inventory_panel()
                 --MogSafe Counts
                 imgui.SetCursorPosX(15 * scaleX);
                 imgui.SetCursorPosY(80 * scaleY);
-                imgui.Text(tostring(getInventory(1) .. '/' .. tostring(getInventoryMax(1))));
+                imgui.Text(tostring(houseCount) .. '/' .. tostring(houseMax));
                 imgui.SetCursorPosX(85 * scaleX);
                 imgui.SetCursorPosY(81 * scaleY);
                 imgui.Image(safeTex, {15 * scaleX, 20 * scaleY});
