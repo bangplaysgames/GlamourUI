@@ -871,8 +871,11 @@ function renderRecast()
                     local act = acts[i];
                     local prog = progs[i];
 
-                    imgui.Text(act .. " :  " .. tostring(timer));
-                    imgui.ProgressBar(prog, {125, 4}, '');
+                    imgui.Text(act .. " :  ");
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(250);
+                    imgui.Text(tostring(timer));
+                    imgui.ProgressBar(prog, {260, 4}, '');
                 end
                 imgui.End();
             end

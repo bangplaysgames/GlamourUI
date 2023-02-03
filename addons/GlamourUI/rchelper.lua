@@ -1,5 +1,6 @@
 require('common')
-
+local chat = require('chat')
+local ffi = require('ffi')
 
 local rchelper = {}
 
@@ -28,6 +29,81 @@ local oneHour = T{
     ['RUN'] = 'Elemental Sforzo'
 }
 
+local jugs = T{
+    'HareFamiliar',
+    'SheepFamiliar',
+    'FlowerpotBill',
+    'TigerFamiliar',
+    'FlytrapFamiliar',
+    'LizardFamiliar',
+    'MayflyFamiliar',
+    'EftFamiliar',
+    'BeetleFamiliar',
+    'AntlionFamiliar',
+    'CrabFamiliar',
+    'MiteFamiliar',
+    'KeenearedSteffi',
+    'LullabyMelodia',
+    'FlowerpotBen',
+    'SaberSiravarde',
+    'FunguarFamiliar',
+    'ShellbusterOrob',
+    'ColdbloodComo',
+    'CourierCarrie',
+    'Homunculus',
+    'VoraciousAudrey',
+    'AmbusherAllie',
+    'PanzerGalahad',
+    'LifedrinkerLars',
+    'ChopsueyChuky',
+    'AmigoSabotender',
+    'NurseryNazuna',
+    'CraftyClyvonne',
+    'PrestoJulio',
+    'SwiftSieghard',
+    'MailbusterCetas',
+    'AudaciousAnna',
+    'SlipperySilas',
+    'TurbidToloi',
+    'LuckyLulush',
+    'DipperYuly',
+    'FlowerpotMerle',
+    'DapperMac',
+    'DiscreetLouise',
+    'FatsoFargann',
+    'FaithfulFalcorr',
+    'BugeyedBroncha',
+    'BloodclawShasra',
+    'GorefangHobs',
+    'GooeyGerard',
+    'CrudeRaphie',
+    'DroppyDortwin',
+    'SunburstMalfik',
+    'WarlikePatrick',
+    'ScissorlegXerin',
+    'RhymingShizuna',
+    'AttentiveIbuki',
+    'AmiableRoche',
+    'BrainyWaluis',
+    'HeraldHenry',
+    'SuspiciousAlice',
+    'HeadbreakerKen',
+    'RedolentCandi',
+    'AnklebiterJedd',
+    'CaringKiyomaro',
+    'HurlerPercival',
+    'BlackbeardRandy',
+    'FleetReinhard',
+    'AlluringHoney',
+    'BouncingBertha',
+    'BraveHeroGlenn',
+    'CursedAnnabelle',
+    'GenerousArthur',
+    'SharpwitHermes',
+    'SwoopingZhivago',
+    'ThreestarLynn'
+}
+
 local function fmt_time(t)
     local time = t / 60;
     local h = math.floor(time / (60 * 60));
@@ -42,7 +118,29 @@ local function fmt_time(t)
     end
 end
 
+local function getActName(id)
+    local resMgr = AshitaCore:GetResourceManager();
+    for i = 0, 2048 do
+        local act = resMgr:GetAbilityById(i);
+        if(act ~= nil and act.RecastTimerId == id) then
+            return act;
+        end
+    end
+    return nil;
+end
+
+local function isJugPet(n)
+    for i = 1,#jugs,1 do
+        if(n == jugs[i]) then
+            return true;
+        end
+    end
+    return false;
+end
+
 rchelper.Recast = {};
+
+
 
 rchelper.renderRecast = function()
     local resMgr = AshitaCore:GetResourceManager();
@@ -64,6 +162,10 @@ rchelper.renderRecast = function()
             if (i == 0) then
                 local job = resMgr:GetString("jobs.names_abbr", AshitaCore:GetMemoryManager():GetPlayer():GetMainJob());
                 name = oneHour[job];
+            elseif(id == 131) then
+                timer = nil;
+                name = nil;
+                max = nil;
             elseif (id == 231) then
 
                 local player = AshitaCore:GetMemoryManager():GetPlayer();
@@ -90,24 +192,34 @@ rchelper.renderRecast = function()
 
                 name = ('Stratagems:  [%d]'):fmt(strata);
                 timer = math.fmod(timer, val * 60);
+            elseif(id == 102)then
+                local player = GetPlayerEntity();
+                local pet = GetEntity(player.PetTargetIndex);
+                if(isJugPet(pet.Name) == true) then
+                    name = 'Ready';
+                else
+                    name = 'Sic';
+                end
             elseif(act ~= nil) then
                 name = act.Name[1];
             elseif(act == nil) then
-                ability = getActName(id);
+                act = getActName(id);
                 if(act ~= nil) then
                     name = act.Name[1];
                 end
             end
-
-            table.insert(timers, fmt_time(timer));
-            table.insert(acts, name);
-            table.insert(prog, ((timer / 60) / max));
+            if(timer ~= nil and name ~= nil and max ~= nil) then
+                table.insert(timers, fmt_time(timer));
+                table.insert(acts, name);
+                table.insert(prog, ((timer / 60) / max));
+            end
         end
     end
 
     for i = 0, 1024 do
         local id = i;
         local timer = Recast:GetSpellTimer(i);
+        local max = AshitaCore:GetMemoryManager():GetPlayer():GetAbilityRecast(i);
 
         if(timer > 0) then
             local spell = resMgr:GetSpellById(id);
