@@ -138,7 +138,7 @@ local function isJugPet(n)
     return false;
 end
 
-rchelper.Recast = {};
+rchelper.max = {};
 
 
 
@@ -154,6 +154,11 @@ rchelper.renderRecast = function()
         local id = Recast:GetAbilityTimerId(i);
         local timer = Recast:GetAbilityTimer(i);
         local max = AshitaCore:GetMemoryManager():GetPlayer():GetAbilityRecast(i);
+
+        --Populate max duration table with longest found duration
+        if(rchelper.max[id] == nil or (rchelper.max[id] ~= nil and max > rchelper.max[id]))then
+            rchelper.max[id] = max;
+        end
 
         if ((id ~= 0 or i == 0) and timer > 0) then
             local act = resMgr:GetAbilityByTimerId(id);
@@ -211,7 +216,7 @@ rchelper.renderRecast = function()
             if(timer ~= nil and name ~= nil and max ~= nil) then
                 table.insert(timers, fmt_time(timer));
                 table.insert(acts, name);
-                table.insert(prog, ((timer / 60) / max));
+                table.insert(prog, ((timer / 60 ) / rchelper.max[id]));
             end
         end
     end
@@ -220,6 +225,11 @@ rchelper.renderRecast = function()
         local id = i;
         local timer = Recast:GetSpellTimer(i);
         local max = AshitaCore:GetMemoryManager():GetPlayer():GetAbilityRecast(i);
+
+        --Populate max duration table with longest found duration
+        if(rchelper.max[id] == nil or (rchelper.max[id] ~= nil and max > rchelper.max[id]))then
+            rchelper.max[id] = max;
+        end
 
         if(timer > 0) then
             local spell = resMgr:GetSpellById(id);
@@ -231,10 +241,11 @@ rchelper.renderRecast = function()
             if(spell == nil or name:len() == 0) then
                 name = ('Unknown Spell:  %d'):fmt(id);
             end
-
-            table.insert(timers, fmt_time(timer));
-            table.insert(acts, name);
-            table.insert(prog, ((timer / 60 )/ max));
+            if(timer ~= nil and name ~= nil and max ~= nil) then
+                table.insert(timers, fmt_time(timer));
+                table.insert(acts, name);
+                table.insert(prog, ((timer /60 ) / rchelper.max[id]));
+            end
         end
     end
     

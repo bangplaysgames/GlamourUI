@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.9.5';
+addon.version = '0.9.6';
 
 local imgui = require('imgui')
 
@@ -505,7 +505,6 @@ function render_party_list()
                         imgui.SetCursorPosX(457);
                         imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetTP()));
                     end
-                    imgui.PopStyleVar();
                 end
                 imgui.PopFont();
                 partylistW = imgui.GetWindowWidth();
