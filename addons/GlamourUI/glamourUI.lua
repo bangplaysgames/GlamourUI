@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.9.3';
+addon.version = '0.9.4';
 
 local imgui = require('imgui')
 
@@ -117,6 +117,9 @@ local default_settings = T{
         theme = 'Default',
         font = 'SpicyTaste',
         font_size = 20,
+        enabled = true
+    },
+    rcPanel =T{
         enabled = true
     }
 
@@ -244,6 +247,8 @@ function render_party_list()
                     local pos = {imgui.GetCursorScreenPos()};
                     local party = AshitaCore:GetMemoryManager():GetParty()
                     local partyCount = 0;
+                    local menu = getMenu();
+
                     for i = 1,6,1 do
                         if(AshitaCore:GetMemoryManager():GetParty():GetMemberIsActive(i-1) > 0) then
                             partyCount = partyCount +1;
@@ -258,10 +263,16 @@ function render_party_list()
                     local pet = GetEntity(player.PetTargetIndex);
 
                     setHPColor(0);
+                    
                     renderPlayerThemed(4, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 0);
                     renderPlayerThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 0);
                     renderPlayerThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 0);
                     renderPlayerThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 0);
+                    if(menu == 'loot')then
+                        imgui.SameLine();
+                        imgui.SetCursorPosX(imgui.GetWindowWidth() - 100);
+                        imgui.Text(tostring(getPlayerLot()));
+                    end
                     imgui.PopStyleColor();
 
                     if(partyCount >= 2) then
@@ -271,6 +282,11 @@ function render_party_list()
                             renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 1);
                             renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 1);
                             renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 1);
+                            if(menu == 'loot')then
+                                imgui.SameLine();
+                                imgui.SetCursorPosX(imgui.GetWindowWidth() - 100);
+                                imgui.Text(tostring(getLot(1)));
+                            end
                             imgui.PopStyleColor();
                         else
                             renderPartyZone(1, pleadTex);
@@ -283,6 +299,11 @@ function render_party_list()
                             renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 2);
                             renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 2);
                             renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 2);
+                            if(menu == 'loot')then
+                                imgui.SameLine();
+                                imgui.SetCursorPosX(imgui.GetWindowWidth() - 100);
+                                imgui.Text(tostring(getLot(2)));
+                            end
                             imgui.PopStyleColor();
                         else
                             renderPartyZone(2, pleadTex);
@@ -295,6 +316,11 @@ function render_party_list()
                             renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 3);
                             renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 3);
                             renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 3);
+                            if(menu == 'loot')then
+                                imgui.SameLine();
+                                imgui.SetCursorPosX(imgui.GetWindowWidth() - 100);
+                                imgui.Text(tostring(getLot(3)));
+                            end
                             imgui.PopStyleColor();
                         else
                             renderPartyZone(3, pleadTex);
@@ -307,6 +333,11 @@ function render_party_list()
                             renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 4);
                             renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 4);
                             renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 4);
+                            if(menu == 'loot')then
+                                imgui.SameLine();
+                                imgui.SetCursorPosX(imgui.GetWindowWidth() - 100);
+                                imgui.Text(tostring(getLot(4)));
+                            end
                             imgui.PopStyleColor();
                         else
                             renderPartyZone(4, pleadTex);
@@ -319,6 +350,11 @@ function render_party_list()
                             renderPartyThemed(3, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 5);
                             renderPartyThemed(2, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 5);
                             renderPartyThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pleadTex, lsyncTex, 5);
+                            if(menu == 'loot')then
+                                imgui.SameLine();
+                                imgui.SetCursorPosX(imgui.GetWindowWidth() - 100);
+                                imgui.Text(tostring(getLot(5)));
+                            end
                             imgui.PopStyleColor();
                         else
                             renderPartyZone(5, pleadTex);
@@ -579,6 +615,7 @@ function render_target_bar()
 end
 
 function render_alliance_panel()
+    local menu = getMenu();
 
     if(glamourUI.settings.alliancePanel.enabled == true and chatIsOpen == false) then
         local a1Count = AshitaCore:GetMemoryManager():GetParty():GetAlliancePartyMemberCount2();
@@ -606,8 +643,12 @@ function render_alliance_panel()
             if (imgui.Begin('Alliance List', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
                 imgui.PushFont(glamourUI.settings.aPanelFont);
                 if(a1Count >= 1) then
+                    if(menu == 'loot')then
+                        imgui.Text(tostring(getLot(6)));
+                        imgui.SameLine();
+                    end
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex1, hpfTex1, 6, 0);
+                        renderAllianceThemed(hpbTex1, hpfTex1, 6, 50);
                     else
                         renderAllianceMember(6);
 
@@ -616,33 +657,50 @@ function render_alliance_panel()
                 if(a1Count >= 2) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex1, hpfTex1, 7, 100);
+                        renderAllianceThemed(hpbTex1, hpfTex1, 7, 150);
                     else
                         renderAllianceMember(7);
 
                     end
+                    if(menu == 'loot')then
+                        imgui.SameLine();
+                        imgui.SetCursorPosX(260);
+                        imgui.Text(tostring(getLot(7)));
+                    end
                 end
                 if(a1Count >= 3) then
-                    imgui.SameLine();
+                    if(menu == 'loot')then
+                        imgui.Text(tostring(getLot(8)));
+                        imgui.SameLine();
+                    end
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex1, hpfTex1, 8, 200);
+                        renderAllianceThemed(hpbTex1, hpfTex1, 8, 50);
                     else
                         renderAllianceMember(8);
 
                     end
                 end
                 if(a1Count >= 4) then
+                    imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex1, hpfTex1, 9, 0);
+                        renderAllianceThemed(hpbTex1, hpfTex1, 9, 150);
                     else
                         renderAllianceMember(9);
 
                     end
+                    if(menu == 'loot')then
+                        imgui.SameLine();
+                        imgui.SetCursorPosX(260);
+                        imgui.Text(tostring(getLot(9)));
+                    end
                 end
                 if(a1Count >= 5) then
-                    imgui.SameLine();
+                    if(menu == 'loot')then
+                        imgui.Text(tostring(getLot(10)));
+                        imgui.SameLine();
+                    end
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex1, hpfTex1, 10, 100);
+                        renderAllianceThemed(hpbTex1, hpfTex1, 10, 50);
                     else
                         renderAllianceMember(10);
 
@@ -651,10 +709,15 @@ function render_alliance_panel()
                 if(a1Count >= 6) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex1, hpfTex1, 11, 200);
+                        renderAllianceThemed(hpbTex1, hpfTex1, 11, 150);
                     else
                         renderAllianceMember(11);
 
+                    end
+                    if(menu == 'loot')then
+                        imgui.SameLine();
+                        imgui.SetCursorPosX(260);
+                        imgui.Text(tostring(getLot(11)));
                     end
                 end
                 imgui.PopFont();
@@ -668,9 +731,13 @@ function render_alliance_panel()
             if (imgui.Begin('Alliance List2', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
                 imgui.PushFont(glamourUI.settings.aPanelFont);
                 if(a2Count >= 1) then
+                    if(menu == 'loot')then
+                        imgui.Text(tostring(getLot(12)));
+                        imgui.SameLine();
+                    end
                     if(glamourUI.settings.alliancePanel.themed == true)then
                         
-                        renderAllianceThemed(hpbTex2, hpfTex2, 12, 0);
+                        renderAllianceThemed(hpbTex2, hpfTex2, 12, 50);
                     else
                         renderAllianceMember(12);
 
@@ -679,33 +746,50 @@ function render_alliance_panel()
                 if(a2Count >= 2) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex2, hpfTex2, 13, 100);
+                        renderAllianceThemed(hpbTex2, hpfTex2, 13, 150);
                     else
                         renderAllianceMember(13);
 
                     end
+                    if(menu == 'loot')then
+                        imgui.SameLine();
+                        imgui.SetCursorPosX(260);
+                        imgui.Text(tostring(getLot(13)));
+                    end
                 end
                 if(a2Count >= 3) then
-                    imgui.SameLine();
+                    if(menu == 'loot')then
+                        imgui.Text(tostring(getLot(14)));
+                        imgui.SameLine();
+                    end
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex2, hpfTex2, 14, 200);
+                        renderAllianceThemed(hpbTex2, hpfTex2, 14, 50);
                     else
                         renderAllianceMember(14);
 
                     end
                 end
                 if(a2Count >= 4) then
+                    imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex2, hpfTex2, 15, 0);
+                        renderAllianceThemed(hpbTex2, hpfTex2, 15, 150);
                     else
                         renderAllianceMember(15);
 
                     end
+                    if(menu == 'loot')then
+                        imgui.SameLine();
+                        imgui.SetCursorPosX(260);
+                        imgui.Text(tostring(getLot(15)));
+                    end
                 end
                 if(a2Count >= 5) then
-                    imgui.SameLine();
+                    if(menu == 'loot')then
+                        imgui.Text(tostring(getLot(16)));
+                        imgui.SameLine();
+                    end
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex2, hpfTex2, 16, 100);
+                        renderAllianceThemed(hpbTex2, hpfTex2, 16, 50);
                     else
                         renderAllianceMember(16);
 
@@ -714,10 +798,15 @@ function render_alliance_panel()
                 if(a2Count >= 6) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex2, hpfTex2, 17, 200);
+                        renderAllianceThemed(hpbTex2, hpfTex2, 17, 150);
                     else
                         renderAllianceMember(17);
 
+                    end
+                    if(menu == 'loot')then
+                        imgui.SameLine();
+                        imgui.SetCursorPosX(260);
+                        imgui.Text(tostring(getLot(17)));
                     end
                 end
                 imgui.PopFont();
@@ -732,16 +821,22 @@ end
 
 function render_debug_panel()
     if(dbug == true) then
-        local tItem = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItem();
-
-
-
-        imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
-        imgui.SetNextWindowPos({12, 12}, ImGuiCond_FirstUseEver);
-        if(imgui.Begin('Debug'))then
-            imgui.Text(tostring(tItem));
+        for i= 0,31,1 do
+            local act = AshitaCore:GetMemoryManager():GetRecast():GetAbilityTimerId(i);
+            local acttimer = AshitaCore:GetMemoryManager():GetPlayer():GetAbilityRecast(i);
+            local recast = AshitaCore:GetMemoryManager():GetRecast():GetAbilityTimer(i);
+        
+            imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
+            imgui.SetNextWindowPos({12, 12}, ImGuiCond_FirstUseEver);
+            if(imgui.Begin('Debug'))then
+                imgui.Text(tostring(act));
+                imgui.SameLine();
+                imgui.Text(tostring(acttimer));
+                imgui.SameLine();
+                imgui.Text(tostring(math.floor(recast / 60)));
+            end
+            imgui.End();
         end
-        imgui.End();
     end
 end
 
@@ -953,6 +1048,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         allowRender = false;
     else
         allowRender = true;
+        render_inventory_panel();
     end
 
     if (player ~= nil and playerSID ~= 0 and allowRender == true and not is_event(0)) then
@@ -971,8 +1067,8 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         render_tbarDim();
         render_aPanelDim();
         render_pStatsPanelDim();
-        render_inventory_panel();
         --render_chat();
+        renderRecast();
     end
     render_debug_panel();
 end)

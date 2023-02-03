@@ -14,6 +14,7 @@ local imgui = require('imgui')
 require('common')
 local chat = require('chat')
 local buffTable = require('buffTable')
+local recast = require('rchelper')
 
 local cache = T{
     theme = nil,
@@ -276,6 +277,30 @@ function getMenu()
     return menuString;
 end
 
+function getLot(p)
+    local i = GetTreasurePoolSelectedIndex();
+    local lot = AshitaCore:GetMemoryManager():GetParty():GetMemberTreasureLot(p, i);
+    if(lot == 0) then
+        return 'No Lot';
+    elseif(lot == 65535) then
+        return 'Passed';
+    else
+        return lot;
+    end
+end
+
+function getPlayerLot()
+    local i = GetTreasurePoolSelectedIndex();
+    local lot = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItem(i).Lot;
+    if(lot == 65535)then
+        return 'Passed';
+    elseif(lot == 0)then
+        return 'No Lot';
+    else
+        return lot;
+    end
+end
+
 function ToBoolean(b)
     if(b == 1)then
         return true;
@@ -383,6 +408,7 @@ function renderPlayerThemed(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, plead, 
     if element[e] == 'name' then
         imgui.SetCursorPosX(glamourUI.layout.NamePosition.x * glamourUI.settings.partylist.gui_scale);
         imgui.SetCursorPosY(glamourUI.layout.NamePosition.y * glamourUI.settings.partylist.gui_scale);
+
         if(targetEntity ~= nil)then
             if(targetEntity.Name == getName(p))then
                 imgui.Image(targ, {25 * glamourUI.settings.partylist.gui_scale, 25 * glamourUI.settings.partylist.gui_scale});
@@ -826,3 +852,30 @@ function makeChat(e)
 
 end
 
+--Treasure Pool Selected Item
+local treasurePoolPointer = ashita.memory.find('FFXiMain.dll', 0, '8BD18B0D????????E8????????66394222', 4, 0);
+
+function GetTreasurePoolSelectedIndex()
+    local ptr = ashita.memory.read_uint32(treasurePoolPointer);
+    ptr = ashita.memory.read_uint32(ptr);
+    return ashita.memory.read_uint16(ptr + 0x15E);
+end
+
+function renderRecast()
+    if(glamourUI.settings.rcPanel.enabled == true)then
+        local acts, timers, progs = recast.renderRecast();
+        if(progs[1] ~= nil) then
+            if(imgui.Begin('Recast', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
+                for i = 1,#timers,1 do
+                    local timer = timers[i];
+                    local act = acts[i];
+                    local prog = progs[i];
+
+                    imgui.Text(act .. " :  " .. tostring(timer));
+                    imgui.ProgressBar(prog, {125, 4}, '');
+                end
+                imgui.End();
+            end
+        end
+    end
+end

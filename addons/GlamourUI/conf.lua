@@ -339,6 +339,12 @@ function render_config()
                 reloadGUI();
             end
             imgui.EndChild();
+            imgui.Text('Recast Panel');
+            imgui.BeginChild('Recast Panel', {500, 50}, true);
+                if(imgui.Checkbox('Enabled##recast', {glamourUI.settings.rcPanel.enabled}))then
+                    glamourUI.settings.rcPanel.enabled = not glamourUI.settings.rcPanel.enabled;
+                end
+            imgui.EndChild();
             if(imgui.Button('Close Config'))then
                 confGUI.is_open = false;
             end
