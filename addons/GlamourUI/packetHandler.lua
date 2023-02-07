@@ -8,6 +8,7 @@ ffi.cdef[[
 
 local packet = {}
 
+packet.Player = 0;
 packet.action = {}
 packet.action.Casting = false;
 packet.action.Packet = {}
@@ -25,7 +26,7 @@ packet.LoginPacket = function(e)
     if(i~=nil)then
         name = string.sub(name, 1, i-1);
     end
-
+    gPacket.Player = id
 end
 
 
@@ -55,14 +56,16 @@ packet.IncActionPacket = function(packet)
     local user = struct.unpack('L', packet.data, 0x05 + 1);
     local actionType = ashita.bits.unpack_be(packet.data_raw, 10, 2, 4);
     
-
-    if(actionType == 8) then
-        gPacket.action.Casting = true;
-        if(ashita.bits.unpack_be(packet.data_raw, 10, 6, 16) == 28787)then
-            gPacket.action.Interrupt = true;
+    
+    if(user == gPacket.Player)then
+        if(actionType == 8) then
+            gPacket.action.Casting = true;
+            if(ashita.bits.unpack_be(packet.data_raw, 10, 6, 16) == 28787)then
+                gPacket.action.Interrupt = true;
+            end
+            coroutine.sleep(gPacket.action.Resource.CastTime * .4);
+            gPacket.action.Casting = false;
         end
-        coroutine.sleep(gPacket.action.Resource.CastTime * .4);
-        gPacket.action.Casting = false;
     end
 end
 
