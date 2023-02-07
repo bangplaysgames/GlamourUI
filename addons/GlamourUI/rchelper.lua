@@ -138,6 +138,35 @@ local function isJugPet(n)
     return false;
 end
 
+local function getReady(t)
+    local max = rchelper.max[102];
+    t = t / 60;
+
+    if (max ~= nil) then
+        if(max > 90) then
+            if(t > 90) then
+                return 0;
+            elseif(t <= 90 and t > 45)then
+                return 1;
+            elseif(t <= 45 and t > 0) then
+                return 2;
+            else
+                return 3;
+            end
+        else
+            if(t >= 61) then
+                return 0;
+            elseif(t <= 60 and t > 30)then
+                return 1;
+            elseif(t <= 30 and t > 0)then
+                return 2;
+            else
+                return 3;
+            end
+        end
+    end
+end
+        
 rchelper.max = {};
 
 
@@ -200,10 +229,14 @@ rchelper.renderRecast = function()
             elseif(id == 102)then
                 local player = GetPlayerEntity();
                 local pet = GetEntity(player.PetTargetIndex);
-                if(isJugPet(pet.Name) == true) then
-                    name = 'Ready';
-                else
-                    name = 'Sic';
+                if(pet ~= nil)then
+                    if(isJugPet(pet.Name) == true) then
+                        name = ('Ready  [%d]'):fmt(getReady(timer));
+                    else
+                        name = 'Sic';
+                    end
+                elseif(pet == nil or pet.Name == '')then
+                    name = 'Sic/Ready';
                 end
             elseif(act ~= nil) then
                 name = act.Name[1];

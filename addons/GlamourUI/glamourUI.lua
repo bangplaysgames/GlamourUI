@@ -13,20 +13,21 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.9.6';
+addon.version = '0.9.7';
 
-local imgui = require('imgui')
+local imgui = require('imgui');
 
 
-local settings = require('settings')
+local settings = require('settings');
 require('common')
-local chat = require('chat')
+local chat = require('chat');
 require('helperfunctions')
-local ffi = require('ffi')
-local d3d8 = require('d3d8')
-local primlib = require('primitives')
-local env = require('scaling')
+local ffi = require('ffi');
+local d3d8 = require('d3d8');
+local primlib = require('primitives');
+local env = require('scaling');
 local dbug = false;
+gPacket = require('packetHandler');
 
 local default_settings = T{
 
@@ -121,8 +122,19 @@ local default_settings = T{
     },
     rcPanel =T{
         enabled = true
+    },
+    cBar = {
+        enabled = true,
+        themed = true,
+        theme = 'Default',
+        gui_scale = 1;
+        BarDim = {
+            l = 400,
+            g = 12
+        },
+        x = 1500,
+        y = 850
     }
-
 
 };
 
@@ -183,7 +195,7 @@ partylistW = 0;
 
 local font = nil;
 local firstLoad = true;
-
+local packet_in = {}
 
 settings.register('settings', 'settings_update', function(s)
     if (s ~=nil) then
@@ -656,7 +668,7 @@ function render_alliance_panel()
                 if(a1Count >= 2) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex1, hpfTex1, 7, 150);
+                        renderAllianceThemed(hpbTex1, hpfTex1, 7, (50 + glamourUI.settings.alliancePanel.hpBarDim.l) * glamourUI.settings.alliancePanel.gui_scale);
                     else
                         renderAllianceMember(7);
 
@@ -682,7 +694,7 @@ function render_alliance_panel()
                 if(a1Count >= 4) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex1, hpfTex1, 9, 150);
+                        renderAllianceThemed(hpbTex1, hpfTex1, 9, (50 + glamourUI.settings.alliancePanel.hpBarDim.l) * glamourUI.settings.alliancePanel.gui_scale);
                     else
                         renderAllianceMember(9);
 
@@ -708,7 +720,7 @@ function render_alliance_panel()
                 if(a1Count >= 6) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex1, hpfTex1, 11, 150);
+                        renderAllianceThemed(hpbTex1, hpfTex1, 11, (50 + glamourUI.settings.alliancePanel.hpBarDim.l) * glamourUI.settings.alliancePanel.gui_scale);
                     else
                         renderAllianceMember(11);
 
@@ -745,7 +757,7 @@ function render_alliance_panel()
                 if(a2Count >= 2) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex2, hpfTex2, 13, 150);
+                        renderAllianceThemed(hpbTex2, hpfTex2, 13, (50 + glamourUI.settings.alliancePanel.hpBarDim.l) * glamourUI.settings.alliancePanel.gui_scale);
                     else
                         renderAllianceMember(13);
 
@@ -771,7 +783,7 @@ function render_alliance_panel()
                 if(a2Count >= 4) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex2, hpfTex2, 15, 150);
+                        renderAllianceThemed(hpbTex2, hpfTex2, 15, (50 + glamourUI.settings.alliancePanel.hpBarDim.l) * glamourUI.settings.alliancePanel.gui_scale);
                     else
                         renderAllianceMember(15);
 
@@ -797,7 +809,7 @@ function render_alliance_panel()
                 if(a2Count >= 6) then
                     imgui.SameLine();
                     if(glamourUI.settings.alliancePanel.themed == true)then
-                        renderAllianceThemed(hpbTex2, hpfTex2, 17, 150);
+                        renderAllianceThemed(hpbTex2, hpfTex2, 17, (50 + glamourUI.settings.alliancePanel.hpBarDim.l) * glamourUI.settings.alliancePanel.gui_scale);
                     else
                         renderAllianceMember(17);
 
@@ -820,22 +832,19 @@ end
 
 function render_debug_panel()
     if(dbug == true) then
-        for i= 0,31,1 do
-            local act = AshitaCore:GetMemoryManager():GetRecast():GetAbilityTimerId(i);
-            local acttimer = AshitaCore:GetMemoryManager():GetPlayer():GetAbilityRecast(i);
-            local recast = AshitaCore:GetMemoryManager():GetRecast():GetAbilityTimer(i);
+        local pack = gPacket.action.Resource;
         
-            imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
-            imgui.SetNextWindowPos({12, 12}, ImGuiCond_FirstUseEver);
-            if(imgui.Begin('Debug'))then
-                imgui.Text(tostring(act));
-                imgui.SameLine();
-                imgui.Text(tostring(acttimer));
-                imgui.SameLine();
-                imgui.Text(tostring(math.floor(recast / 60)));
+        imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
+        imgui.SetNextWindowPos({12, 12}, ImGuiCond_FirstUseEver);
+        if(imgui.Begin('Debug'))then
+            if(pack ~= nil) then
+                if(pack.Name ~= nil)then
+                    imgui.Text(pack.Name[1]);
+                end
+                imgui.Text(tostring(pack.CastTime * .25));
             end
-            imgui.End();
         end
+        imgui.End();
     end
 end
 
@@ -1068,6 +1077,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         render_pStatsPanelDim();
         --render_chat();
         renderRecast();
+        renderCastBar();
     end
     render_debug_panel();
 end)
@@ -1100,4 +1110,13 @@ end)
 
 ashita.events.register('text_in', 'text_in_cb', function(e)
     makeChat(e);
+end)
+
+ashita.events.register('packet_in', 'packet_in_cb', function(e)
+    gPacket.HandleIncoming(e);
+    packet_in = e;
+end)
+
+ashita.events.register('packet_out', 'packet_out_cb', function(e)
+    gPacket.HandleOutgoing(e);
 end)

@@ -862,7 +862,16 @@ function GetTreasurePoolSelectedIndex()
 end
 
 function renderRecast()
-    if(glamourUI.settings.rcPanel.enabled == true)then
+    local menu = getMenu();
+    
+    local chatOpen = false;
+    if(menu == 'fulllog')then
+        chatOpen = true;
+    elseif(menu == 'logwindo' or menu == nil)then
+        chatOpen = false;
+    end
+
+    if(glamourUI.settings.rcPanel.enabled == true and chatOpen == false)then
         local acts, timers, progs = recast.renderRecast();
         if(progs[1] ~= nil) then
             if(imgui.Begin('Recast', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
@@ -875,10 +884,43 @@ function renderRecast()
                     imgui.SameLine();
                     imgui.SetCursorPosX(250);
                     imgui.Text(tostring(timer));
-                    imgui.ProgressBar(prog, {260, 4}, '');
+                    imgui.ProgressBar(prog, {260, 6}, '');
                 end
                 imgui.End();
             end
         end
     end
+end
+
+function renderCastBar()
+    local cbar = AshitaCore:GetMemoryManager():GetCastBar();
+    local prog = cbar:GetPercent();
+    local cbarTex = getTex(glamourUI.settings, 'cBar', 'castBar.png');
+    local cbarFill = getTex(glamourUI.settings, 'cBar', 'castFill.png');
+
+    if(glamourUI.settings.cBar.enabled == true and gPacket.action.Casting == true) then
+        local actionName = gPacket.action.Resource.Name[1];
+        local target = AshitaCore:GetMemoryManager():GetEntity():GetName(gPacket.action.Target);
+        imgui.SetNextWindowPos({glamourUI.settings.cBar.x, glamourUI.settings.cBar.y}, ImGuiCond_FirstUseEver);
+        if(imgui.Begin('CastBar', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
+            imgui.SetCursorPosX(glamourUI.settings.cBar.BarDim.l * glamourUI.settings.cBar.gui_scale / 4);
+            imgui.Text(actionName .. '  >>  ' .. target);
+            if(glamourUI.settings.cBar.themed == true)then
+                imgui.SetCursorPosX(10);
+                imgui.Image(cbarTex, {glamourUI.settings.cBar.BarDim.l * glamourUI.settings.cBar.gui_scale, glamourUI.settings.cBar.BarDim.g * glamourUI.settings.cBar.gui_scale});
+                imgui.SameLine();
+                imgui.SetCursorPosX(10);
+                if(gPacket.action.Interrupt == true)then
+                    imgui.SetCursorPosX(glamourUI.settings.cBar.BarDim.l / 2.5);
+                    imgui.Text('Interrupted');
+                else
+                    imgui.Image(cbarFill, {glamourUI.settings.cBar.BarDim.l * prog * glamourUI.settings.cBar.gui_scale, glamourUI.settings.cBar.BarDim.g * glamourUI.settings.cBar.gui_scale}, {0, 0}, {prog, 1});
+                end
+            else
+                imgui.ProgressBar(prog, { glamourUI.settings.cBar.BarDim.l * glamourUI.settings.cBar.gui_scale, glamourUI.settings.cBar.BarDim.g * glamourUI.settings.cBar.gui_scale }, '');
+            end
+            imgui.End();
+        end
+    end
+    
 end

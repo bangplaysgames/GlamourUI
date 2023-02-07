@@ -47,6 +47,7 @@ function render_config()
     local alliance_gui_scale = {glamourUI.settings.alliancePanel.gui_scale};
     local alliance2_gui_scale = {glamourUI.settings.alliancePanel2.gui_scale};
     local player_gui_scale = {glamourUI.settings.playerStats.gui_scale};
+    local cbar_gui_scale = {glamourUI.settings.cBar.gui_scale};
     local party_font_scale = {glamourUI.settings.partylist.font_size};
     local target_font_scale = {glamourUI.settings.targetbar.font_size};
     local alliance_font_scale = {glamourUI.settings.alliancePanel.font_size};
@@ -242,6 +243,37 @@ function render_config()
             end
             if(imgui.Button('BarDimensions'))then
                 aPanelBarDim.is_open = not aPanelBarDim.is_open;
+            end
+            imgui.EndChild();
+            imgui.BeginChild('conf_CastBar', {500, 165}, true);
+            imgui.Text('Cast Bar');
+            imgui.SameLine();
+            imgui.SetCursorPosX(200);
+            if(imgui.Checkbox('Enabled', {glamourUI.settings.cBar.enabled}))then
+                glamourUI.settings.cBar.enabled = not glamourUI.settings.cBar.enabled;
+            end
+            imgui.SameLine();
+            imgui.SetCursorPosX(400);
+            if(imgui.Checkbox('Themed', {glamourUI.settings.cBar.themed}))then
+                glamourUI.settings.cBar.themed = not glamourUI.settings.cBar.themed;
+            end
+            imgui.SliderFloat('Cast Bar Scale  ', cbar_gui_scale, 0.1, 5.0, '%.1f');
+            if(glamourUI.settings.cBar.gui_scale ~= cbar_gui_scale[1])then
+                glamourUI.settings.cBar.gui_scale = cbar_gui_scale[1];
+            end
+            if(imgui.BeginCombo('Theme  ', glamourUI.settings.cBar.theme, combo_flags))then
+                for i = 1,#themedir,1 do
+                    local is_selected = i == confGUI.themeID;
+
+                    if (glamourUI.settings.cBar.theme ~= themedir[i] and imgui.Selectable(themedir[i], is_selected))then
+                        confGUI.themeID = i;
+                        glamourUI.settings.cBar.theme = themedir[i];
+                    end
+                    if(is_selected) then
+                        imgui.SetItemDefaultFocus();
+                    end
+                end
+                imgui.EndCombo();
             end
             imgui.EndChild();
             imgui.BeginChild('conf_playerStats', {500,165}, true);
