@@ -257,6 +257,14 @@ function render_config()
             if(imgui.Checkbox('Themed', {glamourUI.settings.cBar.themed}))then
                 glamourUI.settings.cBar.themed = not glamourUI.settings.cBar.themed;
             end
+            imgui.SetCursorPosX(200);
+            if(imgui.Checkbox('Dummy Castbar', {glamourUI.cBarDummy}))then
+                if(gPacket.action.Resource.Name == nil)then
+                    gPacket.action.Resource.Name = {}
+                    gPacket.action.Resource.Name[1] = "Awesome Spell"
+                end
+                glamourUI.cBarDummy = not glamourUI.cBarDummy;
+            end
             imgui.SliderFloat('Cast Bar Scale  ', cbar_gui_scale, 0.1, 5.0, '%.1f');
             if(glamourUI.settings.cBar.gui_scale ~= cbar_gui_scale[1])then
                 glamourUI.settings.cBar.gui_scale = cbar_gui_scale[1];

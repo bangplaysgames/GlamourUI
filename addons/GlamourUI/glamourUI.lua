@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.9.7.1';
+addon.version = '0.9.7.2';
 
 local imgui = require('imgui');
 
@@ -188,7 +188,8 @@ glamourUI = T{
     bgPos = T{
         x = 0,
         y = 0
-    }
+    },
+    cBarDummy = false;
 }
 
 partylistW = 0;
@@ -841,7 +842,8 @@ function render_debug_panel()
                 if(pack.Name ~= nil)then
                     imgui.Text(pack.Name[1]);
                 end
-                imgui.Text(tostring(pack.CastTime * .25));
+                imgui.Text(tostring(gPacket.action.Casting));
+                imgui.Text(tostring(gPacket.action.Interrupt));
             end
         end
         imgui.End();

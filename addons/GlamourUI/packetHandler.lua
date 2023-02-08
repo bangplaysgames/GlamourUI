@@ -27,6 +27,7 @@ packet.LoginPacket = function(e)
         name = string.sub(name, 1, i-1);
     end
     gPacket.Player = id
+    gPacket.action.Target = GetPlayerEntity().TargetIndex;
 end
 
 
@@ -56,12 +57,19 @@ packet.IncActionPacket = function(packet)
     local user = struct.unpack('L', packet.data, 0x05 + 1);
     local actionType = ashita.bits.unpack_be(packet.data_raw, 10, 2, 4);
     
+    --Check if player server ID set.  If not, Set it.
+    if(gPacket.Player == 0) then
+        gPacket.Player = GetPlayerEntity().ServerId;
+    end
     
+
     if(user == gPacket.Player)then
         if(actionType == 8) then
             gPacket.action.Casting = true;
             if(ashita.bits.unpack_be(packet.data_raw, 10, 6, 16) == 28787)then
                 gPacket.action.Interrupt = true;
+            else
+                gPacket.action.Interrupt = false;
             end
             coroutine.sleep(gPacket.action.Resource.CastTime * .4);
             gPacket.action.Casting = false;

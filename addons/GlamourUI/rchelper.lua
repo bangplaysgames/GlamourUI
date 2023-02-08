@@ -257,7 +257,7 @@ rchelper.renderRecast = function()
     for i = 0, 1024 do
         local id = i;
         local timer = Recast:GetSpellTimer(i);
-        local max = AshitaCore:GetMemoryManager():GetPlayer():GetAbilityRecast(i);
+        local max = Recast:GetSpellTimer(i) / 60;
 
         --Populate max duration table with longest found duration
         if(rchelper.max[id] == nil or (rchelper.max[id] ~= nil and max > rchelper.max[id]))then

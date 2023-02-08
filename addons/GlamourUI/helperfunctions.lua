@@ -898,7 +898,11 @@ function renderCastBar()
     local cbarTex = getTex(glamourUI.settings, 'cBar', 'castBar.png');
     local cbarFill = getTex(glamourUI.settings, 'cBar', 'castFill.png');
 
-    if(glamourUI.settings.cBar.enabled == true and gPacket.action.Casting == true) then
+    if(prog == nil)then
+        prog = .35;
+    end
+
+    if((glamourUI.settings.cBar.enabled == true and gPacket.action.Casting == true) or glamourUI.cBarDummy == true) then
         local actionName = gPacket.action.Resource.Name[1];
         local target = AshitaCore:GetMemoryManager():GetEntity():GetName(gPacket.action.Target);
         imgui.SetNextWindowPos({glamourUI.settings.cBar.x, glamourUI.settings.cBar.y}, ImGuiCond_FirstUseEver);
