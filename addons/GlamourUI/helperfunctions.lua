@@ -115,6 +115,7 @@ function getNameplateColor(e)
             return;
         end
     end
+    imgui.PopStyleColor();
 end
 
 function getClaimed(e)
@@ -660,8 +661,9 @@ function renderPlayerStats(b, f, s, p, o)
         else
             imgui.Image(f, {(math.clamp(s / 1000, 0, 1)) * glamourUI.settings.playerStats.BarDim.l  * (glamourUI.settings.playerStats.gui_scale), glamourUI.settings.playerStats.BarDim.g * glamourUI.settings.playerStats.gui_scale}, { 0, 0 }, { math.clamp((s / 1000), 0, 1), 1 });
         end
+        local strLen = imgui.CalcTextSize(tostring(s));
         imgui.SameLine();
-        imgui.SetCursorPosX(o + 10);
+        imgui.SetCursorPosX(o + ((glamourUI.settings.playerStats.BarDim.l - strLen) * 0.5));
         imgui.Text(tostring(s));
 end
 
@@ -863,7 +865,9 @@ end
 
 function renderRecast()
     local menu = getMenu();
-    
+    local rcBarTex = getTex(glamourUI.settings, 'rcPanel', 'recastBar.png');
+    local rcFillTex = getTex(glamourUI.settings, 'rcPanel', 'recastFill.png');
+
     local chatOpen = false;
     if(menu == 'fulllog')then
         chatOpen = true;
@@ -875,17 +879,28 @@ function renderRecast()
         local acts, timers, progs = recast.renderRecast();
         if(progs[1] ~= nil) then
             if(imgui.Begin('Recast', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
+                imgui.PushStyleColor(ImGuiCol_Text, { 1.0, 1.0, 1.0, 1.0 });
                 for i = 1,#timers,1 do
                     local timer = timers[i];
                     local act = acts[i];
                     local prog = progs[i];
+                    local txtOffset = (imgui.CalcTextSize(timer) / 2 ) + 190;
 
                     imgui.Text(act .. " :  ");
                     imgui.SameLine();
-                    imgui.SetCursorPosX(250);
+                    imgui.SetCursorPosX(txtOffset);
                     imgui.Text(tostring(timer));
-                    imgui.ProgressBar(prog, {260, 6}, '');
+                    if(glamourUI.settings.rcPanel.themed == true)then
+                        imgui.SetCursorPosX(10);
+                        imgui.Image(rcBarTex, {260, 6});
+                        imgui.SameLine();
+                        imgui.SetCursorPosX(10);
+                        imgui.Image(rcFillTex, {260 * prog, 6}, {0,0}, {prog, 1});
+                    else
+                        imgui.ProgressBar(prog, {260, 6}, '');
+                    end
                 end
+                imgui.PopStyleColor()
                 imgui.End();
             end
         end
@@ -905,15 +920,20 @@ function renderCastBar()
     if((glamourUI.settings.cBar.enabled == true and gPacket.action.Casting == true) or glamourUI.cBarDummy == true) then
         local actionName = gPacket.action.Resource.Name[1];
         local target = AshitaCore:GetMemoryManager():GetEntity():GetName(gPacket.action.Target);
+        local cbarstring = actionName .. ' >> ' .. target;
+
+        local stringLen = imgui.CalcTextSize(cbarstring);
+        
+
         imgui.SetNextWindowPos({glamourUI.settings.cBar.x, glamourUI.settings.cBar.y}, ImGuiCond_FirstUseEver);
         if(imgui.Begin('CastBar', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
-            imgui.SetCursorPosX(glamourUI.settings.cBar.BarDim.l * glamourUI.settings.cBar.gui_scale / 4);
-            imgui.Text(actionName .. '  >>  ' .. target);
             if(glamourUI.settings.cBar.themed == true)then
                 imgui.SetCursorPosX(10);
+                imgui.SetCursorPosY(25);
                 imgui.Image(cbarTex, {glamourUI.settings.cBar.BarDim.l * glamourUI.settings.cBar.gui_scale, glamourUI.settings.cBar.BarDim.g * glamourUI.settings.cBar.gui_scale});
-                imgui.SameLine();
                 imgui.SetCursorPosX(10);
+                imgui.SetCursorPosY(25);
+                
                 if(gPacket.action.Interrupt == true)then
                     imgui.SetCursorPosX(glamourUI.settings.cBar.BarDim.l / 2.5);
                     imgui.Text('Interrupted');
@@ -923,6 +943,11 @@ function renderCastBar()
             else
                 imgui.ProgressBar(prog, { glamourUI.settings.cBar.BarDim.l * glamourUI.settings.cBar.gui_scale, glamourUI.settings.cBar.BarDim.g * glamourUI.settings.cBar.gui_scale }, '');
             end
+            local wWidth = imgui.GetWindowSize();
+            local txtOffset = (wWidth - stringLen) * 0.5;
+            imgui.SetCursorPosX(txtOffset);
+            imgui.SetCursorPosY(5);
+            imgui.Text(cbarstring);
             imgui.End();
         end
     end

@@ -1,5 +1,6 @@
 local ffi = require('ffi');
 local chat = require('chat');
+local settings = require('settings');
 
 ffi.cdef[[
     int32_t memcmp(const void* buff1, const void* buff2, size_t count);
@@ -26,8 +27,11 @@ packet.LoginPacket = function(e)
     if(i~=nil)then
         name = string.sub(name, 1, i-1);
     end
+    coroutine.sleep(5);
     gPacket.Player = id
-    gPacket.action.Target = GetPlayerEntity().TargetIndex;
+    if(gPacket.action.Target == nil and GetPlayerEntity() ~= nil)then
+        gPacket.action.Target = GetPlayerEntity().TargetIndex;
+    end
 end
 
 

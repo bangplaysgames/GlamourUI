@@ -338,7 +338,8 @@ function render_config()
                 pStatsBarDim.is_open = not pStatsBarDim.is_open;
             end
             imgui.EndChild();
-            imgui.BeginChild('invPanel', {500,165});
+            imgui.BeginChild('invPanel', {500,165}, true);
+            imgui.Text('Inventory Panel');
             if(imgui.Checkbox('Enabled##inv', {glamourUI.settings.invPanel.enabled}))then
                 glamourUI.settings.invPanel.enabled = not glamourUI.settings.invPanel.enabled;
             end
@@ -379,8 +380,8 @@ function render_config()
                 reloadGUI();
             end
             imgui.EndChild();
-            imgui.Text('Recast Panel');
             imgui.BeginChild('Recast Panel', {500, 50}, true);
+            imgui.Text('Recast Panel');
                 if(imgui.Checkbox('Enabled##recast', {glamourUI.settings.rcPanel.enabled}))then
                     glamourUI.settings.rcPanel.enabled = not glamourUI.settings.rcPanel.enabled;
                 end

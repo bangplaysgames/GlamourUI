@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.9.7.2';
+addon.version = '0.9.8';
 
 local imgui = require('imgui');
 
@@ -121,7 +121,9 @@ local default_settings = T{
         enabled = true
     },
     rcPanel =T{
-        enabled = true
+        enabled = true,
+        themed = true,
+        theme = 'Default'
     },
     cBar = {
         enabled = true,
@@ -196,6 +198,7 @@ partylistW = 0;
 
 local font = nil;
 local firstLoad = true;
+local loaded = false;
 local packet_in = {}
 
 settings.register('settings', 'settings_update', function(s)
@@ -382,13 +385,13 @@ function render_party_list()
                         renderPetThemed(1, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, pet, partyCount);
                         imgui.PopStyleColor();
                     end
+                    imgui.PopFont();
                 end
                 glamourUI.bgSize.x = imgui.GetWindowWidth() + 50;
                 glamourUI.bgSize.y = imgui.GetWindowHeight() + 50;
                 local pos = {imgui.GetWindowPos()};
                 glamourUI.bgPos.x = pos[1] - 25;
                 glamourUI.bgPos.y = pos[2] - 25;
-                imgui.PopFont();
                 imgui.End();
             else
                 if (imgui.Begin('PartyList', glamourUI.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
@@ -518,8 +521,8 @@ function render_party_list()
                         imgui.SetCursorPosX(457);
                         imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetTP()));
                     end
+                    imgui.PopFont();
                 end
-                imgui.PopFont();
                 partylistW = imgui.GetWindowWidth();
                 imgui.End();
 
@@ -676,7 +679,7 @@ function render_alliance_panel()
                     end
                     if(menu == 'loot')then
                         imgui.SameLine();
-                        imgui.SetCursorPosX(260);
+                        imgui.SetCursorPosX(65 + (glamourUI.settings.alliancePanel.hpBarDim.l * 2));
                         imgui.Text(tostring(getLot(7)));
                     end
                 end
@@ -702,7 +705,7 @@ function render_alliance_panel()
                     end
                     if(menu == 'loot')then
                         imgui.SameLine();
-                        imgui.SetCursorPosX(260);
+                        imgui.SetCursorPosX(65 + (glamourUI.settings.alliancePanel.hpBarDim.l * 2));
                         imgui.Text(tostring(getLot(9)));
                     end
                 end
@@ -728,7 +731,7 @@ function render_alliance_panel()
                     end
                     if(menu == 'loot')then
                         imgui.SameLine();
-                        imgui.SetCursorPosX(260);
+                        imgui.SetCursorPosX(65 + (glamourUI.settings.alliancePanel.hpBarDim.l * 2));
                         imgui.Text(tostring(getLot(11)));
                     end
                 end
@@ -765,7 +768,7 @@ function render_alliance_panel()
                     end
                     if(menu == 'loot')then
                         imgui.SameLine();
-                        imgui.SetCursorPosX(260);
+                        imgui.SetCursorPosX(65 + (glamourUI.settings.alliancePanel.hpBarDim.l * 2));
                         imgui.Text(tostring(getLot(13)));
                     end
                 end
@@ -791,7 +794,7 @@ function render_alliance_panel()
                     end
                     if(menu == 'loot')then
                         imgui.SameLine();
-                        imgui.SetCursorPosX(260);
+                        imgui.SetCursorPosX(65 + (glamourUI.settings.alliancePanel.hpBarDim.l * 2));
                         imgui.Text(tostring(getLot(15)));
                     end
                 end
@@ -817,7 +820,7 @@ function render_alliance_panel()
                     end
                     if(menu == 'loot')then
                         imgui.SameLine();
-                        imgui.SetCursorPosX(260);
+                        imgui.SetCursorPosX(65 + (glamourUI.settings.alliancePanel.hpBarDim.l * 2));
                         imgui.Text(tostring(getLot(17)));
                     end
                 end
@@ -1053,6 +1056,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
     local playerSID = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(0);
     local menu = getMenu();
     local allowRender = true;
+    
 
     if(menu == 'cnqframe' or menu == 'map0')then
         allowRender = false;
@@ -1061,12 +1065,16 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         render_inventory_panel();
     end
 
-    if (player ~= nil and playerSID ~= 0 and allowRender == true and not is_event(0)) then
-        if(firstLoad == true)then
-            glamourUI.settings = settings.load(default_settings);
-            loadLayout(glamourUI.settings.partylist.layout);
-            firstLoad = false;
-        end
+     if(firstLoad == true and player ~= nil and playerSID ~= 0 )then
+        firstLoad = false;
+        print(chat.header('GlamourUI Loading...'));
+        coroutine.sleep(3);
+        glamourUI.settings = settings.load(default_settings);
+        loadLayout(glamourUI.settings.partylist.layout);
+        loaded = true;
+    end
+
+    if (player ~= nil and playerSID ~= 0 and allowRender == true and loaded == true and not is_event(0)) then
         render_party_list();
         render_target_bar();
         render_alliance_panel();
@@ -1097,13 +1105,12 @@ ashita.events.register('load', 'load_cb', function()
         print(chat.header('Creating Default Layout'));
     end
     require('conf')
-
-    local scaleY = env.window.h / env.menu.h;
+    local scaleY = env.window.h / env.menu.h;    
     loadFont(glamourUI.settings.partylist.font, glamourUI.settings.partylist.font_size, 'partylist');
     loadFont(glamourUI.settings.targetbar.font, glamourUI.settings.targetbar.font_size, 'targetbar');
     loadFont(glamourUI.settings.alliancePanel.font, glamourUI.settings.alliancePanel.font_size, 'alliancePanel');
     loadFont(glamourUI.settings.playerStats.font, glamourUI.settings.playerStats.font_size, 'playerStats');
-    loadFont(glamourUI.settings.invPanel.font, glamourUI.settings.invPanel.font_size * scaleY, 'invPanel')
+    loadFont(glamourUI.settings.invPanel.font, glamourUI.settings.invPanel.font_size * scaleY, 'invPanel');
 end)
 
 ashita.events.register('unload', 'unload_cb', function()
@@ -1111,7 +1118,7 @@ ashita.events.register('unload', 'unload_cb', function()
 end)
 
 ashita.events.register('text_in', 'text_in_cb', function(e)
-    makeChat(e);
+    
 end)
 
 ashita.events.register('packet_in', 'packet_in_cb', function(e)
