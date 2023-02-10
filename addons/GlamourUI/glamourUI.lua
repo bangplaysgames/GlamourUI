@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '0.9.8';
+addon.version = '0.9.8.1';
 
 local imgui = require('imgui');
 
@@ -25,7 +25,6 @@ require('helperfunctions')
 local ffi = require('ffi');
 local d3d8 = require('d3d8');
 local primlib = require('primitives');
-local env = require('scaling');
 local dbug = false;
 gPacket = require('packetHandler');
 
@@ -838,6 +837,7 @@ function render_debug_panel()
     if(dbug == true) then
         local pack = gPacket.action.Resource;
         
+        
         imgui.SetNextWindowSize({-1, -1}, ImGuiCond_Always);
         imgui.SetNextWindowPos({12, 12}, ImGuiCond_FirstUseEver);
         if(imgui.Begin('Debug'))then
@@ -898,6 +898,7 @@ function render_player_stats()
 end
 
 function render_inventory_panel()
+    local env = require('scaling');
     local player = AshitaCore:GetMemoryManager():GetPlayer();
     local zoning = player:GetIsZoning();
 
@@ -1016,6 +1017,7 @@ ashita.events.register('command', 'command_cb', function (e)
         print(chat.message('/glam partylist setscale # - Set PartyList Scale'));
         print(chat.message('/glam targetbar - Toggle Target Bar'));
         print(chat.message('/glam targetbar setscale # - Set Target Bar Scale'));
+        print(chat.message('/glam reloadFonts - Reloads Fonts based on Settings file'));
     end
     --Handle Command
     if(#args > 1) then
@@ -1048,6 +1050,9 @@ ashita.events.register('command', 'command_cb', function (e)
                 createLayout(args[3]);
             end
         end
+        if (args[2] == 'reloadFonts') then
+            InitFonts();
+        end
     end
 end)
 
@@ -1057,24 +1062,35 @@ ashita.events.register('d3d_present', 'present_cb', function ()
     local menu = getMenu();
     local allowRender = true;
     
+    local partyCount = 0;
+    local playerIsActive = AshitaCore:GetMemoryManager():GetParty():GetMemberIsActive(0);
+
+    for i = 1,6,1 do
+        if(AshitaCore:GetMemoryManager():GetParty():GetMemberIsActive(i-1) > 0) then
+            partyCount = partyCount +1;
+        end
+    end
 
     if(menu == 'cnqframe' or menu == 'map0')then
         allowRender = false;
     else
         allowRender = true;
-        render_inventory_panel();
+        if(partyCount > 0) then
+            render_inventory_panel();
+        end
     end
 
-     if(firstLoad == true and player ~= nil and playerSID ~= 0 )then
+    if(partyCount > 0 and firstLoad == true and player ~= nil and playerSID ~= 0 )then
         firstLoad = false;
         print(chat.header('GlamourUI Loading...'));
         coroutine.sleep(3);
         glamourUI.settings = settings.load(default_settings);
         loadLayout(glamourUI.settings.partylist.layout);
+        AshitaCore:GetChatManager():QueueCommand(-1, '/glam reloadFonts');
         loaded = true;
     end
 
-    if (player ~= nil and playerSID ~= 0 and allowRender == true and loaded == true and not is_event(0)) then
+    if (partyCount > 0 and player ~= nil and playerSID ~= 0 and allowRender == true and loaded == true and not is_event(0)) then
         render_party_list();
         render_target_bar();
         render_alliance_panel();
@@ -1105,12 +1121,7 @@ ashita.events.register('load', 'load_cb', function()
         print(chat.header('Creating Default Layout'));
     end
     require('conf')
-    local scaleY = env.window.h / env.menu.h;    
-    loadFont(glamourUI.settings.partylist.font, glamourUI.settings.partylist.font_size, 'partylist');
-    loadFont(glamourUI.settings.targetbar.font, glamourUI.settings.targetbar.font_size, 'targetbar');
-    loadFont(glamourUI.settings.alliancePanel.font, glamourUI.settings.alliancePanel.font_size, 'alliancePanel');
-    loadFont(glamourUI.settings.playerStats.font, glamourUI.settings.playerStats.font_size, 'playerStats');
-    loadFont(glamourUI.settings.invPanel.font, glamourUI.settings.invPanel.font_size * scaleY, 'invPanel');
+    InitFonts()
 end)
 
 ashita.events.register('unload', 'unload_cb', function()

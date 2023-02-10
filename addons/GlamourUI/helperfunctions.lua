@@ -884,7 +884,7 @@ function renderRecast()
                     local timer = timers[i];
                     local act = acts[i];
                     local prog = progs[i];
-                    local txtOffset = (imgui.CalcTextSize(timer) / 2 ) + 190;
+                    local txtOffset = (imgui.GetWindowSize() - (imgui.CalcTextSize(timer) / 2 )) - 50 ;
 
                     imgui.Text(act .. " :  ");
                     imgui.SameLine();
@@ -935,7 +935,8 @@ function renderCastBar()
                 imgui.SetCursorPosY(25);
                 
                 if(gPacket.action.Interrupt == true)then
-                    imgui.SetCursorPosX(glamourUI.settings.cBar.BarDim.l / 2.5);
+                    local intOffset = imgui.CalcTextSize('Interrupted');
+                    imgui.SetCursorPosX((imgui.GetWindowSize() - intOffset) * 0.5);
                     imgui.Text('Interrupted');
                 else
                     imgui.Image(cbarFill, {glamourUI.settings.cBar.BarDim.l * prog * glamourUI.settings.cBar.gui_scale, glamourUI.settings.cBar.BarDim.g * glamourUI.settings.cBar.gui_scale}, {0, 0}, {prog, 1});
@@ -952,4 +953,14 @@ function renderCastBar()
         end
     end
     
+end
+
+function InitFonts()
+    local env = require('scaling');
+    local scaleY = env.window.h / env.menu.h;
+    loadFont(glamourUI.settings.partylist.font, glamourUI.settings.partylist.font_size, 'partylist');
+    loadFont(glamourUI.settings.targetbar.font, glamourUI.settings.targetbar.font_size, 'targetbar');
+    loadFont(glamourUI.settings.alliancePanel.font, glamourUI.settings.alliancePanel.font_size, 'alliancePanel');
+    loadFont(glamourUI.settings.playerStats.font, glamourUI.settings.playerStats.font_size, 'playerStats');
+    loadFont(glamourUI.settings.invPanel.font, glamourUI.settings.invPanel.font_size * scaleY, 'invPanel');
 end
