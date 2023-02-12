@@ -1,7 +1,7 @@
 ******************IMPORTANT******************
 Due to using custom fonts, GlamourUI requires ashita version 4.1.0.2 or higher.  If you attempt to load GlamourUI and receive the error in the following screenshot, then your version of Ashita needs to be uodated.
 
-https://github.com/bangplaysgames/images/blob/main/GlamourUI/Glamourui~2.png?raw=true
+![alt text](https://github.com/bangplaysgames/images/blob/main/GlamourUI/Glamourui~2.png?raw=true)
 
 
 lamourUI Is a UI enhancement addon for Ashita v4.  The primary goal is to allow for a platform for as much customization as possible.  Using this platform, you can make YOUR UI.
