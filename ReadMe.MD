@@ -4,7 +4,7 @@ Due to using custom fonts, GlamourUI requires ashita version 4.1.0.2 or higher. 
 ![alt text](https://github.com/bangplaysgames/images/blob/main/GlamourUI/Glamourui~2.png?raw=true)
 
 
-lamourUI Is a UI enhancement addon for Ashita v4.  The primary goal is to allow for a platform for as much customization as possible.  Using this platform, you can make YOUR UI.
+GlamourUI Is a UI enhancement addon for Ashita v4.  The primary goal is to allow for a platform for as much customization as possible.  Using this platform, you can make YOUR UI.
 
 
 Want the different components of your party list rearranged?  The layout engine provides an easy means to do so.  Want to make custom textures for everything?  The theming engine can easily accomplish that.
