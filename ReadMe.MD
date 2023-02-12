@@ -19,14 +19,14 @@ Extract the contents of the zip file directly into your Ashita folder or Horizon
 
 I have added a new Theme Repository for players to create their own themes and share them:  https://github.com/bangplaysgames/glamouruithemes/
 Clone the repository, make your new theme in its own folder, then create a pull request.  This will be the best way for user generated themes to be shared with other players.  I'm excited to see what others' designs are.
-\
+  
 
 
 Recommended first load commands:  
 /glam newlayout NewLayoutName\
 /glam config\
 Select your new layout file in the config Window\
-/glam layout\
+/glam layout  
 
 These steps will create a new layout file and allow you to customize the layout without affecting the default layout.
 
