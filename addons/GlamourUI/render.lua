@@ -646,6 +646,10 @@ render.RenderTargetBar = function()
                     imgui.Text(targetEntity.Name);
                     imgui.PopStyleColor();
 
+                    --Distance
+                    imgui.SameLine();
+                    imgui.Text('     ' .. tostring(math.floor(math.sqrt(targetEntity.Distance) * 100) / 100));
+
                     imgui.SetCursorPosX(30 * GlamourUI.settings.TargetBar.gui_scale);
                     imgui.PushStyleColor(ImGuiCol_Text, {1.0, 1.0, 1.0, 1.0});
                     imgui.Image(hpbTex, {GlamourUI.settings.TargetBar.hpBarDim.l * GlamourUI.settings.TargetBar.gui_scale, GlamourUI.settings.TargetBar.hpBarDim.g * GlamourUI.settings.TargetBar.gui_scale});
@@ -769,6 +773,9 @@ render.renderCastBar = function()
     if((GlamourUI.settings.cBar.enabled == true and gPacket.action.Casting == true) or gCBar.cBarDummy == true) then
         local actionName = gPacket.action.Resource.Name[1];
         local target = AshitaCore:GetMemoryManager():GetEntity():GetName(gPacket.action.Target);
+        if(target == nil)then
+            target = '';
+        end
         local cbarstring = actionName .. ' >> ' .. target;
 
 
