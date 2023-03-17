@@ -720,9 +720,11 @@ render.renderPlayerNoTheme = function(o, c, p, pp)
     imgui.SetCursorPosX(o + 5);
     imgui.PushStyleColor(ImGuiCol_PlotHistogram, c);
     if(pp ~= nil) then
-        imgui.ProgressBar(pp / 100, { GlamourUI.settings.PlayerStats.BarDim.l * GlamourUI.settings.PlayerStats.gui_scale, GlamourUI.settings.PlayerStats.BarDim.g * GlamourUI.settings.PlayerStats.gui_scale }, '');
+        imgui.ProgressBar(pp, { GlamourUI.settings.PlayerStats.BarDim.l * GlamourUI.settings.PlayerStats.gui_scale, GlamourUI.settings.PlayerStats.BarDim.g * GlamourUI.settings.PlayerStats.gui_scale }, '');
+        imgui.PopStyleColor();
     else
         imgui.ProgressBar(p / 1000, {GlamourUI.settings.PlayerStats.BarDim.l * GlamourUI.settings.PlayerStats.gui_scale, GlamourUI.settings.PlayerStats.BarDim.g * GlamourUI.settings.PlayerStats.gui_scale}, '');
+        imgui.PopStyleColor();
         if(p > 1000) then
             imgui.SameLine();
             imgui.SetCursorPosX(o+5);

@@ -1,26 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="Fixed">
-      <change afterPath="$PROJECT_DIR$/.idea/.name" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.vs/GlamourUI/FileContentIndex/61a41fde-d92a-499c-a10c-bb34eafc608d.vsidx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.vs/GlamourUI/FileContentIndex/add7bd31-d010-4f91-8e4c-b67687994b55.vsidx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.vs/GlamourUI/FileContentIndex/bd032bb6-cd37-4f9b-b305-6b2e97e929b5.vsidx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.vs/GlamourUI/FileContentIndex/c485194c-f9e0-4b0b-9fee-870721f2546a.vsidx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vs/GlamourUI/v17/.wsuo" beforeDir="false" afterPath="$PROJECT_DIR$/.vs/GlamourUI/v17/.wsuo" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vs/slnx.sqlite" beforeDir="false" afterPath="$PROJECT_DIR$/.vs/slnx.sqlite" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/glamourui.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/glamourui.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/party.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/party.lua" afterDir="false" />
+    <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/addons/GlamourUI/render.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/render.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Fonts/MysticGate/font.otf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Fonts/MysticGate/font.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Fonts/Rakyat/font.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Fonts/SpicyTaste/font.otf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Fonts/SpicyTaste/font.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Fonts/StrawberryDays/font.ttf" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -88,20 +71,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1671821876609</updated>
-    </task>
-    <task id="LOCAL-00021" summary="Version Update for previous commit">
-      <created>1672781639583</created>
-      <option name="number" value="00021" />
-      <option name="presentableId" value="LOCAL-00021" />
-      <option name="project" value="LOCAL" />
-      <updated>1672781639583</updated>
-    </task>
-    <task id="LOCAL-00022" summary="Committing missing textures">
-      <created>1672781862918</created>
-      <option name="number" value="00022" />
-      <option name="presentableId" value="LOCAL-00022" />
-      <option name="project" value="LOCAL" />
-      <updated>1672781862918</updated>
     </task>
     <task id="LOCAL-00023" summary="Updated ReadMe.MD">
       <created>1672782118598</created>
@@ -432,7 +401,21 @@
       <option name="project" value="LOCAL" />
       <updated>1679071615384</updated>
     </task>
-    <option name="localTasksCounter" value="70" />
+    <task id="LOCAL-00070" summary="Fixed crash when toggling theming engine for Player Stats">
+      <created>1679080447805</created>
+      <option name="number" value="00070" />
+      <option name="presentableId" value="LOCAL-00070" />
+      <option name="project" value="LOCAL" />
+      <updated>1679080447805</updated>
+    </task>
+    <task id="LOCAL-00071" summary="Fixed crash when toggling theming engine for Player Stats">
+      <created>1679080547235</created>
+      <option name="number" value="00071" />
+      <option name="presentableId" value="LOCAL-00071" />
+      <option name="project" value="LOCAL" />
+      <updated>1679080547235</updated>
+    </task>
+    <option name="localTasksCounter" value="72" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -447,7 +430,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Removed backgrounds from all panels" />
     <MESSAGE value="Layout Engine Implemented&#10;&#10;Currently Layouts are loaded via manually editing the file and reloading the addon.  An in-game editor is currently being built for a WYSIWYG experience." />
     <MESSAGE value="Implemented Layout Editor&#10;&#10;/glam layout -  Opens Layout Editor" />
     <MESSAGE value="Epiphany moment:  Figured out the config GUI issue with layout selection!!!" />
@@ -472,6 +454,7 @@
     <MESSAGE value="Target Name reflecting claim, NPC, Mob, Anon, etc.." />
     <MESSAGE value="Reworked Fill Texture Adjustment for cleaner appearance." />
     <MESSAGE value="Complete Rewrite from the Ground Up.&#10;Official Release of Version 1.0&#10;Performance increases across the board.&#10;New Features:&#10;Party Member Buff Icons in Party list.&#10;Redesign of Alliance Panel&#10;Rework of Treasure Pool Lot Rendering for Alliance Panel&#10;Default In-Game Party list toggle (Hides rendering of default party list.)&#10;Completely redesigned Configuration GUI.&#10;Control of all settings moved to Configuration GUI.&#10;Element dimensions for party list moved into the Layout Files.  Loading a different layout will change dimensions of elements.&#10;Party Invite Notification (Use /join or /decline to clear this notification for now.)" />
-    <option name="LAST_COMMIT_MESSAGE" value="Complete Rewrite from the Ground Up.&#10;Official Release of Version 1.0&#10;Performance increases across the board.&#10;New Features:&#10;Party Member Buff Icons in Party list.&#10;Redesign of Alliance Panel&#10;Rework of Treasure Pool Lot Rendering for Alliance Panel&#10;Default In-Game Party list toggle (Hides rendering of default party list.)&#10;Completely redesigned Configuration GUI.&#10;Control of all settings moved to Configuration GUI.&#10;Element dimensions for party list moved into the Layout Files.  Loading a different layout will change dimensions of elements.&#10;Party Invite Notification (Use /join or /decline to clear this notification for now.)" />
+    <MESSAGE value="Fixed crash when toggling theming engine for Player Stats" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed crash when toggling theming engine for Player Stats" />
   </component>
 </project>
