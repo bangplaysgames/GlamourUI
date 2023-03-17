@@ -720,21 +720,21 @@ render.renderPlayerNoTheme = function(o, c, p, pp)
     imgui.SetCursorPosX(o + 5);
     imgui.PushStyleColor(ImGuiCol_PlotHistogram, c);
     if(pp ~= nil) then
-        imgui.ProgressBar(pp / 100, { glamourUI.settings.playerStats.BarDim.l * glamourUI.settings.playerStats.gui_scale, glamourUI.settings.playerStats.BarDim.g * glamourUI.settings.playerStats.gui_scale }, '');
+        imgui.ProgressBar(pp / 100, { GlamourUI.settings.PlayerStats.BarDim.l * GlamourUI.settings.PlayerStats.gui_scale, GlamourUI.settings.PlayerStats.BarDim.g * GlamourUI.settings.PlayerStats.gui_scale }, '');
     else
-        imgui.ProgressBar(p / 1000, {glamourUI.settings.playerStats.BarDim.l * glamourUI.settings.playerStats.gui_scale, glamourUI.settings.playerStats.BarDim.g * glamourUI.settings.playerStats.gui_scale}, '');
+        imgui.ProgressBar(p / 1000, {GlamourUI.settings.PlayerStats.BarDim.l * GlamourUI.settings.PlayerStats.gui_scale, GlamourUI.settings.PlayerStats.BarDim.g * GlamourUI.settings.PlayerStats.gui_scale}, '');
         if(p > 1000) then
             imgui.SameLine();
             imgui.SetCursorPosX(o+5);
             imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0});
-            imgui.ProgressBar((p -1000) /1000, {glamourUI.settings.playerStats.BarDim.l * glamourUI.settings.playerStats.gui_scale, glamourUI.settings.playerStats.BarDim.g * glamourUI.settings.partylist.gui_scale}, '');
+            imgui.ProgressBar((p -1000) /1000, {GlamourUI.settings.PlayerStats.BarDim.l * GlamourUI.settings.PlayerStats.gui_scale, GlamourUI.settings.PlayerStats.BarDim.g * glamourUI.settings.partylist.gui_scale}, '');
             imgui.PopStyleColor(1);
         end
         if(p > 2000) then
             imgui.SameLine();
             imgui.SetCursorPosX(o+5);
             imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0});
-            imgui.ProgressBar((p -2000) /1000, {glamourUI.settings.playerStats.BarDim.l * glamourUI.settings.playerStats.gui_scale, glamourUI.settings.playerStats.BarDim.g * glamourUI.settings.partylist.gui_scale}, '');
+            imgui.ProgressBar((p -2000) /1000, {GlamourUI.settings.PlayerStats.BarDim.l * GlamourUI.settings.PlayerStats.gui_scale, GlamourUI.settings.PlayerStats.BarDim.g * glamourUI.settings.partylist.gui_scale}, '');
             imgui.PopStyleColor(1);
         end
     end
