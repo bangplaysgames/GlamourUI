@@ -16,8 +16,11 @@ packet.action.Packet = {}
 packet.action.Target = '';
 packet.action.Type = '';
 packet.action.Resource = {}
+packet.action.Resource.Name = 'Awesome Spell';
 packet.chat = {}
 packet.buff = {}
+packet.inviter = '';
+packet.InviteActive = false;
 
 --Handle Login Packets
 packet.LoginPacket = function(e)
@@ -60,6 +63,7 @@ end
 packet.IncActionPacket = function(packet)
     local user = struct.unpack('L', packet.data, 0x05 + 1);
     local actionType = ashita.bits.unpack_be(packet.data_raw, 10, 2, 4);
+
     
     --Check if player server ID set.  If not, Set it.
     if(gPacket.Player == 0) then
@@ -122,7 +126,8 @@ end
 
 --Handle Party Invite Packet
 packet.PartyInvite = function(packet);
-    
+    gPacket.inviter = struct.unpack('c16', packet.data, 0x0c + 1);
+    gPacket.InviteActive = true;
 end
 
 
