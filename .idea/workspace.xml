@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/render.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/render.lua" afterDir="false" />
-    </list>
+    <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="Crash Fix on Teleport/Escape casts" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -71,13 +68,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1671821876609</updated>
-    </task>
-    <task id="LOCAL-00024" summary="Error Fixes for things broken in last commits">
-      <created>1672783039555</created>
-      <option name="number" value="00024" />
-      <option name="presentableId" value="LOCAL-00024" />
-      <option name="project" value="LOCAL" />
-      <updated>1672783039555</updated>
     </task>
     <task id="LOCAL-00025" summary="Large performance optimizations">
       <created>1672835886501</created>
@@ -415,7 +405,14 @@
       <option name="project" value="LOCAL" />
       <updated>1679081449984</updated>
     </task>
-    <option name="localTasksCounter" value="73" />
+    <task id="LOCAL-00073" summary="Crash Fix on Teleport/Escape casts">
+      <created>1679096796595</created>
+      <option name="number" value="00073" />
+      <option name="presentableId" value="LOCAL-00073" />
+      <option name="project" value="LOCAL" />
+      <updated>1679096796595</updated>
+    </task>
+    <option name="localTasksCounter" value="74" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -430,7 +427,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Layout Engine Implemented&#10;&#10;Currently Layouts are loaded via manually editing the file and reloading the addon.  An in-game editor is currently being built for a WYSIWYG experience." />
     <MESSAGE value="Implemented Layout Editor&#10;&#10;/glam layout -  Opens Layout Editor" />
     <MESSAGE value="Epiphany moment:  Figured out the config GUI issue with layout selection!!!" />
     <MESSAGE value="Fixed small errors in the new layout command.&#10;&#10;Fixed issue with padding reverting when typing a value." />
@@ -455,6 +451,7 @@
     <MESSAGE value="Reworked Fill Texture Adjustment for cleaner appearance." />
     <MESSAGE value="Complete Rewrite from the Ground Up.&#10;Official Release of Version 1.0&#10;Performance increases across the board.&#10;New Features:&#10;Party Member Buff Icons in Party list.&#10;Redesign of Alliance Panel&#10;Rework of Treasure Pool Lot Rendering for Alliance Panel&#10;Default In-Game Party list toggle (Hides rendering of default party list.)&#10;Completely redesigned Configuration GUI.&#10;Control of all settings moved to Configuration GUI.&#10;Element dimensions for party list moved into the Layout Files.  Loading a different layout will change dimensions of elements.&#10;Party Invite Notification (Use /join or /decline to clear this notification for now.)" />
     <MESSAGE value="Fixed crash when toggling theming engine for Player Stats" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed crash when toggling theming engine for Player Stats" />
+    <MESSAGE value="Crash Fix on Teleport/Escape casts" />
+    <option name="LAST_COMMIT_MESSAGE" value="Crash Fix on Teleport/Escape casts" />
   </component>
 </project>
