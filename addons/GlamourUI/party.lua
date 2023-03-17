@@ -392,11 +392,11 @@ party.render_player_stats = function()
 
             else
 
-                renderPlayerNoTheme(0, { 1.0, 0.25, 0.25, 1.0 }, gParty.Party[1].HP, gParty.Party[1].HPP);
+                gUI.renderPlayerNoTheme(0, { 1.0, 0.25, 0.25, 1.0 }, gParty.Party[1].HP, gParty.Party[1].HPP);
                 imgui.SameLine();
-                renderPlayerNoTheme(250, { 0.0, 0.5, 0.0, 1.0 }, gParty.Party[1].MP, gParty.Party[1].MPP);
+                gUI.renderPlayerNoTheme(250, { 0.0, 0.5, 0.0, 1.0 }, gParty.Party[1].MP, gParty.Party[1].MPP);
                 imgui.SameLine();
-                renderPlayerNoTheme(500, { 0.0, 0.45, 1.0, 1.0}, gParty.Party[1].TP, nil);
+                gUI.renderPlayerNoTheme(500, { 0.0, 0.45, 1.0, 1.0}, gParty.Party[1].TP, nil);
 
             end
         end

@@ -1,0 +1,477 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="Fixed">
+      <change afterPath="$PROJECT_DIR$/.idea/.name" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.vs/GlamourUI/FileContentIndex/61a41fde-d92a-499c-a10c-bb34eafc608d.vsidx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.vs/GlamourUI/FileContentIndex/add7bd31-d010-4f91-8e4c-b67687994b55.vsidx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.vs/GlamourUI/FileContentIndex/bd032bb6-cd37-4f9b-b305-6b2e97e929b5.vsidx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.vs/GlamourUI/FileContentIndex/c485194c-f9e0-4b0b-9fee-870721f2546a.vsidx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/GlamourUI/v17/.wsuo" beforeDir="false" afterPath="$PROJECT_DIR$/.vs/GlamourUI/v17/.wsuo" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/slnx.sqlite" beforeDir="false" afterPath="$PROJECT_DIR$/.vs/slnx.sqlite" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/glamourui.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/glamourui.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/party.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/party.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/render.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/render.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Fonts/MysticGate/font.otf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Fonts/MysticGate/font.ttf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Fonts/Rakyat/font.ttf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Fonts/SpicyTaste/font.otf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Fonts/SpicyTaste/font.ttf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Fonts/StrawberryDays/font.ttf" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="NewLua" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="PUSH_AUTO_UPDATE" value="true" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectId" id="2JKLYFYAE907aUI9q7eC2Zj7xIX" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;F:/FFXIDev/GlamourUI&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="F:\FFXIDev\GlamourUI\" />
+      <recent name="F:\FFXIDev\GlamourUI" />
+      <recent name="F:\FFXIDev\GlamourUI\.idea\addons\GlamourUI" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration default="true" type="JetRunConfigurationType">
+      <module name="GlamourUI" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <module name="GlamourUI" />
+      <option name="filePath" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="" />
+      <created>1671821876609</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1671821876609</updated>
+    </task>
+    <task id="LOCAL-00021" summary="Version Update for previous commit">
+      <created>1672781639583</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1672781639583</updated>
+    </task>
+    <task id="LOCAL-00022" summary="Committing missing textures">
+      <created>1672781862918</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1672781862918</updated>
+    </task>
+    <task id="LOCAL-00023" summary="Updated ReadMe.MD">
+      <created>1672782118598</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1672782118598</updated>
+    </task>
+    <task id="LOCAL-00024" summary="Error Fixes for things broken in last commits">
+      <created>1672783039555</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1672783039555</updated>
+    </task>
+    <task id="LOCAL-00025" summary="Large performance optimizations">
+      <created>1672835886501</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1672835886501</updated>
+    </task>
+    <task id="LOCAL-00026" summary="Refactored Themes to the config folder">
+      <created>1672836034446</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1672836034446</updated>
+    </task>
+    <task id="LOCAL-00027" summary="Refactored Themes to the config folder">
+      <created>1672836061769</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1672836061769</updated>
+    </task>
+    <task id="LOCAL-00028" summary="Fixes">
+      <created>1672837687731</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1672837687731</updated>
+    </task>
+    <task id="LOCAL-00029" summary="Fixes">
+      <created>1672842183302</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1672842183302</updated>
+    </task>
+    <task id="LOCAL-00030" summary="Removed blank space line between party members.  This should fix issues with larger font scale making a smaller party list scale look weird.">
+      <created>1672854807649</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1672854807649</updated>
+    </task>
+    <task id="LOCAL-00031" summary="Added Configuration GUI window&#10;-All settings are exposed via the configuration GUI except position of panels due to mouse control for positions.&#10;&#10;Added New Theme:  Desat&#10;-Desaturated version of the current default theme.">
+      <created>1672879410089</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1672879410089</updated>
+    </task>
+    <task id="LOCAL-00032" summary="Version update for previous commit.">
+      <created>1672879471136</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1672879471136</updated>
+    </task>
+    <task id="LOCAL-00033" summary="Added Default ImGui version for Player Stats">
+      <created>1672881522287</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1672881522287</updated>
+    </task>
+    <task id="LOCAL-00034" summary="Removed backgrounds from all panels">
+      <created>1672883182576</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1672883182576</updated>
+    </task>
+    <task id="LOCAL-00035" summary="Layout Engine Implemented&#10;&#10;Currently Layouts are loaded via manually editing the file and reloading the addon.  An in-game editor is currently being built for a WYSIWYG experience.">
+      <created>1672951284248</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1672951284248</updated>
+    </task>
+    <task id="LOCAL-00036" summary="Implemented Layout Editor&#10;&#10;/glam layout -  Opens Layout Editor">
+      <created>1672957475720</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1672957475720</updated>
+    </task>
+    <task id="LOCAL-00037" summary="Implemented Layout Editor&#10;&#10;/glam layout -  Opens Layout Editor">
+      <created>1672958301834</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1672958301834</updated>
+    </task>
+    <task id="LOCAL-00038" summary="Epiphany moment:  Figured out the config GUI issue with layout selection!!!">
+      <created>1672959654202</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1672959654202</updated>
+    </task>
+    <task id="LOCAL-00039" summary="Epiphany moment:  Figured out the config GUI issue with layout selection!!!">
+      <created>1672960803589</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1672960803589</updated>
+    </task>
+    <task id="LOCAL-00040" summary="Fixed small errors in the new layout command.&#10;&#10;Fixed issue with padding reverting when typing a value.">
+      <created>1672961719714</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1672961719714</updated>
+    </task>
+    <task id="LOCAL-00041" summary="Resolved issue caused by missing Layouts directory">
+      <created>1672965392011</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1672965392011</updated>
+    </task>
+    <task id="LOCAL-00042" summary="Per-Bar Dimension adjustments for party list.&#10;&#10;Each bar has a length and girth setting which can be adjusted in-game.&#10;&#10;Player Stats is currently all adjusted via 1 bar.  Per-Bar adjustment and layout will be coming in a future update.">
+      <created>1673027517090</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1673027517090</updated>
+    </task>
+    <task id="LOCAL-00043" summary="Bugfix:  Target Bar scaling not applying properly in config window.">
+      <created>1673028150538</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1673028150538</updated>
+    </task>
+    <task id="LOCAL-00044" summary="Removed Rendering of Party Members HP/MP/TP bars when in a different zone.  In their place, the zone name will render.&#10;&#10;This was both a functional change and an aesthetic change.  It was rendering bars with incorrect data.  (Rather than seeing the actual HP/MP/TP of party members in a different zone, it was random data.)">
+      <created>1673042496736</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1673042496736</updated>
+    </task>
+    <task id="LOCAL-00045" summary="Added Text Colorization based on HP values.&#10;&#10;2/3+ HP:  White Text&#10;1/2-2/3 HP:  Yellow Text&#10;Less than 1/2 HP:  Red Text&#10;&#10;&#10;This is an approximation of blood agro adjustments.  All text objects for a given player in the party list will adjust based on that player's HP values.  While possible to restrict this to purely the HP text, I think it's more beneficial for all text for that player to reflect this.">
+      <created>1673140558856</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1673140558856</updated>
+    </task>
+    <task id="LOCAL-00046" summary="Created awareness for chatlog expansion for party list.  If chatlog is expanded, then the party list will temporarily be hidden.">
+      <created>1673291216268</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1673291216268</updated>
+    </task>
+    <task id="LOCAL-00047" summary="Adjusted chatlog awareness to continue hiding party list until the chatlog is closed, even if the chat input bar is opened.">
+      <created>1673298955499</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1673298955499</updated>
+    </task>
+    <task id="LOCAL-00048" summary="Adjusted chatlog awareness to continue hiding party list until the chatlog is closed, even if the chat input bar is opened.">
+      <created>1673299055843</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1673299055843</updated>
+    </task>
+    <task id="LOCAL-00049" summary="Adjusted chatlog awareness to continue hiding party list until the chatlog is closed, even if the chat input bar is opened.">
+      <created>1673299310228</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1673299310228</updated>
+    </task>
+    <task id="LOCAL-00050" summary="Adjusted chatlog awareness to continue hiding party list until the chatlog is closed, even if the chat input bar is opened.">
+      <created>1673299509535</created>
+      <option name="number" value="00050" />
+      <option name="presentableId" value="LOCAL-00050" />
+      <option name="project" value="LOCAL" />
+      <updated>1673299509536</updated>
+    </task>
+    <task id="LOCAL-00051" summary="Reimplemented Background to Party List&#10;&#10;Background Opacity only configurable through config file for the time being.">
+      <created>1673305127987</created>
+      <option name="number" value="00051" />
+      <option name="presentableId" value="LOCAL-00051" />
+      <option name="project" value="LOCAL" />
+      <updated>1673305127987</updated>
+    </task>
+    <task id="LOCAL-00052" summary="Party Leader Indication&#10;Level Sync Indication&#10;Targeted Party Member Marker">
+      <created>1673487219174</created>
+      <option name="number" value="00052" />
+      <option name="presentableId" value="LOCAL-00052" />
+      <option name="project" value="LOCAL" />
+      <updated>1673487219174</updated>
+    </task>
+    <task id="LOCAL-00053" summary="Implemented Textured Background for Themes&#10;&#10;Due to the method used to make this work, the background image will not move smoothly when adjusting the location of the party.  Once in place, it will be fine.">
+      <created>1673489453636</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1673489453636</updated>
+    </task>
+    <task id="LOCAL-00054" summary="Implemented Textured Background for Themes&#10;&#10;Due to the method used to make this work, the background image will not move smoothly when adjusting the location of the party.  Once in place, it will be fine.">
+      <created>1673489622489</created>
+      <option name="number" value="00054" />
+      <option name="presentableId" value="LOCAL-00054" />
+      <option name="project" value="LOCAL" />
+      <updated>1673489622489</updated>
+    </task>
+    <task id="LOCAL-00055" summary="Implemented Textured Background for Themes&#10;&#10;Due to the method used to make this work, the background image will not move smoothly when adjusting the location of the party.  Once in place, it will be fine.">
+      <created>1673489664758</created>
+      <option name="number" value="00055" />
+      <option name="presentableId" value="LOCAL-00055" />
+      <option name="project" value="LOCAL" />
+      <updated>1673489664758</updated>
+    </task>
+    <task id="LOCAL-00056" summary="Added missing texture to Desat">
+      <created>1673490095605</created>
+      <option name="number" value="00056" />
+      <option name="presentableId" value="LOCAL-00056" />
+      <option name="project" value="LOCAL" />
+      <updated>1673490095605</updated>
+    </task>
+    <task id="LOCAL-00057" summary="Custom Fonts&#10;Better Textured Backgrounds&#10;Indicators (Now in a working version!)">
+      <created>1673545533155</created>
+      <option name="number" value="00057" />
+      <option name="presentableId" value="LOCAL-00057" />
+      <option name="project" value="LOCAL" />
+      <updated>1673545533156</updated>
+    </task>
+    <task id="LOCAL-00058" summary="Custom Fonts&#10;Better Textured Backgrounds&#10;Indicators (Now in a working version!)">
+      <created>1673546368092</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1673546368092</updated>
+    </task>
+    <task id="LOCAL-00059" summary="Inventory Panel Implemented to cover Default Party List.&#10;&#10;Can be disabled via /glam config&#10;&#10;Changing font or font size on the inventory panel will reload the entire addon.  This is done as a temporary measure to avoid crashing the addons plugin while I search for a fix for the crash.">
+      <created>1673649458438</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
+      <option name="project" value="LOCAL" />
+      <updated>1673649458438</updated>
+    </task>
+    <task id="LOCAL-00060" summary="Fix for Crash on Zoning issue">
+      <created>1673814594680</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1673814594680</updated>
+    </task>
+    <task id="LOCAL-00061" summary="Fixed Gil Crash on Zone and improper login screen issues.">
+      <created>1673965815288</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1673965815289</updated>
+    </task>
+    <task id="LOCAL-00062" summary="Bug Fix:  Pet not lined up properly with rest of party.  Target Arrow not rendering on Pet.&#10;&#10;Preparations for buff/debuff icons on party list.  Not functional yet, but files and functions are starting to be added.">
+      <created>1674076561720</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1674076561720</updated>
+    </task>
+    <task id="LOCAL-00063" summary="Bug Fix:  Pet not lined up properly with rest of party.  Target Arrow not rendering on Pet.&#10;&#10;Preparations for buff/debuff icons on party list.  Not functional yet, but files and functions are starting to be added.">
+      <created>1674076586167</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1674076586167</updated>
+    </task>
+    <task id="LOCAL-00064" summary="Hiding of UI elements when opening /rmap, /cmap, /bmap, or /map.">
+      <created>1674314325424</created>
+      <option name="number" value="00064" />
+      <option name="presentableId" value="LOCAL-00064" />
+      <option name="project" value="LOCAL" />
+      <updated>1674314325424</updated>
+    </task>
+    <task id="LOCAL-00065" summary="Target Name reflecting claim, NPC, Mob, Anon, etc..">
+      <created>1674590076066</created>
+      <option name="number" value="00065" />
+      <option name="presentableId" value="LOCAL-00065" />
+      <option name="project" value="LOCAL" />
+      <updated>1674590076066</updated>
+    </task>
+    <task id="LOCAL-00066" summary="Reworked Fill Texture Adjustment for cleaner appearance.">
+      <created>1675039628971</created>
+      <option name="number" value="00066" />
+      <option name="presentableId" value="LOCAL-00066" />
+      <option name="project" value="LOCAL" />
+      <updated>1675039628971</updated>
+    </task>
+    <task id="LOCAL-00067" summary="Reworked Fill Texture Adjustment for cleaner appearance.">
+      <created>1675095566312</created>
+      <option name="number" value="00067" />
+      <option name="presentableId" value="LOCAL-00067" />
+      <option name="project" value="LOCAL" />
+      <updated>1675095566312</updated>
+    </task>
+    <task id="LOCAL-00068" summary="Reworked Fill Texture Adjustment for cleaner appearance.">
+      <created>1675095646225</created>
+      <option name="number" value="00068" />
+      <option name="presentableId" value="LOCAL-00068" />
+      <option name="project" value="LOCAL" />
+      <updated>1675095646225</updated>
+    </task>
+    <task id="LOCAL-00069" summary="Complete Rewrite from the Ground Up.&#10;Official Release of Version 1.0&#10;Performance increases across the board.&#10;New Features:&#10;Party Member Buff Icons in Party list.&#10;Redesign of Alliance Panel&#10;Rework of Treasure Pool Lot Rendering for Alliance Panel&#10;Default In-Game Party list toggle (Hides rendering of default party list.)&#10;Completely redesigned Configuration GUI.&#10;Control of all settings moved to Configuration GUI.&#10;Element dimensions for party list moved into the Layout Files.  Loading a different layout will change dimensions of elements.&#10;Party Invite Notification (Use /join or /decline to clear this notification for now.)">
+      <created>1679071615384</created>
+      <option name="number" value="00069" />
+      <option name="presentableId" value="LOCAL-00069" />
+      <option name="project" value="LOCAL" />
+      <updated>1679071615384</updated>
+    </task>
+    <option name="localTasksCounter" value="70" />
+    <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Removed backgrounds from all panels" />
+    <MESSAGE value="Layout Engine Implemented&#10;&#10;Currently Layouts are loaded via manually editing the file and reloading the addon.  An in-game editor is currently being built for a WYSIWYG experience." />
+    <MESSAGE value="Implemented Layout Editor&#10;&#10;/glam layout -  Opens Layout Editor" />
+    <MESSAGE value="Epiphany moment:  Figured out the config GUI issue with layout selection!!!" />
+    <MESSAGE value="Fixed small errors in the new layout command.&#10;&#10;Fixed issue with padding reverting when typing a value." />
+    <MESSAGE value="Resolved issue caused by missing Layouts directory" />
+    <MESSAGE value="Per-Bar Dimension adjustments for party list.&#10;&#10;Each bar has a length and girth setting which can be adjusted in-game.&#10;&#10;Player Stats is currently all adjusted via 1 bar.  Per-Bar adjustment and layout will be coming in a future update." />
+    <MESSAGE value="Bugfix:  Target Bar scaling not applying properly in config window." />
+    <MESSAGE value="Removed Rendering of Party Members HP/MP/TP bars when in a different zone.  In their place, the zone name will render.&#10;&#10;This was both a functional change and an aesthetic change.  It was rendering bars with incorrect data.  (Rather than seeing the actual HP/MP/TP of party members in a different zone, it was random data.)" />
+    <MESSAGE value="Added Text Colorization based on HP values.&#10;&#10;2/3+ HP:  White Text&#10;1/2-2/3 HP:  Yellow Text&#10;Less than 1/2 HP:  Red Text&#10;&#10;&#10;This is an approximation of blood agro adjustments.  All text objects for a given player in the party list will adjust based on that player's HP values.  While possible to restrict this to purely the HP text, I think it's more beneficial for all text for that player to reflect this." />
+    <MESSAGE value="Created awareness for chatlog expansion for party list.  If chatlog is expanded, then the party list will temporarily be hidden." />
+    <MESSAGE value="Adjusted chatlog awareness to continue hiding party list until the chatlog is closed, even if the chat input bar is opened." />
+    <MESSAGE value="Reimplemented Background to Party List&#10;&#10;Background Opacity only configurable through config file for the time being." />
+    <MESSAGE value="Party Leader Indication&#10;Level Sync Indication&#10;Targeted Party Member Marker" />
+    <MESSAGE value="Implemented Textured Background for Themes&#10;&#10;Due to the method used to make this work, the background image will not move smoothly when adjusting the location of the party.  Once in place, it will be fine." />
+    <MESSAGE value="Added missing texture to Desat" />
+    <MESSAGE value="Custom Fonts&#10;Better Textured Backgrounds&#10;Indicators (Now in a working version!)" />
+    <MESSAGE value="Inventory Panel Implemented to cover Default Party List.&#10;&#10;Can be disabled via /glam config&#10;&#10;Changing font or font size on the inventory panel will reload the entire addon.  This is done as a temporary measure to avoid crashing the addons plugin while I search for a fix for the crash." />
+    <MESSAGE value="Fix for Crash on Zoning issue" />
+    <MESSAGE value="Fixed Gil Crash on Zone and improper login screen issues." />
+    <MESSAGE value="Bug Fix:  Pet not lined up properly with rest of party.  Target Arrow not rendering on Pet.&#10;&#10;Preparations for buff/debuff icons on party list.  Not functional yet, but files and functions are starting to be added." />
+    <MESSAGE value="Hiding of UI elements when opening /rmap, /cmap, /bmap, or /map." />
+    <MESSAGE value="Target Name reflecting claim, NPC, Mob, Anon, etc.." />
+    <MESSAGE value="Reworked Fill Texture Adjustment for cleaner appearance." />
+    <MESSAGE value="Complete Rewrite from the Ground Up.&#10;Official Release of Version 1.0&#10;Performance increases across the board.&#10;New Features:&#10;Party Member Buff Icons in Party list.&#10;Redesign of Alliance Panel&#10;Rework of Treasure Pool Lot Rendering for Alliance Panel&#10;Default In-Game Party list toggle (Hides rendering of default party list.)&#10;Completely redesigned Configuration GUI.&#10;Control of all settings moved to Configuration GUI.&#10;Element dimensions for party list moved into the Layout Files.  Loading a different layout will change dimensions of elements.&#10;Party Invite Notification (Use /join or /decline to clear this notification for now.)" />
+    <option name="LAST_COMMIT_MESSAGE" value="Complete Rewrite from the Ground Up.&#10;Official Release of Version 1.0&#10;Performance increases across the board.&#10;New Features:&#10;Party Member Buff Icons in Party list.&#10;Redesign of Alliance Panel&#10;Rework of Treasure Pool Lot Rendering for Alliance Panel&#10;Default In-Game Party list toggle (Hides rendering of default party list.)&#10;Completely redesigned Configuration GUI.&#10;Control of all settings moved to Configuration GUI.&#10;Element dimensions for party list moved into the Layout Files.  Loading a different layout will change dimensions of elements.&#10;Party Invite Notification (Use /join or /decline to clear this notification for now.)" />
+  </component>
+</project>

@@ -716,6 +716,33 @@ render.RenderTargetBar = function()
     end
 end
 
+render.renderPlayerNoTheme = function(o, c, p, pp)
+    imgui.SetCursorPosX(o + 5);
+    imgui.PushStyleColor(ImGuiCol_PlotHistogram, c);
+    if(pp ~= nil) then
+        imgui.ProgressBar(pp / 100, { glamourUI.settings.playerStats.BarDim.l * glamourUI.settings.playerStats.gui_scale, glamourUI.settings.playerStats.BarDim.g * glamourUI.settings.playerStats.gui_scale }, '');
+    else
+        imgui.ProgressBar(p / 1000, {glamourUI.settings.playerStats.BarDim.l * glamourUI.settings.playerStats.gui_scale, glamourUI.settings.playerStats.BarDim.g * glamourUI.settings.playerStats.gui_scale}, '');
+        if(p > 1000) then
+            imgui.SameLine();
+            imgui.SetCursorPosX(o+5);
+            imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0});
+            imgui.ProgressBar((p -1000) /1000, {glamourUI.settings.playerStats.BarDim.l * glamourUI.settings.playerStats.gui_scale, glamourUI.settings.playerStats.BarDim.g * glamourUI.settings.partylist.gui_scale}, '');
+            imgui.PopStyleColor(1);
+        end
+        if(p > 2000) then
+            imgui.SameLine();
+            imgui.SetCursorPosX(o+5);
+            imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0});
+            imgui.ProgressBar((p -2000) /1000, {glamourUI.settings.playerStats.BarDim.l * glamourUI.settings.playerStats.gui_scale, glamourUI.settings.playerStats.BarDim.g * glamourUI.settings.partylist.gui_scale}, '');
+            imgui.PopStyleColor(1);
+        end
+    end
+    imgui.SameLine();
+    imgui.SetCursorPosX(o+5);
+    imgui.Text(tostring(p));
+end
+
 render.render_invite = function()
     if(gPacket.InviteActive == true)then
         if(imgui.Begin('PartyInvite##GlamPI', true, bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoDecoration)))then
