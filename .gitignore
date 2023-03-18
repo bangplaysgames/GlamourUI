@@ -1,0 +1,4 @@
+*.zip
+.gitignore
+.idea
+.vs

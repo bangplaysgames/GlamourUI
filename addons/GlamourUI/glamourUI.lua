@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '1.0.4';
+addon.version = '1.0.5';
 
 local settings = require('settings');
 
