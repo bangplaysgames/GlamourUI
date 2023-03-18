@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '1.0.1';
+addon.version = '1.0.4';
 
 local settings = require('settings');
 
@@ -61,8 +61,8 @@ local default_settings = T{
     Party = T{
         pList = T{
             hp1Color = {1.0, 1.0, 1.0, 1.0},
-            hp2Color = {1.0, 1.0, 0.0, 0.0},
-            hp3Color = {1.0, 0.0, 0.0, 0.0},
+            hp2Color = {1.0, 1.0, 0.0, 1.0},
+            hp3Color = {1.0, 0.0, 0.0, 1.0},
             enabled = true,
             hideDefault = true,
             font_scale = 1,
