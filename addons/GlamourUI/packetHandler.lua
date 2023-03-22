@@ -6,6 +6,51 @@ ffi.cdef[[
     int32_t memcmp(const void* buff1, const void* buff2, size_t count);
 ]];
 
+local function fmt_time(t)
+    local time = t / 60;
+    local h = math.floor(time / (60 * 60));
+    local m = math.floor(time / 60 - h * 60);
+    local s = math.floor(time - (m + h * 60) * 60);
+    if(h > 0) then
+        return ('%02i:%02i:%02i'):fmt(h, m, s);
+    elseif(m > 0) then
+        return ('%02i:%02i'):fmt(m, s);
+    else
+        return('%02i'):fmt(s);
+    end
+end
+
+local calcEXPperHour = function()
+    if(gParty.EXPReset == true)then
+        gParty.EXPperHour = 0;
+        gParty.EXPSum = 0;
+        gParty.EXPTimeDelta = 0;
+        for k,_ in pairs(gParty.EXPTable)do
+            table.remove(gParty.EXPTable, k);
+        end
+        for k,_ in pairs(gParty.EXPTimeTable)do
+            table.remove(gParty.EXPTimeTable, k);
+        end
+        gParty.EXPReset = false;
+        return;
+    end
+    if(gParty.EXPTimeTable[1] ~= nil)then
+        gParty.EXPTimeDelta = (os.time() - gParty.EXPTimeTable[1]) / 3600;
+    end
+    gParty.EXPperHour = math.floor((gParty.EXPSum / gParty.EXPTimeDelta) * 100) / 100;
+    if(gParty.EXPSum == 0)then
+        gParty.EXPperHour = 0;
+    end
+end
+
+local setEXPmode = function()
+    local player = AshitaCore:GetMemoryManager():GetPlayer();
+    if(player:GetIsExperiencePointsLocked() == true)then
+        gParty.EXPMode = 'LP';
+    else
+        gParty.EXPMode = 'EXP';
+    end
+end
 
 local packet = {}
 
@@ -21,6 +66,16 @@ packet.chat = {}
 packet.buff = {}
 packet.inviter = '';
 packet.InviteActive = false;
+
+--Treasure Pool Drops
+packet.TreasurePool = {}
+packet.TreasurePool.Dropper = nil;
+packet.TreasurePool.DroppedIndex = nil;
+packet.TreasurePool.DroppedItem = nil;
+packet.TreasurePool.Item = nil;
+packet.TreasurePool.Drop = nil;
+packet.TreasurePool.HighestLotter = nil;
+packet.TreasurePool.CurrentLotter = nil;
 
 --Handle Login Packets
 packet.LoginPacket = function(e)
@@ -93,7 +148,24 @@ end
 
 
 --Handle Kill Message Packets
-packet.KillMessage = function(packet)
+packet.KillMessage = function(pack)
+    local player = GetPlayerEntity();
+    local KMPlayer = struct.unpack('L', pack.data, 0x04 + 1);
+    local KMEXP = struct.unpack('L', pack.data, 0x10 + 1);
+
+    if(KMPlayer == player.ServerId)then
+        table.insert(gParty.EXPTimeTable, os.time());
+        table.insert(gParty.EXPTable, KMEXP);
+        gParty.EXPSum = gParty.EXPSum + KMEXP;
+    end
+
+    if(gParty.EXPTable ~= nil)then
+        local newest = gParty.EXPTimeTable[#gParty.EXPTimeTable];
+        if(#gParty.EXPTable > 1)then
+            gParty.EXPTimeDelta = (newest - gParty.EXPTimeTable[1]) / 3600;
+            calcEXPperHour();
+        end
+    end
 
 end
 
@@ -130,9 +202,39 @@ packet.PartyInvite = function(packet);
     gPacket.InviteActive = true;
 end
 
+packet.ItemDrop = function(pack)
+    local tabl = {}
+    local Dropper = struct.unpack('L', pack.data, 0x08 +1);
+    local DroppedIndex = struct.unpack('B', pack.data, 0x14 + 1);
+    local DroppedItem = struct.unpack('H', pack.data, 0x10 +1);
+    tabl[DroppedIndex] = {}
+    tabl[DroppedIndex].Dropper = Dropper;
+    tabl[DroppedIndex].DroppedItem = DroppedItem;
+    table.insert(packet.TreasurePool, tabl[DroppedIndex]);
+end
+
+--Item Lot Packet
+packet.ItemLots = function(pack)
+    local tabl = {}
+    local HighestLotter = struct.unpack('c16', pack.data, 0x16 + 1);
+    local CurrentLotter = struct.unpack('c16', pack.data, 0x26 + 1);
+    local Drop = struct.unpack('B', pack.data, 0x15 + 1);
+    local Item = struct.unpack('B', pack.data, 0x14 +1);
+    tabl[Item] = {}
+    tabl[Item].HighestLotter = HighestLotter;
+    tabl[Item].CurrentLotter = CurrentLotter;
+    tabl[Item].Drop = Drop;
+    table.insert(packet.TreasurePool, tabl[Item]);
+    for i = 1, #packet.TreasurePool do
+        if(packet.TreasurePool[i].Drop == 1)then
+            packet.TreasurePool[i] = nil;
+        end
+    end
+end
 
 --Packet Sort
 packet.HandleIncoming = function(e)
+    --print(chat.error(tostring(e.id)));
     if(e.id == 0x0A)then
         gPacket.LoginPacket(e);
     elseif(e.id == 0x17)then
@@ -141,15 +243,21 @@ packet.HandleIncoming = function(e)
         gPacket.IncActionPacket(e);
     elseif(e.id == 0x29)then
         gPacket.ActionMessage(e);
-    elseif(e.id == 0x2D)then
-        gPacket.KillMessage(e);
+    elseif(e.id == 0x02D)then
+        packet.KillMessage(e);
     elseif(e.id == 0x36)then
         gPacket.NPCMessage(e);
     elseif(e.id == 0x76)then
         gPacket.PartyBuffs(e);
     elseif(e.id == 0xDC)then
         gPacket.PartyInvite(e);
+    elseif(e.id == 0xD2)then
+        packet.ItemDrop(e);
+    elseif(e.id == 0xD3)then
+        packet.ItemLots(e);
     end
+    calcEXPperHour();
+    setEXPmode();
 end
 
 

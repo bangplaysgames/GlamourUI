@@ -58,6 +58,7 @@ render.renderPlayerThemed = function(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ
     local sTarget, sTargActive = gTarget.GetSelectedAllianceMember();
     local menu = gHelper.getMenu();
     local subtarg = gTarget.getSubTargetEntity();
+    local distance = math.sqrt(AshitaCore:GetMemoryManager():GetEntity():GetDistance(p));
 
     --Easy Nil Catch
     if(subtarg == nil)then
@@ -76,7 +77,7 @@ render.renderPlayerThemed = function(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ
         if(element[e] == 'name')then
             imgui.PushStyleColor(ImGuiCol_Text, Member.Color);
             imgui.SetCursorPosX(gParty.layout.NamePosition.x * GlamourUI.settings.Party.pList.gui_scale);
-            imgui.SetCursorPosY(yOffset + gParty.layout.NamePosition.y * GlamourUI.settings.Party.pList.gui_scale);
+            imgui.SetCursorPosY((yOffset + gParty.layout.NamePosition.y) * GlamourUI.settings.Party.pList.gui_scale);
 
 
             --Check Target and Set Cursor
@@ -102,18 +103,18 @@ render.renderPlayerThemed = function(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ
             imgui.SetCursorPosX((40 + gParty.layout.NamePosition.x) * GlamourUI.settings.Party.pList.gui_scale);
             imgui.SetCursorPosY((yOffset + gParty.layout.NamePosition.y) * GlamourUI.settings.Party.pList.gui_scale);
             imgui.Text(Member.Name);
+            if(p ~= 0) then
+                imgui.SameLine();
+                imgui.CalcTextSize(tostring(distance));
+                imgui.SetCursorPosX((GlamourUI.settings.Party.pList.hpBarDim.l - distance) * GlamourUI.settings.Party.pList.gui_scale);
+                imgui.Text(tostring(distance));
+            end
             if(gParty.IsLevelSync(p) == true)then
                 imgui.SameLine();
                 imgui.Image(lsync, {10 * GlamourUI.settings.Party.pList.gui_scale, 10 * GlamourUI.settings.Party.pList.gui_scale});
             end
             imgui.PopStyleColor();
 
-            --Render lots for hovered item in treasure pool
-            if(menu == 'loot')then
-                imgui.SameLine();
-                imgui.SetCursorPosX(300);
-                imgui.Text(tostring(gParty.getLot(p)));
-            end
             return;
 
             --Render HP Bar and Text
@@ -236,18 +237,15 @@ render.renderPlayerThemed = function(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ
             imgui.SetCursorPosX((40 + gParty.layout.NamePosition.x) * GlamourUI.settings.Party.pList.gui_scale);
             imgui.SetCursorPosY((yOffset + gParty.layout.NamePosition.y) * GlamourUI.settings.Party.pList.gui_scale);
             imgui.Text(Member.Name);
+            imgui.SameLine();
+
+            imgui.Text(tostring(math.sqrt(AshitaCore:GetMemoryManager():GetEntity():GetDistance(p))));
             if(gParty.IsLevelSync(p) == true)then
                 imgui.SameLine();
                 imgui.Image(lsync, {10 * GlamourUI.settings.Party.pList.gui_scale, 10 * GlamourUI.settings.Party.pList.gui_scale});
             end
             imgui.PopStyleColor();
 
-            --Render lots for hovered item in treasure pool
-            if(menu == 'loot')then
-                imgui.SameLine();
-                imgui.SetCursorPosX(300);
-                imgui.Text(tostring(gParty.getLot(p)));
-            end
             return;
 
             --Render HP Bar and Text
@@ -646,8 +644,14 @@ render.RenderTargetBar = function()
                     imgui.Text(targetEntity.Name);
                     imgui.PopStyleColor();
 
+                    --Mob ID
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(30 * GlamourUI.settings.TargetBar.gui_scale);
+                    imgui.Text(string.format('Mob ID:  %x', targetEntity.ServerId));
+
                     --Distance
                     imgui.SameLine();
+                    imgui.SetCursorPosX(GlamourUI.settings.TargetBar.hpBarDim.l - imgui.CalcTextSize(tostring(math.floor(math.sqrt(targetEntity.Distance) * 100) / 100)));
                     imgui.Text('     ' .. tostring(math.floor(math.sqrt(targetEntity.Distance) * 100) / 100));
 
                     imgui.SetCursorPosX(30 * GlamourUI.settings.TargetBar.gui_scale);
@@ -656,8 +660,7 @@ render.RenderTargetBar = function()
                     imgui.SameLine();
                     imgui.SetCursorPosX(30 * GlamourUI.settings.TargetBar.gui_scale);
                     imgui.Image(hpfTex, {(GlamourUI.settings.TargetBar.hpBarDim.l*(targetEntity.HPPercent /100) * GlamourUI.settings.TargetBar.gui_scale),(GlamourUI.settings.TargetBar.hpBarDim.g * GlamourUI.settings.TargetBar.gui_scale)}, {0, 0}, {targetEntity.HPPercent / 100, 1 });
-                    imgui.SetCursorPosY(30 * GlamourUI.settings.TargetBar.gui_scale);
-                    imgui.SetCursorPosY(30 * GlamourUI.settings.TargetBar.gui_scale);
+                    imgui.SetCursorPosY(35 * GlamourUI.settings.TargetBar.gui_scale);
                     imgui.SetCursorPosX(targHPOffset * GlamourUI.settings.TargetBar.gui_scale);
                     imgui.Text(tostring(targetEntity.HPPercent) .. '%%');
                     imgui.PopStyleColor();
@@ -670,7 +673,7 @@ render.RenderTargetBar = function()
                 else
                     local lockedTex = gResources.getTex(GlamourUI.settings, 'TargetBar', 'LockOn.png');
                     imgui.Text(targetEntity.Name);
-                    if(IsTargetLocked() and GlamourUI.settings.TargetBar.lockIndicator == true) then
+                    if(gTarget.IsTargetLocked() and GlamourUI.settings.TargetBar.lockIndicator == true) then
                         imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0 });
                     else
                         imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 0.25, 0.25, 1.0 });
@@ -680,7 +683,7 @@ render.RenderTargetBar = function()
                     imgui.ProgressBar(targetEntity.HPPercent / 100, {GlamourUI.settings.TargetBar.hpBarDim.l * GlamourUI.settings.TargetBar.gui_scale, GlamourUI.settings.TargetBar.hpBarDim.g * GlamourUI.settings.TargetBar.gui_scale}, tostring(targetEntity.HPPercent) .. '%');
                     imgui.PopStyleColor(1);
 
-                    if(IsTargetLocked() and GlamourUI.settings.TargetBar.lockIndicator == true) then
+                    if(gTarget.IsTargetLocked() and GlamourUI.settings.TargetBar.lockIndicator == true) then
                         imgui.SetCursorPosX(0);
                         imgui.SetCursorPosY(0);
                         imgui.Image(lockedTex, {(63 + GlamourUI.settings.TargetBar.hpBarDim.l) * GlamourUI.settings.TargetBar.gui_scale, 59 * GlamourUI.settings.TargetBar.gui_scale});
@@ -733,14 +736,14 @@ render.renderPlayerNoTheme = function(o, c, p, pp)
             imgui.SameLine();
             imgui.SetCursorPosX(o+5);
             imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0});
-            imgui.ProgressBar((p -1000) /1000, {GlamourUI.settings.PlayerStats.BarDim.l * GlamourUI.settings.PlayerStats.gui_scale, GlamourUI.settings.PlayerStats.BarDim.g * glamourUI.settings.partylist.gui_scale}, '');
+            imgui.ProgressBar((p -1000) /1000, {GlamourUI.settings.PlayerStats.BarDim.l * GlamourUI.settings.PlayerStats.gui_scale, GlamourUI.settings.PlayerStats.BarDim.g * GlamourUI.settings.PlayerStats.gui_scale}, '');
             imgui.PopStyleColor(1);
         end
         if(p > 2000) then
             imgui.SameLine();
             imgui.SetCursorPosX(o+5);
             imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0});
-            imgui.ProgressBar((p -2000) /1000, {GlamourUI.settings.PlayerStats.BarDim.l * GlamourUI.settings.PlayerStats.gui_scale, GlamourUI.settings.PlayerStats.BarDim.g * glamourUI.settings.partylist.gui_scale}, '');
+            imgui.ProgressBar((p -2000) /1000, {GlamourUI.settings.PlayerStats.BarDim.l * GlamourUI.settings.PlayerStats.gui_scale, GlamourUI.settings.PlayerStats.BarDim.g * GlamourUI.settings.PlayerStats.gui_scale}, '');
             imgui.PopStyleColor(1);
         end
     end
@@ -808,6 +811,30 @@ render.renderCastBar = function()
             imgui.SetCursorPosY(5);
             imgui.Text(cbarstring);
             imgui.End();
+        end
+    end
+end
+
+render.renderLot = function()
+    local party = gParty.Party;
+    imgui.SetNextWindowSize({200,1}, ImGuiCond_FirstUseEver);
+    if(imgui.Begin('Lots##GlamParty', GlamourUI.settings.Party.pList.enabled, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
+        imgui.SetWindowFontScale(0.5);
+        imgui.SetCursorPosX((imgui.GetWindowWidth() - imgui.CalcTextSize('Loot Table')) * 0.5);
+        imgui.Text('Loot Table');
+        imgui.SetWindowFontScale(0.3);
+        for i=1,#party do
+            if(party[i].Name == nil)then
+                return;
+            else
+
+                imgui.SetCursorPosX(10);
+                imgui.Text(tostring(party[i].Name) .. ":                  ");
+                imgui.SameLine();
+                imgui.SetCursorPosX(imgui.GetWindowWidth() - imgui.CalcTextSize(tostring(gParty.getLot(i))) - 10);
+                imgui.Text(tostring(gParty.getLot(i)));
+
+            end
         end
     end
 end

@@ -108,6 +108,14 @@ party.Party = {};
 party.InviteActive = false;
 party.InvitePlayer = nil;
 
+party.EXPTable = {}
+party.EXPTimeTable = {}
+party.EXPSum = 0;
+party.EXPTimeDelta = 0;
+party.EXPperHour = 0;
+party.EXPMode = 'EXP';
+party.EXPReset = false;
+
 party.LevelSync = function(p)
     if(bit.band(AshitaCore:GetMemoryManager():GetParty():GetMemberFlagMask(p), 0x100) == 0x100)then
         return true;
@@ -145,7 +153,9 @@ party.GetMember = function(i)
         Member.TP = Party:GetMemberTP(i);
         Member.Color = gParty.GetNameColor(Member.HPP);
         Member.Job = Party:GetMemberMainJob(i);
+        Member.SJob = Party:GetMemberSubJob(i);
         Member.Level = Party:GetMemberMainJobLevel(i);
+        Member.SJLevel = Party:GetMemberSubJobLevel(i);
         if(i < 6)then
             Member.Buffs = gResources.get_member_status(Member.Id, i);
         end
@@ -166,6 +176,7 @@ party.GetParty = function()
 end
 
 party.getLot = function(p)
+    treasurePoolPointer = ashita.memory.find('FFXiMain.dll', 0, '8BD18B0D????????E8????????66394222', 4, 0);
     local i = GetTreasurePoolSelectedIndex();
     local lot = AshitaCore:GetMemoryManager():GetParty():GetMemberTreasureLot(p, i);
     if(lot == 0) then
@@ -255,21 +266,36 @@ party.render_party_list = function()
             for m = 1,partyCount,1 do
                 if(gParty.Party[m] ~= nil)then
 
+                    imgui.BeginGroup(('PartyMember %s##GlamPList'):fmt(gParty.Party[m].Name));
+
                     --Determine Render Priority and then render objects in order of lowest priority tobhighest
                     for i = 1,5,1 do
                         local p = i - 1;
                         p = 5 - p;
                         gUI.renderPlayerThemed(p, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, stargTex, pleadTex, lsyncTex, m - 1, gParty.Party[m]);
                     end
+                    imgui.EndGroup();
+                    if(imgui.IsItemClicked())then
+                        AshitaCore:GetChatManager():QueueCommand(-1, ("/ta %s"):fmt(gParty.Party[m].Name));
+                    end
+                    --[[if(imgui.IsItemHovered())then
+                        local x,y = imgui.CalcItemSize(('PartyMember %s##GlamPList'):fmt(gParty.Party[m].Name));
+                        print(chat.header(tostring(x).. 'x' .. tostring(y)));
+                    end]]
                 end
             end
 
             --Add Pet to Party List
             if(pet ~= nil) then
+                imgui.BeginGroup('Pet##GlamPList');
                 for i = 1,5,1 do
                     local p = i - 1;
                     p = 5 - p;
                     gUI.renderPetThemed(p, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, stargTex, pet, partyCount);
+                end
+                imgui.EndGroup();
+                if(imgui.IsItemClicked())then
+                    AshitaCore:GetChatManager():QueueCommand(-1, ("/ta <pet>"));
                 end
             end
 
@@ -322,6 +348,7 @@ party.render_alliance_panel = function()
                         mult = mult - 1;
                     end
                     local yOff = (mult * GlamourUI.settings.Party.aPanel.hpBarDim.g + 16);
+                    imgui.BeginGroup(('APanel %s##'):fmt(gParty.Party[i+1].Name));
                     if(i % 2 == 0)then
                         local o = 50;
                         imgui.SetCursorPosY(yOff + 1);
@@ -332,6 +359,10 @@ party.render_alliance_panel = function()
                         imgui.SetCursorPosY(yOff + 1);
                         gUI.RenderAllianceMember(hpbTex, hpfTex, targTex, stargTex, pLeadTex, target, mult, o, gParty.Party[i + 1], i);
                     end
+                    imgui.EndGroup();
+                    if(imgui.IsItemClicked())then
+                        AshitaCore:GetChatManager():QueueCommand(-1, ('/ta %s'):fmt(gParty.Party[i].Name));
+                    end
                 end
             end
             if(a2Count > 0)then
@@ -340,6 +371,7 @@ party.render_alliance_panel = function()
                 imgui.SetCursorPosX((imgui.GetWindowWidth() - strLen) * 0.5);
                 imgui.Text('Party 3');
                 for i = 12,17,1 do
+                    imgui.BeginGroup(('APanel %s##'):fmt(gParty.Party[i+1].Name));
                     local mult = i-6;
                     if (mult % 2 ~= 0) then
                         mult = mult - 1;
@@ -353,6 +385,10 @@ party.render_alliance_panel = function()
                         local o = 100  + GlamourUI.settings.Party.aPanel.hpBarDim.l
                         imgui.SetCursorPosY(yOff);
                         gUI.RenderAllianceMember(hpbTex, hpfTex, targTex, stargTex, pLeadTex, target, mult, o, gParty.Party[i + 1], i);
+                    end
+                    imgui.EndGroup();
+                    if(imgui.IsItemClicked())then
+                        AshitaCore:GetChatManager():QueueCommand(-1, ('/ta %s'):fmt(gParty.Party[i].Name));
                     end
                 end
             end
@@ -370,6 +406,16 @@ end
 party.render_player_stats = function()
     imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
     imgui.SetNextWindowPos({GlamourUI.settings.PlayerStats.x, GlamourUI.settings.PlayerStats.y}, ImGuiCond_FirstUseEver);
+    local player = AshitaCore:GetMemoryManager():GetPlayer();
+    local curEXP = player:GetExpCurrent();
+    local maxEXP = player:GetExpNeeded();
+    local curLP = player:GetLimitPoints();
+    local job = AshitaCore:GetResourceManager():GetString("jobs.names_abbr", party.Party[1].Job) .. tostring(party.Party[1].Level) .. '/' .. AshitaCore:GetResourceManager():GetString("jobs.names_abbr", party.Party[1].SJob) .. tostring(party.Party[1].SJLevel);
+    local expModeStr = gParty.EXPMode .. ' / hr';
+
+    if(maxEXP ~= nil)then
+        local tnl = maxEXP - curEXP;
+    end
 
     if(GlamourUI.settings.PlayerStats.enabled == true)then
         if (imgui.Begin('Player Stats##Glam', GlamourUI.settings.PlayerStats.enabled, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
@@ -382,6 +428,8 @@ party.render_player_stats = function()
                 local mpfTex = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'mpFill.png');
                 local tpbTex = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'tpBar.png');
                 local tpfTex = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'tpFill.png');
+                local ebTex = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'expBar.png');
+                local efTex = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'expFill.png');
 
 
                 gUI.RenderPlayerStats(hpbTex, hpfTex, gParty.Party[1].HP, gParty.Party[1].HPP, 0);
@@ -389,6 +437,53 @@ party.render_player_stats = function()
                 gUI.RenderPlayerStats(mpbTex, mpfTex, gParty.Party[1].MP, gParty.Party[1].MPP, 250);
                 imgui.SameLine();
                 gUI.RenderPlayerStats(tpbTex, tpfTex, gParty.Party[1].TP, nil, 500);
+
+                imgui.SetWindowFontScale(GlamourUI.settings.PlayerStats.font_scale * 0.3);
+                --EXP Bar
+                imgui.SetCursorPosX(50);
+                imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 30);
+                if(party.EXPMode == 'EXP')then
+                    imgui.Text(tostring(curEXP) .. '/' .. tostring(maxEXP));
+                else
+                    imgui.Text(tostring(curLP) .. '/10000');
+                end
+                imgui.SetCursorPosX(50);
+                imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 15);
+                local expBarLen = imgui.GetWindowWidth() - 100
+                imgui.Image(ebTex, {expBarLen, 14});
+                imgui.SetCursorPosX(50);
+                imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 15);
+                if(party.EXPMode == 'EXP')then
+                    imgui.Image(efTex, {expBarLen * (curEXP / maxEXP), 14}, {0,0}, {curEXP / maxEXP, 1});
+                else
+                    imgui.Image(efTex, {expBarLen * (curLP / 10000), 14}, {0,0}, {curLP / 10000, 1});
+                end
+                local phOffset = imgui.CalcTextSize(tostring(gParty.EXPperHour .. ' ' .. expModeStr));
+                imgui.SetCursorPosX(imgui.GetWindowWidth() - phOffset - 50);
+                imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 30);
+                imgui.Text('     ');
+                if(imgui.IsItemHovered())then
+                    imgui.SetCursorPosX(imgui.GetWindowWidth() - phOffset - 50);
+                    imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 30);
+                    imgui.Text('Reset?');
+                    if(imgui.IsItemClicked())then
+                        gParty.EXPReset = true;
+                    end
+                else
+                    imgui.SetCursorPosX(imgui.GetWindowWidth() - phOffset - 50);
+                    imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 30);
+                    imgui.Text(tostring(gParty.EXPperHour .. ' ' .. expModeStr));
+                end
+                local stroffset = (imgui.GetWindowWidth() - imgui.CalcTextSize(job)) * 0.5;
+                imgui.SetCursorPosX(stroffset);
+                imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 30);
+                imgui.Text(job);
+                if(party.EXPMode == 'LP')then
+                    local merits = tostring(player:GetMeritPoints()) .. '/' .. tostring(player:GetMeritPointsMax());
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(imgui.GetWindowWidth() * 0.66);
+                    imgui.Text('Merits:  ' .. merits);
+                end
 
             else
 
@@ -398,6 +493,20 @@ party.render_player_stats = function()
                 imgui.SameLine();
                 gUI.renderPlayerNoTheme(500, { 0.0, 0.45, 1.0, 1.0}, gParty.Party[1].TP, nil);
 
+                --EXP Bar
+                imgui.SetCursorPosX(50);
+                imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 30);
+                imgui.Text(tostring(curEXP) .. '/' .. tostring(maxEXP));
+                imgui.SetCursorPosX(50);
+                imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 15);
+                local expBarLen = imgui.GetWindowWidth() - 100;
+                imgui.PushStyleColor(ImGuiCol_PlotHistogram, {1.0, 1.0, 0.25, 1.0});
+                imgui.ProgressBar((curEXP / maxEXP), {expBarLen, 14}, '');
+                imgui.PopStyleColor();
+                local stroffset = (imgui.GetWindowWidth() - imgui.CalcTextSize(job)) * 0.5;
+                imgui.SetCursorPosX(stroffset);
+                imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 30);
+                imgui.Text(job);
             end
         end
         imgui.End();
