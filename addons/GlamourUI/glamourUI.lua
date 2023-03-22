@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '1.0.5';
+addon.version = '1.1.1';
 
 local settings = require('settings');
 
@@ -38,21 +38,13 @@ local render_debug = function()
 
     if(GlamourUI.debug == true)then
         if(imgui.Begin('Debug##GlamDebug', GlamourUI.debug, ImGuiWindow_AlwaysAutoResize))then
+            local loot = gPacket.TreasurePool;
             imgui.SetWindowFontScale(0.5);
-            local player = party[1];
-            for i=1,#player.Color,1 do
-                imgui.Text(tostring(player.Color[i]));
-            end
-            for i=1,#party,1 do
-                local member = party[i];
-                imgui.Text(tostring(member.Name));
-                if(member.Name ~= nil)then
-                    for b=1,#member.Buffs,1 do
-                        imgui.Text(tostring(member.Buffs[b]));
-                    end
+            for i = 1,#loot do
+                for k,v in pairs(loot[i]) do
+                    imgui.Text(tostring(k).. ':  ' .. tostring(v));
                 end
             end
-            imgui.End();
         end
     end
 end
@@ -208,6 +200,9 @@ ashita.events.register('d3d_present', 'present_cb', function()
             gUI.render_invite();
             gConf.render_config();
             gUI.renderCastBar();
+            if(gHelper.getMenu() == 'loot')then
+                gUI.renderLot();
+            end
         end
         --render_debug();
         imgui.PopFont();

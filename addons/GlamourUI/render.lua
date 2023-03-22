@@ -58,7 +58,8 @@ render.renderPlayerThemed = function(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ
     local sTarget, sTargActive = gTarget.GetSelectedAllianceMember();
     local menu = gHelper.getMenu();
     local subtarg = gTarget.getSubTargetEntity();
-    local distance = math.sqrt(AshitaCore:GetMemoryManager():GetEntity():GetDistance(p));
+    local index = AshitaCore:GetMemoryManager():GetParty():GetMemberTargetIndex(p);
+    local distance = math.floor((math.sqrt(AshitaCore:GetMemoryManager():GetEntity():GetDistance(index))) * 100) / 100;
 
     --Easy Nil Catch
     if(subtarg == nil)then
