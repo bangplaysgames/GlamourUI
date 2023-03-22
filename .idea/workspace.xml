@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/render.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/render.lua" afterDir="false" />
-    </list>
+    <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -72,13 +68,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1671821876609</updated>
-    </task>
-    <task id="LOCAL-00029" summary="Fixes">
-      <created>1672842183302</created>
-      <option name="number" value="00029" />
-      <option name="presentableId" value="LOCAL-00029" />
-      <option name="project" value="LOCAL" />
-      <updated>1672842183302</updated>
     </task>
     <task id="LOCAL-00030" summary="Removed blank space line between party members.  This should fix issues with larger font scale making a smaller party list scale look weird.">
       <created>1672854807649</created>
@@ -416,7 +405,14 @@
       <option name="project" value="LOCAL" />
       <updated>1679514419928</updated>
     </task>
-    <option name="localTasksCounter" value="78" />
+    <task id="LOCAL-00078" summary="Fixed Issue with Party Distance">
+      <created>1679519953345</created>
+      <option name="number" value="00078" />
+      <option name="presentableId" value="LOCAL-00078" />
+      <option name="project" value="LOCAL" />
+      <updated>1679519953345</updated>
+    </task>
+    <option name="localTasksCounter" value="79" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -431,7 +427,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Per-Bar Dimension adjustments for party list.&#10;&#10;Each bar has a length and girth setting which can be adjusted in-game.&#10;&#10;Player Stats is currently all adjusted via 1 bar.  Per-Bar adjustment and layout will be coming in a future update." />
     <MESSAGE value="Bugfix:  Target Bar scaling not applying properly in config window." />
     <MESSAGE value="Removed Rendering of Party Members HP/MP/TP bars when in a different zone.  In their place, the zone name will render.&#10;&#10;This was both a functional change and an aesthetic change.  It was rendering bars with incorrect data.  (Rather than seeing the actual HP/MP/TP of party members in a different zone, it was random data.)" />
     <MESSAGE value="Added Text Colorization based on HP values.&#10;&#10;2/3+ HP:  White Text&#10;1/2-2/3 HP:  Yellow Text&#10;Less than 1/2 HP:  Red Text&#10;&#10;&#10;This is an approximation of blood agro adjustments.  All text objects for a given player in the party list will adjust based on that player's HP values.  While possible to restrict this to purely the HP text, I think it's more beneficial for all text for that player to reflect this." />
@@ -456,6 +451,7 @@
     <MESSAGE value="Small Bug Fix causing invisible names&#10;&#10;Delete your settings file to resolve:&#10;&#10;config\addons\GlamourUI\[CHARACTERNAME]\settings.lua" />
     <MESSAGE value="Replaced Missing Texture in some themes." />
     <MESSAGE value="Party Member Distance Indicator&#10;EXP Bar&#10;EXP/Hr&#10;EXP/Hr Reset (Click the EXP/HR reading)&#10;Merit Points&#10;LP/Hr and Reset" />
-    <option name="LAST_COMMIT_MESSAGE" value="Party Member Distance Indicator&#10;EXP Bar&#10;EXP/Hr&#10;EXP/Hr Reset (Click the EXP/HR reading)&#10;Merit Points&#10;LP/Hr and Reset" />
+    <MESSAGE value="Fixed Issue with Party Distance" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed Issue with Party Distance" />
   </component>
 </project>
