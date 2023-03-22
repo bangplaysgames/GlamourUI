@@ -214,14 +214,6 @@ party.render_party_list = function()
     if(GlamourUI.settings.Party.pList.enabled == true and gHelper.chatIsOpen == false)then
         local bgTex = gResources.getTex(GlamourUI.settings.Party, 'pList', 'background.png');
 
-        --Party List Background Rendering
-        imgui.SetNextWindowSize({bgsize.x, bgsize.y}, ImGuiCond_Always);
-        imgui.SetNextWindowPos({bgpos.x, bgpos.y}, ImGuiCond_Always);
-        if(imgui.Begin('Background##GlamPList', GlamourUI.settings.Party.pList.enabled, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoInputs)))then
-            imgui.Image(bgTex, {bgsize.x, bgsize.y});
-            imgui.End();
-        end
-
         --Party List Rendering
         imgui.SetNextWindowSize({ -1, -1 }, ImGuiCond_Always);
         imgui.SetNextWindowPos({GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y}, ImGuiCond_FirstUseEver);
@@ -243,10 +235,11 @@ party.render_party_list = function()
         end
 
         --Party List Rendering
-        if(imgui.Begin('PartyList##GlamPList', GlamourUI.settings.Party.pList.enabled, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground)))then
+        if(imgui.Begin('PartyList##GlamPList', GlamourUI.settings.Party.pList.enabled, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
             local pos = {imgui.GetCursorScreenPos()};
             local party = AshitaCore:GetMemoryManager():GetParty();
             local partyCount = 0;
+            imgui.Text('');
 
             for i=0,5,1 do
                 if (party:GetMemberIsActive(i) > 0)then
@@ -299,12 +292,7 @@ party.render_party_list = function()
                 end
             end
 
-            --Set Background Size and Position for Next Frame
-            bgsize.x = imgui.GetWindowWidth() + 50;
-            bgsize.y = imgui.GetWindowHeight() + 50;
-            local pos = {imgui.GetWindowPos()};
-            bgpos.x = pos[1] - 25;
-            bgpos.y = pos[2] - 25;
+            imgui.Text('');
             imgui.End();
         end
     end
@@ -313,18 +301,6 @@ end
 party.render_alliance_panel = function()
     local a1Count = AshitaCore:GetMemoryManager():GetParty():GetAlliancePartyMemberCount2();
     local a2Count = AshitaCore:GetMemoryManager():GetParty():GetAlliancePartyMemberCount3();
-
-    local bgTex = gResources.getTex(GlamourUI.settings.Party, 'pList', 'background.png');
-
-    if(a1Count > 0 or a2Count > 0)then
-        --Party List Background Rendering
-        imgui.SetNextWindowSize({abgsize.x, abgsize.y}, ImGuiCond_Always);
-        imgui.SetNextWindowPos({abgpos.x, abgpos.y}, ImGuiCond_Always);
-        if(imgui.Begin('Background##GlamAPanel', GlamourUI.settings.Party.pList.enabled, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoInputs)))then
-            imgui.Image(bgTex, {abgsize.x, abgsize.y});
-            imgui.End();
-        end
-    end
 
     if(a1Count >= 1 or a2Count >= 1)then
         local hpbTex = gResources.getTex(GlamourUI.settings.Party, 'aPanel', 'hpBar.png');
@@ -336,7 +312,7 @@ party.render_alliance_panel = function()
         local evenOffset = (GlamourUI.settings.Party.aPanel.hpBarDim.l * 2) + 100;
 
 
-        if(imgui.Begin('APanel##GlamAP', GlamourUI.settings.Party.aPanel.enabled, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_AlwaysAutoResize))) then
+        if(imgui.Begin('APanel##GlamAP', GlamourUI.settings.Party.aPanel.enabled, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
             imgui.SetWindowFontScale(0.3 * GlamourUI.settings.Party.aPanel.font_scale);
             if(a1Count > 0)then
                 local strLen = imgui.CalcTextSize('Party 2');
@@ -418,7 +394,7 @@ party.render_player_stats = function()
     end
 
     if(GlamourUI.settings.PlayerStats.enabled == true)then
-        if (imgui.Begin('Player Stats##Glam', GlamourUI.settings.PlayerStats.enabled, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoBackground))) then
+        if (imgui.Begin('Player Stats##Glam', GlamourUI.settings.PlayerStats.enabled, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
             imgui.SetWindowFontScale(GlamourUI.settings.PlayerStats.font_scale * 0.5);
             if(GlamourUI.settings.PlayerStats.themed == true) then
 

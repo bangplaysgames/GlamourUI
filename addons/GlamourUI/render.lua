@@ -616,7 +616,7 @@ render.RenderTargetBar = function()
         imgui.SetNextWindowPos({GlamourUI.settings.TargetBar.x, GlamourUI.settings.TargetBar.y}, ImGuiCond_FirstUseEver);
 
         if(targetEntity ~= nil) then
-            if(imgui.Begin('Target Bar##GlamTB', GlamourUI.settings.TargetBar.enabled, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground))) then
+            if(imgui.Begin('Target Bar##GlamTB', GlamourUI.settings.TargetBar.enabled, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav))) then
                 imgui.SetWindowFontScale((GlamourUI.settings.TargetBar.font_scale * .6) * GlamourUI.settings.TargetBar.gui_scale);
                 local hpbTex = gResources.getTex(GlamourUI.settings, 'TargetBar', 'hpBar.png');
                 local hpfTex = gResources.getTex(GlamourUI.settings, 'TargetBar', 'hpFill.png');
