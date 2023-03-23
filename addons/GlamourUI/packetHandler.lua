@@ -220,6 +220,11 @@ packet.ItemLots = function(pack)
     local CurrentLotter = struct.unpack('c16', pack.data, 0x26 + 1);
     local Drop = struct.unpack('B', pack.data, 0x15 + 1);
     local Item = struct.unpack('B', pack.data, 0x14 +1);
+    if(Drop == 1)then
+        for i = 1,#gParty.Party do
+            gParty.Party[i].TPool[Item] = nil;
+        end
+    end
     tabl[Item] = {}
     tabl[Item].HighestLotter = HighestLotter;
     tabl[Item].CurrentLotter = CurrentLotter;
@@ -236,21 +241,21 @@ end
 packet.HandleIncoming = function(e)
     --print(chat.error(tostring(e.id)));
     if(e.id == 0x0A)then
-        gPacket.LoginPacket(e);
+        packet.LoginPacket(e);
     elseif(e.id == 0x17)then
-        gPacket.ChatMessage(e);
+        packet.ChatMessage(e);
     elseif(e.id == 0x28)then
-        gPacket.IncActionPacket(e);
+        packet.IncActionPacket(e);
     elseif(e.id == 0x29)then
-        gPacket.ActionMessage(e);
+        packet.ActionMessage(e);
     elseif(e.id == 0x02D)then
         packet.KillMessage(e);
     elseif(e.id == 0x36)then
-        gPacket.NPCMessage(e);
+        packet.NPCMessage(e);
     elseif(e.id == 0x76)then
-        gPacket.PartyBuffs(e);
+        packet.PartyBuffs(e);
     elseif(e.id == 0xDC)then
-        gPacket.PartyInvite(e);
+        packet.PartyInvite(e);
     elseif(e.id == 0xD2)then
         packet.ItemDrop(e);
     elseif(e.id == 0xD3)then

@@ -570,6 +570,7 @@ conf.render_config = function()
                 imgui.EndCombo();
             end
 
+            imgui.Text('');
             imgui.SetCursorPosX(225);
             if(imgui.Button('Close##GlamConf'))then
                 conf.is_open = false;

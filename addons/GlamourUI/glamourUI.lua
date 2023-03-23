@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '1.1.1';
+addon.version = '1.1.2';
 
 local settings = require('settings');
 
@@ -41,10 +41,12 @@ local render_debug = function()
             local loot = gPacket.TreasurePool;
             imgui.SetWindowFontScale(0.5);
             for i = 1,#loot do
+                imgui.Text(tostring(i) .. ":");
                 for k,v in pairs(loot[i]) do
                     imgui.Text(tostring(k).. ':  ' .. tostring(v));
                 end
             end
+            imgui.End();
         end
     end
 end
@@ -204,7 +206,7 @@ ashita.events.register('d3d_present', 'present_cb', function()
                 gUI.renderLot();
             end
         end
-        --render_debug();
+        render_debug();
         imgui.PopFont();
         if(gRecast.PetDeg.time > 0 and pet ~= nil)then
             if((gRecast.PetDeg.time <= gRecast.PetDeg.endtime) and gRecast.PetDeg.endtime > 0)then

@@ -3,17 +3,11 @@
   <component name="ChangeListManager">
     <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/glamourui.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/glamourui.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/conf.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/conf.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/packetHandler.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/packetHandler.lua" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/addons/GlamourUI/party.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/party.lua" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/addons/GlamourUI/render.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/render.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Themes/Angular-PartyList/background.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Themes/Angular-Primary/background.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Themes/Bubble/background.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Themes/Default/background.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Themes/Desat/background.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Themes/Gilded/background.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Themes/Neon/background.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Themes/Vials/background.png" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -81,13 +75,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1671821876609</updated>
-    </task>
-    <task id="LOCAL-00031" summary="Added Configuration GUI window&#10;-All settings are exposed via the configuration GUI except position of panels due to mouse control for positions.&#10;&#10;Added New Theme:  Desat&#10;-Desaturated version of the current default theme.">
-      <created>1672879410089</created>
-      <option name="number" value="00031" />
-      <option name="presentableId" value="LOCAL-00031" />
-      <option name="project" value="LOCAL" />
-      <updated>1672879410089</updated>
     </task>
     <task id="LOCAL-00032" summary="Version update for previous commit.">
       <created>1672879471136</created>
@@ -425,7 +412,14 @@
       <option name="project" value="LOCAL" />
       <updated>1679519978871</updated>
     </task>
-    <option name="localTasksCounter" value="80" />
+    <task id="LOCAL-00080" summary="Removed BG Texture and enabled imgui Backgrounds for windows.">
+      <created>1679528724612</created>
+      <option name="number" value="00080" />
+      <option name="presentableId" value="LOCAL-00080" />
+      <option name="project" value="LOCAL" />
+      <updated>1679528724612</updated>
+    </task>
+    <option name="localTasksCounter" value="81" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -440,7 +434,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Bugfix:  Target Bar scaling not applying properly in config window." />
     <MESSAGE value="Removed Rendering of Party Members HP/MP/TP bars when in a different zone.  In their place, the zone name will render.&#10;&#10;This was both a functional change and an aesthetic change.  It was rendering bars with incorrect data.  (Rather than seeing the actual HP/MP/TP of party members in a different zone, it was random data.)" />
     <MESSAGE value="Added Text Colorization based on HP values.&#10;&#10;2/3+ HP:  White Text&#10;1/2-2/3 HP:  Yellow Text&#10;Less than 1/2 HP:  Red Text&#10;&#10;&#10;This is an approximation of blood agro adjustments.  All text objects for a given player in the party list will adjust based on that player's HP values.  While possible to restrict this to purely the HP text, I think it's more beneficial for all text for that player to reflect this." />
     <MESSAGE value="Created awareness for chatlog expansion for party list.  If chatlog is expanded, then the party list will temporarily be hidden." />
@@ -465,6 +458,7 @@
     <MESSAGE value="Replaced Missing Texture in some themes." />
     <MESSAGE value="Party Member Distance Indicator&#10;EXP Bar&#10;EXP/Hr&#10;EXP/Hr Reset (Click the EXP/HR reading)&#10;Merit Points&#10;LP/Hr and Reset" />
     <MESSAGE value="Fixed Issue with Party Distance" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed Issue with Party Distance" />
+    <MESSAGE value="Removed BG Texture and enabled imgui Backgrounds for windows." />
+    <option name="LAST_COMMIT_MESSAGE" value="Removed BG Texture and enabled imgui Backgrounds for windows." />
   </component>
 </project>

@@ -97,11 +97,7 @@ local getZone = function(index)
     return AshitaCore:GetResourceManager():GetString('zones.names', id);
 end
 
-local function GetTreasurePoolSelectedIndex()
-    local ptr = ashita.memory.read_uint32(treasurePoolPointer);
-    ptr = ashita.memory.read_uint32(ptr);
-    return ashita.memory.read_uint16(ptr + 0x15E);
-end
+
 
 party.Party = {};
 
@@ -160,6 +156,7 @@ party.GetMember = function(i)
             Member.Buffs = gResources.get_member_status(Member.Id, i);
         end
         Member.Zone = getZone(i);
+        Member.TPool = {}
     end
     return Member;
 end
@@ -175,17 +172,26 @@ party.GetParty = function()
     return PartyList;
 end
 
-party.getLot = function(p)
-    treasurePoolPointer = ashita.memory.find('FFXiMain.dll', 0, '8BD18B0D????????E8????????66394222', 4, 0);
-    local i = GetTreasurePoolSelectedIndex();
-    local lot = AshitaCore:GetMemoryManager():GetParty():GetMemberTreasureLot(p, i);
-    if(lot == 0) then
-        return 'No Lot';
-    elseif(lot == 65535) then
-        return '---';
-    else
-        return lot;
+party.getLot = function()
+    local pool = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItemCount() - 1;
+    for i = 0,#pool do
+        for p = 1,#party.Party do
+            local lot = AshitaCore:GetMemoryManager():GetParty():GetMemberTreasureLot(p, i);
+            if(lot == 0) then
+                party.Party[p].TPool[i] = 'No Lot';
+            elseif(lot == 65535) then
+                party.Party[p].TPool[i] =  '---';
+            else
+                party.Party[p].TPool[i] =  tostring(lot);
+            end
+        end
     end
+end
+
+party.GetTreasurePoolSelectedIndex = function()
+    local ptr = ashita.memory.read_uint32(treasurePoolPointer);
+    ptr = ashita.memory.read_uint32(ptr);
+    return ashita.memory.read_uint16(ptr + 0x15E);
 end
 
 party.GetNameColor = function(h)
@@ -375,8 +381,8 @@ party.render_alliance_panel = function()
             abgpos.x = pos[1] - 25;
             abgpos.y = pos[2] - 25;
             imgui.End();
-            end
         end
+    end
 end
 
 party.render_player_stats = function()
@@ -394,7 +400,7 @@ party.render_player_stats = function()
     end
 
     if(GlamourUI.settings.PlayerStats.enabled == true)then
-        if (imgui.Begin('Player Stats##Glam', GlamourUI.settings.PlayerStats.enabled, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
+        if (imgui.Begin('PlayerStats##GlamPStats', GlamourUI.settings.PlayerStats.enabled, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
             imgui.SetWindowFontScale(GlamourUI.settings.PlayerStats.font_scale * 0.5);
             if(GlamourUI.settings.PlayerStats.themed == true) then
 
@@ -484,8 +490,8 @@ party.render_player_stats = function()
                 imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 30);
                 imgui.Text(job);
             end
+            imgui.End();
         end
-        imgui.End();
     end
 end
 
