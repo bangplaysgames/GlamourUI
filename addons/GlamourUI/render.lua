@@ -819,6 +819,7 @@ end
 
 render.renderLot = function()
     local party = gParty.Party;
+    local pool = gPacket.TreasurePool;
     imgui.SetNextWindowSize({200,1}, ImGuiCond_FirstUseEver);
     local index = gParty.GetTreasurePoolSelectedIndex();
     if(imgui.Begin('Lots##GlamParty', GlamourUI.settings.Party.pList.enabled, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
@@ -834,8 +835,8 @@ render.renderLot = function()
                 imgui.SetCursorPosX(10);
                 imgui.Text(tostring(party[i].Name) .. ":                  ");
                 imgui.SameLine();
-                imgui.SetCursorPosX(imgui.GetWindowWidth() - imgui.CalcTextSize(tostring(gParty.Party[i].TPool[index])) - 10);
-                imgui.Text(tostring(gParty.Party[i].TPool[index]));
+                imgui.SetCursorPosX(imgui.GetWindowWidth() - imgui.CalcTextSize(tostring(pool[index])) - 10);
+                imgui.Text(tostring(pool[index]));
 
             end
         end

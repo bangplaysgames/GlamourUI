@@ -198,43 +198,42 @@ end
 
 --Handle Party Invite Packet
 packet.PartyInvite = function(packet);
-    gPacket.inviter = struct.unpack('c16', packet.data, 0x0c + 1);
-    gPacket.InviteActive = true;
+
 end
 
 packet.ItemDrop = function(pack)
-    local tabl = {}
-    local Dropper = struct.unpack('L', pack.data, 0x08 +1);
-    local DroppedIndex = struct.unpack('B', pack.data, 0x14 + 1);
-    local DroppedItem = struct.unpack('H', pack.data, 0x10 +1);
-    tabl[DroppedIndex] = {}
-    tabl[DroppedIndex].Dropper = Dropper;
-    tabl[DroppedIndex].DroppedItem = DroppedItem;
-    table.insert(packet.TreasurePool, tabl[DroppedIndex]);
+    --[[local tpool = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItemCount();
+    if(#packet.TreasurePool ~= tpool)then
+        packet.TreasurePool = nil;
+        packet.TreasurePool = {}
+    end
+    for i=1,#gParty.Party do
+        for t = 1,tpool do
+            local tabl = {}
+            local index = t - 1;
+            local player = i - 1;
+            tabl[player].index = AshitaCore:GetMemoryManager():GetParty():GetMemberTreasureLot(player, index);
+            table.insert(packet.TreasurePool, tabl[index]);
+        end
+    end]]
 end
 
 --Item Lot Packet
 packet.ItemLots = function(pack)
-    local tabl = {}
-    local HighestLotter = struct.unpack('c16', pack.data, 0x16 + 1);
-    local CurrentLotter = struct.unpack('c16', pack.data, 0x26 + 1);
-    local Drop = struct.unpack('B', pack.data, 0x15 + 1);
-    local Item = struct.unpack('B', pack.data, 0x14 +1);
-    if(Drop == 1)then
-        for i = 1,#gParty.Party do
-            gParty.Party[i].TPool[Item] = nil;
-        end
+    --[[local tpool = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItemCount();
+    if(#packet.TreasurePool ~= tpool)then
+        packet.TreasurePool = nil;
+        packet.TreasurePool = {}
     end
-    tabl[Item] = {}
-    tabl[Item].HighestLotter = HighestLotter;
-    tabl[Item].CurrentLotter = CurrentLotter;
-    tabl[Item].Drop = Drop;
-    table.insert(packet.TreasurePool, tabl[Item]);
-    for i = 1, #packet.TreasurePool do
-        if(packet.TreasurePool[i].Drop == 1)then
-            packet.TreasurePool[i] = nil;
+    for i=1,#gParty.Party do
+        for t = 1,tpool do
+            local tabl = {}
+            local index = t - 1;
+            local player = i - 1;
+            tabl[index] = AshitaCore:GetMemoryManager():GetParty():GetMemberTreasureLot(player, index);
+            table.insert(packet.TreasurePool, tabl[index]);
         end
-    end
+    end]]
 end
 
 --Packet Sort
