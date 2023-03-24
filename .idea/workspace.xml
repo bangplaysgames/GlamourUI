@@ -1,14 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/party.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/party.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/recast.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/recast.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/render.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/render.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/target.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/target.lua" afterDir="false" />
-    </list>
+    <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -75,13 +68,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1671821876609</updated>
-    </task>
-    <task id="LOCAL-00036" summary="Implemented Layout Editor&#10;&#10;/glam layout -  Opens Layout Editor">
-      <created>1672957475720</created>
-      <option name="number" value="00036" />
-      <option name="presentableId" value="LOCAL-00036" />
-      <option name="project" value="LOCAL" />
-      <updated>1672957475720</updated>
     </task>
     <task id="LOCAL-00037" summary="Implemented Layout Editor&#10;&#10;/glam layout -  Opens Layout Editor">
       <created>1672958301834</created>
@@ -419,7 +405,14 @@
       <option name="project" value="LOCAL" />
       <updated>1679614366490</updated>
     </task>
-    <option name="localTasksCounter" value="85" />
+    <task id="LOCAL-00085" summary="Crash Fix from broken treasure pool">
+      <created>1679696542944</created>
+      <option name="number" value="00085" />
+      <option name="presentableId" value="LOCAL-00085" />
+      <option name="project" value="LOCAL" />
+      <updated>1679696542944</updated>
+    </task>
+    <option name="localTasksCounter" value="86" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -434,7 +427,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Created awareness for chatlog expansion for party list.  If chatlog is expanded, then the party list will temporarily be hidden." />
     <MESSAGE value="Adjusted chatlog awareness to continue hiding party list until the chatlog is closed, even if the chat input bar is opened." />
     <MESSAGE value="Reimplemented Background to Party List&#10;&#10;Background Opacity only configurable through config file for the time being." />
     <MESSAGE value="Party Leader Indication&#10;Level Sync Indication&#10;Targeted Party Member Marker" />
@@ -459,6 +451,7 @@
     <MESSAGE value="Removed BG Texture and enabled imgui Backgrounds for windows." />
     <MESSAGE value="Crash Fix:  Oversight with new features" />
     <MESSAGE value="Disabled Treasure Pool Functionality while it's being rewritten." />
-    <option name="LAST_COMMIT_MESSAGE" value="Disabled Treasure Pool Functionality while it's being rewritten." />
+    <MESSAGE value="Crash Fix from broken treasure pool" />
+    <option name="LAST_COMMIT_MESSAGE" value="Crash Fix from broken treasure pool" />
   </component>
 </project>
