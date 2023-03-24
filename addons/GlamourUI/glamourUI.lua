@@ -165,7 +165,7 @@ end)
 ashita.events.register('d3d_present', 'present_cb', function()
     local playerSID = AshitaCore:GetMemoryManager():GetParty():GetMemberServerId(0);
     local player = GetPlayerEntity();
-    local pet = nil;
+    local pet;
     if(player ~= nil)then
         pet = GetEntity(player.PetTargetIndex);
     end

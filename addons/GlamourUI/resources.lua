@@ -18,8 +18,8 @@ local icon_cache = T{
 
 };
 
-local buffIcon = nil;
-local debuffIcon = nil;
+local buffIcon;
+local debuffIcon;
 
 local jobIcons = T{};
 
@@ -59,7 +59,7 @@ local function load_status_icon_from_theme(theme, status_id)
         return nil;
     end
 
-    local icon_path = nil;
+    local icon_path;
     local supports_alpha = false;
     T{'.png', '.jpg','.jpeg', '.bmp'}:forieach(function(ext, _)
         if(icon_path ~= nil) then
@@ -109,7 +109,7 @@ resources.pokeCache = function(settings)
 end
 
 resources.getTexturePath = function(settings, type, texture)
-    local theme = nil;
+    local theme;
     if(settings:haskey(type) and settings[type]:haskey('theme')) then
         theme = settings[type].theme;
     end
@@ -134,7 +134,7 @@ resources.getTex = function(settings, type, texture)
     if(tex_path ~= nil) then
         if(not cache.textures:haskey(tex_path)) then
             local tex_ptr = ffi.new('IDirect3DTexture8*[1]');
-            local cdata = nil;
+            local cdata;
             if(ffi.C.D3DXCreateTextureFromFileA(d3d8_device, tex_path, tex_ptr) == ffi.C.S_OK) then
                 cdata = d3d8.gc_safe_release(ffi.cast('IDirect3DTexture8*', tex_ptr[0]));
             end

@@ -94,19 +94,19 @@ end
 
 
 --Handle Chat Message Packets
-packet.ChatMessage = function(packet)
+packet.ChatMessage = function(Packet)
 
 end
 
 
 --Handle Action Packets
-packet.ActionPacket = function(packet)
-    local category = struct.unpack('H', packet, 0x0A + 0x01);
-    local actionId = struct.unpack('H', packet, 0x0C + 0x01);
-    local targetIndex = struct.unpack('H', packet, 0x08 + 0x01);
+packet.ActionPacket = function(Packet)
+    local category = struct.unpack('H', Packet, 0x0A + 0x01);
+    local actionId = struct.unpack('H', Packet, 0x0C + 0x01);
+    local targetIndex = struct.unpack('H', Packet, 0x08 + 0x01);
 
     if(category == 0x03) then
-        gPacket.action.Packet = packet:totable();
+        gPacket.action.Packet = Packet:totable();
         gPacket.action.Target = targetIndex;
         gPacket.action.Type = 'Spell';
         gPacket.action.Resource = AshitaCore:GetResourceManager():GetSpellById(actionId);
@@ -115,9 +115,9 @@ end
 
 
 --Handle Incoming Action Packet
-packet.IncActionPacket = function(packet)
-    local user = struct.unpack('L', packet.data, 0x05 + 1);
-    local actionType = ashita.bits.unpack_be(packet.data_raw, 10, 2, 4);
+packet.IncActionPacket = function(Packet)
+    local user = struct.unpack('L', Packet.data, 0x05 + 1);
+    local actionType = ashita.bits.unpack_be(Packet.data_raw, 10, 2, 4);
 
     
     --Check if player server ID set.  If not, Set it.
@@ -141,7 +141,7 @@ packet.IncActionPacket = function(packet)
 end
 
 --Handle Action Message Packets
-packet.ActionMessage = function(packet)
+packet.ActionMessage = function(Packet)
     
 
 end
@@ -171,13 +171,13 @@ end
 
 
 --Handle Item Packets
-packet.ItemPacket = function(packet)
-    local itemIndex = struct.unpack('B', packet, 0x0E + 0x01);
-    local itemContainer = struct.unpack('B', packet, 0x10 + 0x01);
-    local targetIndex = struct.unpack('H', packet, 0x0C + 0x01);
+packet.ItemPacket = function(Packet)
+    local itemIndex = struct.unpack('B', Packet, 0x0E + 0x01);
+    local itemContainer = struct.unpack('B', Packet, 0x10 + 0x01);
+    local targetIndex = struct.unpack('H', Packet, 0x0C + 0x01);
     local item = AshitaCore:GetMemoryManager():GetInventory():GetContainerItem(itemContainer,itemIndex);
 
-    gPacket.action.Packet = packet:totable();
+    gPacket.action.Packet = Packet:totable();
     gPacket.action.Target = targetIndex;
     gPacket.action.Type = 'Item';
 
@@ -185,19 +185,19 @@ end
 
 
 --NPC Message Packets
-packet.NPCMessage = function(packet)
+packet.NPCMessage = function(Packet)
 
 end
 
 
 --Party Buff Packet Handler
-packet.PartyBuffs = function(packet)
-    gPacket.buff.Packet = packet;
+packet.PartyBuffs = function(Packet)
+    gPacket.buff.Packet = Packet;
 end
 
 
 --Handle Party Invite Packet
-packet.PartyInvite = function(packet);
+packet.PartyInvite = function(Packet);
 
 end
 

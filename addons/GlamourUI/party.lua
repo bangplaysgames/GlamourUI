@@ -176,7 +176,7 @@ party.GetMember = function(i)
 end
 
 party.GetParty = function()
-    local party = AshitaCore:GetMemoryManager():GetParty();
+    local Party = AshitaCore:GetMemoryManager():GetParty();
     local PartyList = {}
 
     for i = 0,17,1 do
@@ -248,7 +248,7 @@ party.render_party_list = function()
         local stargTex = gResources.getTex(GlamourUI.settings.Party, 'pList', 'subTarget.png');
         local glowTex = gResources.getTex(GlamourUI.settings.Party, 'pList', 'glow.png');
 
-        --Check for missing textures.  Disable themeing and skip fram if textures are missing
+        --Check for missing textures.  Disable themeing and skip frame if textures are missing
         if(hpbTex == nil or hpfTex == nil or mpbTex == nil or mpfTex == nil or tpbTex == nil or tpfTex == nil or targTex == nil or pleadTex == nil or lsyncTex == nil) then
             GlamourUI.settings.Party.pList.themed = false;
             return;
@@ -257,12 +257,12 @@ party.render_party_list = function()
         --Party List Rendering
         if(imgui.Begin('PartyList##GlamPList', gParty.plistis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
             local pos = {imgui.GetCursorScreenPos()};
-            local party = AshitaCore:GetMemoryManager():GetParty();
+            local Party = AshitaCore:GetMemoryManager():GetParty();
             local partyCount = 0;
             imgui.Text('');
 
             for i=0,5,1 do
-                if (party:GetMemberIsActive(i) > 0)then
+                if (Party:GetMemberIsActive(i) > 0)then
                     partyCount = partyCount + 1;
                 end
             end
@@ -273,7 +273,7 @@ party.render_party_list = function()
             if(player == nil) then
                 player = 0;
             end
-            if(party:GetMemberServerId(0) ~= 0)then
+            if(Party:GetMemberServerId(0) ~= 0)then
                 pet = GetEntity(player.PetTargetIndex);
             end
             for m = 1,partyCount,1 do

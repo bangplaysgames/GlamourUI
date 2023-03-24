@@ -634,8 +634,6 @@ render.RenderTargetBar = function()
         if(targetEntity ~= nil) then
             if(imgui.Begin('TargetBar##GlamTB', gTarget.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
                 imgui.SetWindowFontScale((GlamourUI.settings.TargetBar.font_scale * .6) * GlamourUI.settings.TargetBar.gui_scale);
-                local hpbTex = gResources.getTex(GlamourUI.settings, 'TargetBar', 'hpBar.png');
-                local hpfTex = gResources.getTex(GlamourUI.settings, 'TargetBar', 'hpFill.png');
                 local targStrLen = imgui.CalcTextSize(targetEntity.Name);
                 local targHPLen = imgui.CalcTextSize(tostring(targetEntity.HPPercent));
 
@@ -649,7 +647,7 @@ render.RenderTargetBar = function()
                     local lockedTex = gResources.getTex(GlamourUI.settings, 'TargetBar', 'LockOn.png');
 
                     if(hpbTex == nil or hpfTex == nil or lockedTex == nil) then
-                        -- missing textures, disable theming for this element and skipt the current frame
+                        -- missing textures, disable theming for this element and skips the current frame
                         GlamourUI.settings.TargetBar.themed = false;
                         imgui.End();
                         return;
