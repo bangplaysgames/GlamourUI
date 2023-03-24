@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '1.1.3';
+addon.version = '1.1.5';
 
 local settings = require('settings');
 
@@ -38,15 +38,8 @@ local render_debug = function()
 
     if(GlamourUI.debug == true)then
         if(imgui.Begin('Debug##GlamDebug', GlamourUI.debug, ImGuiWindow_AlwaysAutoResize))then
-            local loot = gPacket.TreasurePool;
-            imgui.SetWindowFontScale(0.5);
-            for i = 1,#loot do
-                imgui.Text(tostring(i) .. ":");
-                for k,v in pairs(loot[i]) do
-                    imgui.Text(tostring(k).. ':  ' .. tostring(v));
-                end
-            end
-            imgui.End();
+            imgui.Text(tostring(gParty.GroupHeight1.x .. 'x' .. gParty.GroupHeight1.y));
+            imgui.Text(tostring(gParty.GroupHeight2.x .. 'x' .. gParty.GroupHeight2.y));
         end
     end
 end
@@ -203,10 +196,10 @@ ashita.events.register('d3d_present', 'present_cb', function()
             gConf.render_config();
             gUI.renderCastBar();
             if(gHelper.getMenu() == 'loot')then
-                gUI.renderLot();
+                --gUI.renderLot();
             end
         end
-        render_debug();
+        --render_debug();
         imgui.PopFont();
         if(gRecast.PetDeg.time > 0 and pet ~= nil)then
             if((gRecast.PetDeg.time <= gRecast.PetDeg.endtime) and gRecast.PetDeg.endtime > 0)then

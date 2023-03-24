@@ -3,9 +3,11 @@
   <component name="ChangeListManager">
     <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/glamourui.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/glamourui.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/packetHandler.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/packetHandler.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/party.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/party.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/recast.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/recast.lua" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/addons/GlamourUI/render.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/render.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/target.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/target.lua" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -73,13 +75,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1671821876609</updated>
-    </task>
-    <task id="LOCAL-00035" summary="Layout Engine Implemented&#10;&#10;Currently Layouts are loaded via manually editing the file and reloading the addon.  An in-game editor is currently being built for a WYSIWYG experience.">
-      <created>1672951284248</created>
-      <option name="number" value="00035" />
-      <option name="presentableId" value="LOCAL-00035" />
-      <option name="project" value="LOCAL" />
-      <updated>1672951284248</updated>
     </task>
     <task id="LOCAL-00036" summary="Implemented Layout Editor&#10;&#10;/glam layout -  Opens Layout Editor">
       <created>1672957475720</created>
@@ -417,7 +412,14 @@
       <option name="project" value="LOCAL" />
       <updated>1679598535896</updated>
     </task>
-    <option name="localTasksCounter" value="84" />
+    <task id="LOCAL-00084" summary="Disabled Treasure Pool Functionality while it's being rewritten.">
+      <created>1679614366490</created>
+      <option name="number" value="00084" />
+      <option name="presentableId" value="LOCAL-00084" />
+      <option name="project" value="LOCAL" />
+      <updated>1679614366490</updated>
+    </task>
+    <option name="localTasksCounter" value="85" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -432,7 +434,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Added Text Colorization based on HP values.&#10;&#10;2/3+ HP:  White Text&#10;1/2-2/3 HP:  Yellow Text&#10;Less than 1/2 HP:  Red Text&#10;&#10;&#10;This is an approximation of blood agro adjustments.  All text objects for a given player in the party list will adjust based on that player's HP values.  While possible to restrict this to purely the HP text, I think it's more beneficial for all text for that player to reflect this." />
     <MESSAGE value="Created awareness for chatlog expansion for party list.  If chatlog is expanded, then the party list will temporarily be hidden." />
     <MESSAGE value="Adjusted chatlog awareness to continue hiding party list until the chatlog is closed, even if the chat input bar is opened." />
     <MESSAGE value="Reimplemented Background to Party List&#10;&#10;Background Opacity only configurable through config file for the time being." />
@@ -457,6 +458,7 @@
     <MESSAGE value="Fixed Issue with Party Distance" />
     <MESSAGE value="Removed BG Texture and enabled imgui Backgrounds for windows." />
     <MESSAGE value="Crash Fix:  Oversight with new features" />
-    <option name="LAST_COMMIT_MESSAGE" value="Crash Fix:  Oversight with new features" />
+    <MESSAGE value="Disabled Treasure Pool Functionality while it's being rewritten." />
+    <option name="LAST_COMMIT_MESSAGE" value="Disabled Treasure Pool Functionality while it's being rewritten." />
   </component>
 </project>

@@ -145,6 +145,8 @@ target.GetNameplateColor = function(e)
     end
 end
 
+target.is_open = false;
+
 --Paryt-List Cursor outside of normal target indicator
 target.GetSelectedAllianceMember = function()
     local structPointer = ashita.memory.read_uint32(stptPointer);

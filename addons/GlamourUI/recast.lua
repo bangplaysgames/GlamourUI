@@ -104,6 +104,8 @@ local jugs = T{
     ['ThreestarLynn'] = 7200
 }
 
+rchelper.is_open = false;
+
 local function fmt_time(t)
     local time = t / 60;
     local h = math.floor(time / (60 * 60));
