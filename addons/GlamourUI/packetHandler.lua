@@ -129,7 +129,7 @@ packet.IncActionPacket = function(Packet)
     if(user == gPacket.Player)then
         if(actionType == 8) then
             gPacket.action.Casting = true;
-            if(ashita.bits.unpack_be(packet.data_raw, 10, 6, 16) == 28787)then
+            if(ashita.bits.unpack_be(Packet.data_raw, 10, 6, 16) == 28787)then
                 gPacket.action.Interrupt = true;
             else
                 gPacket.action.Interrupt = false;
