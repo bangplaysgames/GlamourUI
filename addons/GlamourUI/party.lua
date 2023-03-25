@@ -282,12 +282,12 @@ party.render_party_list = function()
 
                     imgui.BeginGroup(('PartyMember %s##GlamPList'):fmt(gParty.Party[m].Name));
 
-                    if(gParty.Hovered == true)then
+                    --[[if(gParty.Hovered == true)then
                         local x = imgui.CalcItemWidth();
                         local y = gParty.GroupHeight2.y - gParty.GroupHeight1.y;
                         imgui.SetCursorPos({gParty.GroupHeight1.x, gParty.GroupHeight1.y});
                         imgui.Image(glowTex, {x, y});
-                    end
+                    end]]
 
                     --Determine Render Priority and then render objects in order of lowest priority tobhighest
                     for i = 1,5,1 do

@@ -636,14 +636,15 @@ render.RenderTargetBar = function()
                 imgui.SetWindowFontScale((GlamourUI.settings.TargetBar.font_scale * .6) * GlamourUI.settings.TargetBar.gui_scale);
                 local targStrLen = imgui.CalcTextSize(targetEntity.Name);
                 local targHPLen = imgui.CalcTextSize(tostring(targetEntity.HPPercent));
+                local hpbTex = gResources.getTex(GlamourUI.settings, 'TargetBar', 'hpBar.png');
+                local hpfTex = gResources.getTex(GlamourUI.settings, 'TargetBar', 'hpFill.png');
+
 
                 imgui.SetCursorPosX(30 * GlamourUI.settings.TargetBar.gui_scale);
                 imgui.SetCursorPosY(10 * GlamourUI.settings.TargetBar.gui_scale);
 
                 if(GlamourUI.settings.TargetBar.themed == true) then
 
-                    local hpbTex = gResources.getTex(GlamourUI.settings, 'TargetBar', 'hpBar.png');
-                    local hpfTex = gResources.getTex(GlamourUI.settings, 'TargetBar', 'hpFill.png');
                     local lockedTex = gResources.getTex(GlamourUI.settings, 'TargetBar', 'LockOn.png');
 
                     if(hpbTex == nil or hpfTex == nil or lockedTex == nil) then

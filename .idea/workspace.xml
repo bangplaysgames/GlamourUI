@@ -3,7 +3,8 @@
   <component name="ChangeListManager">
     <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/packetHandler.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/packetHandler.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/party.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/party.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/render.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/render.lua" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -71,13 +72,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1671821876609</updated>
-    </task>
-    <task id="LOCAL-00039" summary="Epiphany moment:  Figured out the config GUI issue with layout selection!!!">
-      <created>1672960803589</created>
-      <option name="number" value="00039" />
-      <option name="presentableId" value="LOCAL-00039" />
-      <option name="project" value="LOCAL" />
-      <updated>1672960803589</updated>
     </task>
     <task id="LOCAL-00040" summary="Fixed small errors in the new layout command.&#10;&#10;Fixed issue with padding reverting when typing a value.">
       <created>1672961719714</created>
@@ -415,7 +409,14 @@
       <option name="project" value="LOCAL" />
       <updated>1679697286484</updated>
     </task>
-    <option name="localTasksCounter" value="88" />
+    <task id="LOCAL-00088" summary="Crash Fix from broken treasure pool">
+      <created>1679699791927</created>
+      <option name="number" value="00088" />
+      <option name="presentableId" value="LOCAL-00088" />
+      <option name="project" value="LOCAL" />
+      <updated>1679699791928</updated>
+    </task>
+    <option name="localTasksCounter" value="89" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
