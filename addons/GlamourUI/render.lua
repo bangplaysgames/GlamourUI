@@ -852,7 +852,7 @@ render.renderLot = function()
                 imgui.Text(tostring(party[i].Name) .. ":                  ");
                 imgui.SameLine();
                 imgui.SetCursorPosX(imgui.GetWindowWidth() - imgui.CalcTextSize(tostring(pool[index])) - 10);
-                imgui.Text(tostring(pool[index]));
+                imgui.Text(tostring(gParty.TreasurePool[index][i]));
 
             end
         end
