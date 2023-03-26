@@ -202,38 +202,12 @@ packet.PartyInvite = function(Packet);
 end
 
 packet.ItemDrop = function(pack)
-    --[[local tpool = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItemCount();
-    if(#packet.TreasurePool ~= tpool)then
-        packet.TreasurePool = nil;
-        packet.TreasurePool = {}
-    end
-    for i=1,#gParty.Party do
-        for t = 1,tpool do
-            local tabl = {}
-            local index = t - 1;
-            local player = i - 1;
-            tabl[player].index = AshitaCore:GetMemoryManager():GetParty():GetMemberTreasureLot(player, index);
-            table.insert(packet.TreasurePool, tabl[index]);
-        end
-    end]]
+    gParty.getLot();
 end
 
 --Item Lot Packet
 packet.ItemLots = function(pack)
-    --[[local tpool = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItemCount();
-    if(#packet.TreasurePool ~= tpool)then
-        packet.TreasurePool = nil;
-        packet.TreasurePool = {}
-    end
-    for i=1,#gParty.Party do
-        for t = 1,tpool do
-            local tabl = {}
-            local index = t - 1;
-            local player = i - 1;
-            tabl[index] = AshitaCore:GetMemoryManager():GetParty():GetMemberTreasureLot(player, index);
-            table.insert(packet.TreasurePool, tabl[index]);
-        end
-    end]]
+    gParty.getLot();
 end
 
 --Packet Sort
