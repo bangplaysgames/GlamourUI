@@ -106,6 +106,8 @@ end
 
 party.Party = {};
 
+party.TreasuePool = {}
+
 party.InviteActive = false;
 party.InvitePlayer = nil;
 
@@ -170,7 +172,6 @@ party.GetMember = function(i)
             Member.Buffs = gResources.get_member_status(Member.Id, i);
         end
         Member.Zone = getZone(i);
-        Member.TPool = {}
     end
     return Member;
 end
@@ -187,18 +188,26 @@ party.GetParty = function()
 end
 
 party.getLot = function()
-    local pool = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItemCount() - 1;
-    for i = 0,#pool do
+    local poolSize = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItemCount();
+    for i = 1,poolSize do
+        local lotTable = {}
         for p = 1,#party.Party do
-            local lot = AshitaCore:GetMemoryManager():GetParty():GetMemberTreasureLot(p, i);
+            if(lotTable[i-1][p] == nil)then
+                lotTable[i-1][p] = {}
+            end
+            local lot = AshitaCore:GetMemoryManager():GetParty():GetMemberTreasureLot(p, i - 1);
             if(lot == 0) then
-                party.Party[p].TPool[i] = 'No Lot';
+                lotTable[p] = 'No Lot';
             elseif(lot == 65535) then
-                party.Party[p].TPool[i] =  '---';
+                lotTable[p] =  '---';
             else
-                party.Party[p].TPool[i] =  tostring(lot);
+                lotTable[p] = tostring(lot);
             end
         end
+        if(party.TreasuePool[i] == nil)then
+            party.TreasuePool[i] = {}
+        end
+        party.TreasuePool[i-1] = lotTable:
     end
 end
 
