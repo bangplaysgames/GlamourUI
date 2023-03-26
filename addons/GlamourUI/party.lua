@@ -181,9 +181,10 @@ party.GetParty = function()
     local PartyList = {}
 
     for i = 0,17,1 do
-        table.insert(PartyList, gParty.GetMember(i));
+        table.insert(PartyList, party.GetMember(i));
     end
     gParty.SetPartyLeads();
+    party.Party = PartyList;
     return PartyList;
 end
 
