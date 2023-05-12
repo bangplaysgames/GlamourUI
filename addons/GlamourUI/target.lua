@@ -154,7 +154,7 @@ target.AddFocusTarget = function()
 end
 
 target.RemoveFocusTarget = function(t)
-    table.remove(gTarget.ftTable, t);
+    gTarget.ftTable = gHelper.ArrayRemove(gTarget.ftTable, t);
 end
 
 target.ClearFocusTarget = function()

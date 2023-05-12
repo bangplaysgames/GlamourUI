@@ -911,7 +911,7 @@ render.renderFTarget = function()
                 imgui.Text('   ');
                 imgui.SameLine();
                 imgui.SetWindowFontScale(0.3);
-                if(imgui.Button('-----##GlamFT', {30, 20}))then
+                if(imgui.Button('-----##GlamFT' .. tostring(i), {30, 20}))then
                     gTarget.RemoveFocusTarget(i);
                 end
             end

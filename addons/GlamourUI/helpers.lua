@@ -209,6 +209,16 @@ helpers.tablecontains = function(table, element)
     return false
 end
 
+helpers.ArrayRemove = function(t, targ)
+    local tab = {}
+    for i = 1, #t do
+        if(i ~= targ)then
+            table.insert(tab, t[i]);
+        end
+    end
+    return tab;
+end
+
 helpers.is_event = ffi.cast('isevent_f', event_ptr);
 
 helpers.chatIsOpen = false;
