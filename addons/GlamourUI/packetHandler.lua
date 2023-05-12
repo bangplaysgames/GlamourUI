@@ -31,6 +31,10 @@ local calcEXPperHour = function()
         for k,_ in pairs(gParty.EXPTimeTable)do
             table.remove(gParty.EXPTimeTable, k);
         end
+        gParty.EXPTimeTable = nil;
+        gParty.EXPTimeTable = {}
+        gParty.EXPTable = nil;
+        gParty.EXPTable = {}
         gParty.EXPReset = false;
         return;
     end
@@ -198,42 +202,21 @@ end
 
 --Handle Party Invite Packet
 packet.PartyInvite = function(Packet);
-
+    gPacket.inviter = struct.unpack('c16', Packet.data, 0x0c + 1);
+    gPacket.InviteActive = true;
 end
 
+--Handle Response to Party Invite
+packet.PartyInviteResponse = function(Packet)
+    gPacket.InviteActive = false;
+end
+
+--Item Drop Packet
 packet.ItemDrop = function(pack)
-    --[[local tpool = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItemCount();
-    if(#packet.TreasurePool ~= tpool)then
-        packet.TreasurePool = nil;
-        packet.TreasurePool = {}
-    end
-    for i=1,#gParty.Party do
-        for t = 1,tpool do
-            local tabl = {}
-            local index = t - 1;
-            local player = i - 1;
-            tabl[player].index = AshitaCore:GetMemoryManager():GetParty():GetMemberTreasureLot(player, index);
-            table.insert(packet.TreasurePool, tabl[index]);
-        end
-    end]]
 end
 
 --Item Lot Packet
 packet.ItemLots = function(pack)
-    --[[local tpool = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItemCount();
-    if(#packet.TreasurePool ~= tpool)then
-        packet.TreasurePool = nil;
-        packet.TreasurePool = {}
-    end
-    for i=1,#gParty.Party do
-        for t = 1,tpool do
-            local tabl = {}
-            local index = t - 1;
-            local player = i - 1;
-            tabl[index] = AshitaCore:GetMemoryManager():GetParty():GetMemberTreasureLot(player, index);
-            table.insert(packet.TreasurePool, tabl[index]);
-        end
-    end]]
 end
 
 --Packet Sort
@@ -280,7 +263,10 @@ packet.HandleOutgoingChunk = function(e)
             gPacket.ActionPacket(struct.unpack('c' .. size, e.chunk_data, offset + 1));
         elseif (id == 0x37) then
             gPacket.ItemPacket(struct.unpack('c' .. size, e.chunk_data, offset + 1));
+        elseif(id == 0x074)then
+            gPacket.PartyInviteResponse(e);
         end
+
         offset = offset + size;
     end
 end

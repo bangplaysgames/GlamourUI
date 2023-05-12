@@ -425,7 +425,7 @@ render.renderPetThemed = function(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, s
             imgui.Image(tpbT, {gParty.layout.tpBarDim.l * GlamourUI.settings.Party.pList.gui_scale, gParty.layout.tpBarDim.g * GlamourUI.settings.Party.pList.gui_scale});
             imgui.SetCursorPosX((30 + gParty.layout.TPBarPosition.x) * GlamourUI.settings.Party.pList.gui_scale);
             imgui.SetCursorPosY((yOffset + gParty.layout.TPBarPosition.y) * GlamourUI.settings.Party.pList.gui_scale);
-            imgui.Image(tpfT, {(gParty.layout.tpBarDim.l * (math.clamp((AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() / 1000), 0, 1))), gParty.layout.tpBarDim.g * GlamourUI.settings.Party.pList.gui_scale}, {0, 0}, {(math.clamp((AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() / 1000), 0, 1)), 1});
+            imgui.Image(tpfT, {(gParty.layout.tpBarDim.l * (math.clamp((AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() / 1000), 0, 1))) * GlamourUI.settings.Party.pList.gui_scale, gParty.layout.tpBarDim.g * GlamourUI.settings.Party.pList.gui_scale}, {0, 0}, {(math.clamp((AshitaCore:GetMemoryManager():GetPlayer():GetPetTP() / 1000), 0, 1)), 1});
             imgui.SetCursorPosX((30 + gParty.layout.TPBarPosition.x + gParty.layout.TPBarPosition.textX)* GlamourUI.settings.Party.pList.gui_scale);
             imgui.SetCursorPosY((yOffset + gParty.layout.TPBarPosition.y + gParty.layout.TPBarPosition.textY) * GlamourUI.settings.Party.pList.gui_scale);
             imgui.Text(tostring(AshitaCore:GetMemoryManager():GetPlayer():GetPetTP()));
@@ -472,7 +472,7 @@ render.RenderAllianceMember = function(hpbT, hpfT, targ, sTarg, pLead, t, a, o, 
     local sTarget, sTargActive = gTarget.GetSelectedAllianceMember();
     local targetEntity = GetEntity(t);
     local yOffset = a * 25;
-    local hpOffset = GlamourUI.settings.Party.aPanel.hpBarDim.l - imgui.CalcTextSize(tostring(M.HP));
+    local hpOffset =  GlamourUI.settings.Party.aPanel.hpBarDim.l - imgui.CalcTextSize(tostring(M.HP));
     local menu = gHelper.getMenu();
     if(GlamourUI.settings.Party.aPanel.themed == true)then
         if(M ~= nil)then
@@ -480,12 +480,12 @@ render.RenderAllianceMember = function(hpbT, hpfT, targ, sTarg, pLead, t, a, o, 
                 imgui.SetCursorPosX(o + 45);
                 imgui.Text(tostring(M.Name));
 
-                if(menu == 'loot')then
+                --[[if(menu == 'loot')then
                     imgui.SameLine();
                     imgui.Text('     ')
                     imgui.SameLine();
                     imgui.Text(tostring(gParty.getLot(i)));
-                end
+                end]]
 
                 imgui.SetCursorPosX(o + 35);
                 imgui.Image(hpbT, {GlamourUI.settings.Party.aPanel.hpBarDim.l * GlamourUI.settings.Party.aPanel.gui_scale, GlamourUI.settings.Party.aPanel.hpBarDim.g * GlamourUI.settings.Party.aPanel.gui_scale});
@@ -497,19 +497,19 @@ render.RenderAllianceMember = function(hpbT, hpfT, targ, sTarg, pLead, t, a, o, 
                 else
                     imgui.Image(hpfT, {(GlamourUI.settings.Party.aPanel.hpBarDim.l * GlamourUI.settings.Party.aPanel.gui_scale) * M.HPP, GlamourUI.settings.Party.aPanel.hpBarDim.g * GlamourUI.settings.Party.aPanel.gui_scale}, {0, 0}, { M.HPP, 1});
                     imgui.SameLine();
-                    imgui.SetCursorPosX(o + 35 + hpOffset * 0.5);
+                    imgui.SetCursorPosX((o + 35 + (hpOffset * 0.5)) * GlamourUI.settings.Party.aPanel.gui_scale);
                     imgui.Text(tostring(M.HP));
 
                     imgui.SameLine();
-                    imgui.SetWindowFontScale(0.15 * GlamourUI.settings.Party.aPanel.font_scale);
-                    imgui.SetCursorPosX(o + 35);
+                    imgui.SetWindowFontScale((0.25 * GlamourUI.settings.Party.aPanel.font_scale) * GlamourUI.settings.Party.aPanel.gui_scale);
+                    imgui.SetCursorPosX(o + 55);
                     imgui.PushStyleColor(ImGuiCol_Text, {0.4, 0.6, 1.0, 1.0});
                     imgui.Text(tostring(M.TP))
                     imgui.PopStyleColor();
 
                     local mpOffset = imgui.CalcTextSize(tostring(M.MP));
                     imgui.SameLine();
-                    imgui.SetCursorPosX(GlamourUI.settings.Party.aPanel.hpBarDim.l - mpOffset);
+                    imgui.SetCursorPosX((o + 15 + GlamourUI.settings.Party.aPanel.hpBarDim.l - mpOffset) * GlamourUI.settings.Party.aPanel.gui_scale);
                     imgui.PushStyleColor(ImGuiCol_Text, {0.35, 1.0, 0.4, 1.0});
                     imgui.Text(tostring(M.MP));
                     imgui.PopStyleColor();
@@ -834,11 +834,10 @@ render.renderCastBar = function()
 end
 
 render.renderLot = function()
-    local party = gParty.Party;
-    local pool = gPacket.TreasurePool;
+    local party = gParty.GetParty();
     imgui.SetNextWindowSize({200,1}, ImGuiCond_FirstUseEver);
     local index = gParty.GetTreasurePoolSelectedIndex();
-    if(imgui.Begin('Lots##GlamParty', gParty.tpool.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
+    if(imgui.Begin('Lots##GlamParty', gParty.tpoolis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
         imgui.SetWindowFontScale(0.5);
         imgui.SetCursorPosX((imgui.GetWindowWidth() - imgui.CalcTextSize('Loot Table')) * 0.5);
         imgui.Text('Loot Table');
@@ -847,16 +846,77 @@ render.renderLot = function()
             if(party[i].Name == nil)then
                 return;
             else
-
-                imgui.SetCursorPosX(10);
-                imgui.Text(tostring(party[i].Name) .. ":                  ");
-                imgui.SameLine();
-                imgui.SetCursorPosX(imgui.GetWindowWidth() - imgui.CalcTextSize(tostring(pool[index])) - 10);
-                imgui.Text(tostring(pool[index]));
-
+                if(party[i].TPool ~= nil)then
+                    imgui.SetCursorPosX(10);
+                    imgui.Text(tostring(party[i].Name) .. ":                  ");
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(imgui.GetWindowWidth() - imgui.CalcTextSize(tostring(party[i].TPool[index])) - 10);
+                    imgui.Text(tostring(party[i].TPool[index]));
+                end
             end
         end
         imgui.End();
+    end
+end
+
+render.renderEnvironment = function()
+    local time = gEnv.GetTime();
+    local weather, count = gEnv.GetWeather();
+    local dTex = gResources.GetDayIcon(time.day);
+
+    if(imgui.Begin('Environment##GlamEnv', gEnv.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
+        imgui.SetWindowFontScale(0.6 * GlamourUI.settings.Env.font_scale);
+
+        imgui.Image(dTex, {25 * GlamourUI.settings.Env.gui_scale,25 * GlamourUI.settings.Env.gui_scale});
+        imgui.SameLine();
+        imgui.Text('  ' .. tostring(time.hour) .. ':' .. tostring(time.minute));
+        if(count == 0)then
+            local txtOffset = imgui.CalcTextSize(weather);
+            imgui.SetCursorPosX((imgui.GetWindowWidth() - txtOffset) * 0.5);
+            imgui.Text(weather);
+        elseif(count == 1)then
+            local imgOffset = (imgui.GetWindowWidth() - 25) * 0.5;
+            imgui.SetCursorPosX(imgOffset);
+            imgui.Image(weather, {25 * GlamourUI.settings.Env.gui_scale, 25 * GlamourUI.settings.Env.gui_scale});
+        elseif(count == 2)then
+            local imgOffset = (imgui.GetWindowWidth() - 50) * 0.5;
+            imgui.SetCursorPosX(imgOffset);
+            imgui.Image(weather, {25 * GlamourUI.settings.Env.gui_scale, 25 * GlamourUI.settings.Env.gui_scale});
+            imgui.SameLine();
+            imgui.Image(weather, {25 * GlamourUI.settings.Env.gui_scale, 25 * GlamourUI.settings.Env.gui_scale});
+        end
+        imgui.End();
+    end
+end
+
+--Focus Target Panel
+render.renderFTarget = function()
+    local ftTable = gTarget.ftTable;
+    local hpbT = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'hpBar.png');
+    local hpfT = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'hpFill.png');
+
+    if(ftTable ~= nil and #ftTable > 0)then
+        if(imgui.Begin('FocusTarget##GlamFT', gTarget.ft_is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
+            imgui.SetWindowFontScale(0.5);
+            imgui.Text('   Focus Targets');
+            for i=1,#ftTable do
+                imgui.SetWindowFontScale(0.5);
+                imgui.Text(ftTable[i].Name);
+                imgui.SetCursorPosX(10);
+                imgui.Image(hpbT, {100, 20});
+                imgui.SameLine();
+                imgui.SetCursorPosX(10);
+                imgui.Image(hpfT, {100 * (ftTable[i].HPPercent / 100), 20}, {0,0}, {ftTable[i].HPPercent / 100, 1});
+                imgui.SameLine();
+                imgui.Text('   ');
+                imgui.SameLine();
+                imgui.SetWindowFontScale(0.3);
+                if(imgui.Button('-----##GlamFT', {30, 20}))then
+                    gTarget.RemoveFocusTarget(i);
+                end
+            end
+            imgui.End();
+        end
     end
 end
 

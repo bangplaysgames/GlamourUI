@@ -106,6 +106,8 @@ end
 
 party.Party = {};
 
+party.TreasurePool = {}
+
 party.InviteActive = false;
 party.InvitePlayer = nil;
 
@@ -124,6 +126,9 @@ party.GroupHeight1.y = 0;
 party.GroupHeight2 = {}
 party.GroupHeight2.x = 0;
 party.GroupHeight2.y = 0;
+
+party.tpoolis_open = false;
+
 
 
 party.LevelSync = function(p)
@@ -170,7 +175,7 @@ party.GetMember = function(i)
             Member.Buffs = gResources.get_member_status(Member.Id, i);
         end
         Member.Zone = getZone(i);
-        Member.TPool = {}
+        Member.TPool = party.getLot(i);
     end
     return Member;
 end
@@ -180,32 +185,33 @@ party.GetParty = function()
     local PartyList = {}
 
     for i = 0,17,1 do
-        table.insert(PartyList, gParty.GetMember(i));
+        table.insert(PartyList, party.GetMember(i));
     end
     gParty.SetPartyLeads();
+    party.Party = PartyList;
     return PartyList;
 end
 
-party.getLot = function()
-    local pool = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItemCount() - 1;
-    for i = 0,#pool do
-        for p = 1,#party.Party do
-            local lot = AshitaCore:GetMemoryManager():GetParty():GetMemberTreasureLot(p, i);
-            if(lot == 0) then
-                party.Party[p].TPool[i] = 'No Lot';
-            elseif(lot == 65535) then
-                party.Party[p].TPool[i] =  '---';
-            else
-                party.Party[p].TPool[i] =  tostring(lot);
-            end
+party.getLot = function(p)
+    local lotTable = {}
+    for i = 0,9 do
+        local lot = AshitaCore:GetMemoryManager():GetParty():GetMemberTreasureLot(p, i);
+        if(lot == 0) then
+            lotTable[i] = 'No Lot';
+        elseif(lot == 65535) then
+            lotTable[i] =  '---';
+        else
+            lotTable[i] = tostring(lot);
         end
     end
+
+    return lotTable;
 end
 
 party.GetTreasurePoolSelectedIndex = function()
     local ptr = ashita.memory.read_uint32(treasurePoolPointer);
     ptr = ashita.memory.read_uint32(ptr);
-    return ashita.memory.read_uint16(ptr + 0x15E);
+    return ashita.memory.read_uint16(ptr + 0x15c), ashita.memory.read_uint16(ptr + 0x15E), ashita.memory.read_uint8(ptr + 0x160);
 end
 
 party.GetNameColor = function(h)
@@ -388,12 +394,12 @@ party.render_alliance_panel = function()
                     local yOff = (mult * GlamourUI.settings.Party.aPanel.hpBarDim.g + 40);
                     if(i % 2 == 0)then
                         imgui.SetWindowFontScale(0.3 * GlamourUI.settings.Party.aPanel.font_scale);
-                        local o = 50;
+                        local o = 50 * GlamourUI.settings.Party.aPanel.gui_scale;
                         imgui.SetCursorPosY(yOff);
                         gUI.RenderAllianceMember(hpbTex, hpfTex, targTex, stargTex, pLeadTex, target, mult, o, gParty.Party[i + 1], i);
                     else
                         imgui.SetWindowFontScale(0.3 * GlamourUI.settings.Party.aPanel.font_scale);
-                        local o = 100  + GlamourUI.settings.Party.aPanel.hpBarDim.l
+                        local o = (100  + GlamourUI.settings.Party.aPanel.hpBarDim.l) * GlamourUI.settings.Party.aPanel.gui_scale;
                         imgui.SetCursorPosY(yOff);
                         gUI.RenderAllianceMember(hpbTex, hpfTex, targTex, stargTex, pLeadTex, target, mult, o, gParty.Party[i + 1], i);
                     end

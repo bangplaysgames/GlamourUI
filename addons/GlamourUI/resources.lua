@@ -308,4 +308,57 @@ resources.GetJobIcon = function()
 
 end
 
+resources.GetDayIcon = function(e)
+    local tDay = {
+        [1] = 'Fire',
+        [2] = 'Earth',
+        [3] = 'Water',
+        [4] = 'Wind',
+        [5] = 'Ice',
+        [6] = 'Thunder',
+        [7] = 'Light',
+        [8] = 'Dark'
+    }
+    return gResources.getTex(GlamourUI.settings, 'Env', (tDay[e] .. '.png'));
+end
+
+resources.GetWeatherIcon = function(e)
+    local tWeather = {
+        [1] = 'Clear',
+        [2] = 'Sunshine',
+        [3] = 'Clouds',
+        [4] = 'Fog',
+        [5] = 'Fire',
+        [6] = 'Fire',
+        [7] = 'Water',
+        [8] = 'Water',
+        [9] = 'Earth',
+        [10] = 'Earth',
+        [11] = 'Wind',
+        [12] = 'Wind',
+        [13] = 'Ice',
+        [14] = 'Ice',
+        [15] = 'Thunder',
+        [16] = 'Thunder',
+        [17] = 'Light',
+        [18] = 'Light',
+        [19] = 'Dark',
+        [20] = 'Dark'
+    }
+    local count = 0;
+    local wbase = e - 4;
+    if(wbase > 0)then
+        if(wbase % 2 == 0)then
+            count = 2;
+        else
+            count = 1;
+        end
+    end
+    if(e >= 5)then
+        return gResources.getTex(GlamourUI.settings, 'Env', (tWeather[e] .. '.png')), count;
+    else
+        return tWeather[e], 0;
+    end
+end
+
 return resources;

@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '1.1.5';
+addon.version = '1.2';
 
 local settings = require('settings');
 
@@ -29,17 +29,39 @@ gUI = require('render');
 gResources = require('resources');
 gCBar = require('cbar');
 gHide = require('hideDefault');
+gEnv = require('environment');
 
 local imgui = require('imgui');
 local chat = require('chat');
 
 local render_debug = function()
-    local party = gParty.GetParty();
+    local tpool1, tpool2, tpool3 = gParty.GetTreasurePoolSelectedIndex();
+    local huh;
+    local poolItem = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItem(tpool2);
+    local inv = AshitaCore:GetMemoryManager():GetInventory():GetRawStructure();
+    local trpool;
+    local trpoolStatus;
+    if(inv ~= nil)then
+        trpool = inv.TreasurePool;
+        trpoolStatus = inv.TreasurePoolStatus;
+    end
 
     if(GlamourUI.debug == true)then
         if(imgui.Begin('Debug##GlamDebug', GlamourUI.debug, ImGuiWindow_AlwaysAutoResize))then
-            imgui.Text(tostring(gParty.GroupHeight1.x .. 'x' .. gParty.GroupHeight1.y));
-            imgui.Text(tostring(gParty.GroupHeight2.x .. 'x' .. gParty.GroupHeight2.y));
+            imgui.SetWindowFontScale(0.5);
+            if(trpool ~= nil)then
+                imgui.Text(tostring(trpoolStatus));
+                for i=1,#trpool do
+                    imgui.Text('Slot:  ' .. tostring(i));
+                    local tpoolitem = trpool[i];
+                    imgui.Text("Player Lot:  " .. tostring(tpoolitem.Lot));
+                    imgui.Text("Winning Lot:  " .. tostring(tpoolitem.WinningEntityName) .. '[' .. tostring(tpoolitem.WinningLot) .. ']');
+                    for j=1,36 do
+                        imgui.SetCursorPosX(20);
+                        imgui.Text(tostring(tpoolitem.Unknown0000[j]));
+                    end
+                end
+            end
         end
     end
 end
@@ -127,6 +149,12 @@ local default_settings = T{
         x = 1500,
         y = 850
     },
+    Env = {
+        font_scale = 1,
+        themed = true,
+        theme = 'Default',
+        gui_scale = 1,
+    },
     font = 'SpicyTaste.ttf'
 }
 
@@ -195,6 +223,8 @@ ashita.events.register('d3d_present', 'present_cb', function()
             gUI.render_invite();
             gConf.render_config();
             gUI.renderCastBar();
+            gUI.renderEnvironment();
+            gUI.renderFTarget();
             if(gHelper.getMenu() == 'loot')then
                 --gUI.renderLot();
             end
@@ -271,6 +301,14 @@ ashita.events.register('command', 'command_cb', function (e)
         if (args[2] == 'newlayout') then
             if(args[3] ~= nil)then
                 gHelper.createLayout(args[3]);
+            end
+        end
+        if(args[2]:any('focus'))then
+            if(args[3]:any('add'))then
+                gTarget.AddFocusTarget();
+            end
+            if(args[3]:any('clear'))then
+                gTarget.ClearFocusTarget();
             end
         end
     end

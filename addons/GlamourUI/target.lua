@@ -90,6 +90,8 @@ end
 
 local target = {}
 
+target.ftTable = {}
+
 --Returns true if targetlocked
 target.IsTargetLocked = function()
     return (bit.band(AshitaCore:GetMemoryManager():GetTarget():GetLockedOnFlags(), 1) == 1);
@@ -145,7 +147,24 @@ target.GetNameplateColor = function(e)
     end
 end
 
+target.AddFocusTarget = function()
+    local target = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(AshitaCore:GetMemoryManager():GetTarget():GetIsSubTargetActive());
+    local targetEntity = GetEntity(target);
+    table.insert(gTarget.ftTable, targetEntity);
+end
+
+target.RemoveFocusTarget = function(t)
+    table.remove(gTarget.ftTable, t);
+end
+
+target.ClearFocusTarget = function()
+    gTarget.ftTable = nil
+    gTarget.ftTable = {}
+end
+
 target.is_open = false;
+
+target.ft_is_open = false;
 
 --Paryt-List Cursor outside of normal target indicator
 target.GetSelectedAllianceMember = function()
