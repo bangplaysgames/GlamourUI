@@ -896,17 +896,26 @@ render.renderFTarget = function()
     local hpfT = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'hpFill.png');
 
     if(ftTable ~= nil and #ftTable > 0)then
+        imgui.SetNextWindowSize({0, 0});
         if(imgui.Begin('FocusTarget##GlamFT', gTarget.ft_is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
             imgui.SetWindowFontScale(0.5);
             imgui.Text('   Focus Targets');
             for i=1,#ftTable do
+                if(ftTable[i] == nil or ftTable[i].Name == nil)then
+                    gTarget.RemoveFocusTarget(i);
+                    break;
+                end
                 imgui.SetWindowFontScale(0.5);
                 imgui.Text(ftTable[i].Name);
+                imgui.SameLine()
+                local dOffset = imgui.CalcTextSize(tostring(math.floor(math.sqrt(ftTable[i].Distance) * 100) / 100));
+                imgui.SetCursorPosX(imgui.GetWindowWidth() - dOffset - 25);
+                imgui.Text(tostring(math.floor(math.sqrt(ftTable[i].Distance) * 100) / 100));
                 imgui.SetCursorPosX(10);
-                imgui.Image(hpbT, {100, 20});
+                imgui.Image(hpbT, {150, 20});
                 imgui.SameLine();
                 imgui.SetCursorPosX(10);
-                imgui.Image(hpfT, {100 * (ftTable[i].HPPercent / 100), 20}, {0,0}, {ftTable[i].HPPercent / 100, 1});
+                imgui.Image(hpfT, {150 * (ftTable[i].HPPercent / 100), 20}, {0,0}, {ftTable[i].HPPercent / 100, 1});
                 imgui.SameLine();
                 imgui.Text('   ');
                 imgui.SameLine();

@@ -3,7 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/helpers.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/helpers.lua" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/addons/GlamourUI/render.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/render.lua" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/addons/GlamourUI/target.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/target.lua" afterDir="false" />
     </list>
@@ -73,13 +72,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1671821876609</updated>
-    </task>
-    <task id="LOCAL-00043" summary="Bugfix:  Target Bar scaling not applying properly in config window.">
-      <created>1673028150538</created>
-      <option name="number" value="00043" />
-      <option name="presentableId" value="LOCAL-00043" />
-      <option name="project" value="LOCAL" />
-      <updated>1673028150538</updated>
     </task>
     <task id="LOCAL-00044" summary="Removed Rendering of Party Members HP/MP/TP bars when in a different zone.  In their place, the zone name will render.&#10;&#10;This was both a functional change and an aesthetic change.  It was rendering bars with incorrect data.  (Rather than seeing the actual HP/MP/TP of party members in a different zone, it was random data.)">
       <created>1673042496736</created>
@@ -417,7 +409,14 @@
       <option name="project" value="LOCAL" />
       <updated>1683903377858</updated>
     </task>
-    <option name="localTasksCounter" value="92" />
+    <task id="LOCAL-00092" summary="Small Bugfix">
+      <created>1683905097527</created>
+      <option name="number" value="00092" />
+      <option name="presentableId" value="LOCAL-00092" />
+      <option name="project" value="LOCAL" />
+      <updated>1683905097527</updated>
+    </task>
+    <option name="localTasksCounter" value="93" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -432,7 +431,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Reimplemented Background to Party List&#10;&#10;Background Opacity only configurable through config file for the time being." />
     <MESSAGE value="Party Leader Indication&#10;Level Sync Indication&#10;Targeted Party Member Marker" />
     <MESSAGE value="Implemented Textured Background for Themes&#10;&#10;Due to the method used to make this work, the background image will not move smoothly when adjusting the location of the party.  Once in place, it will be fine." />
     <MESSAGE value="Added missing texture to Desat" />
@@ -457,6 +455,7 @@
     <MESSAGE value="Disabled Treasure Pool Functionality while it's being rewritten." />
     <MESSAGE value="Crash Fix from broken treasure pool" />
     <MESSAGE value="New Features:&#10;Environment Panel&#10;   Time, Day, and Weather provided in a moveable panel.&#10;   &#10;Focus Target Panel&#10;   New Focus Target System and panel have been added.&#10;   Entries can be added with the new command /glam focus add&#10;   Entries can be removed individually with the button next to the entry's HP bar&#10;   List can be cleared entirely with the new command /glam focus clear&#10;   &#10;   &#10;To Do:&#10;   Config options for Environment Panel&#10;   Config options for Focus Target Panel&#10;   Click-To-Target for Focus Target Panel" />
-    <option name="LAST_COMMIT_MESSAGE" value="New Features:&#10;Environment Panel&#10;   Time, Day, and Weather provided in a moveable panel.&#10;   &#10;Focus Target Panel&#10;   New Focus Target System and panel have been added.&#10;   Entries can be added with the new command /glam focus add&#10;   Entries can be removed individually with the button next to the entry's HP bar&#10;   List can be cleared entirely with the new command /glam focus clear&#10;   &#10;   &#10;To Do:&#10;   Config options for Environment Panel&#10;   Config options for Focus Target Panel&#10;   Click-To-Target for Focus Target Panel" />
+    <MESSAGE value="Small Bugfix" />
+    <option name="LAST_COMMIT_MESSAGE" value="Small Bugfix" />
   </component>
 </project>

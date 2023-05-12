@@ -1,6 +1,7 @@
 require ('common');
 local ffi = require ('ffi');
 local imgui = require('imgui');
+local chat = require('chat');
 
 
 local stptPointer = ashita.memory.find('FFXIMain.dll', 0, '891D????????74??4874??88', 0x02, 0x00);
@@ -150,6 +151,10 @@ end
 target.AddFocusTarget = function()
     local targ = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(AshitaCore:GetMemoryManager():GetTarget():GetIsSubTargetActive());
     local targetEntity = GetEntity(targ);
+    if(targetEntity == nil)then
+        print(chat.header('No Target Selected to Add to Focus List'));
+        return;
+    end
     table.insert(gTarget.ftTable, targetEntity);
 end
 
