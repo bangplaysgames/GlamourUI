@@ -3,11 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/packetHandler.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/packetHandler.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/party.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/party.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/render.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/render.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/resources.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/resources.lua" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/addons/GlamourUI/target.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/target.lua" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -76,13 +71,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1671821876609</updated>
-    </task>
-    <task id="LOCAL-00041" summary="Resolved issue caused by missing Layouts directory">
-      <created>1672965392011</created>
-      <option name="number" value="00041" />
-      <option name="presentableId" value="LOCAL-00041" />
-      <option name="project" value="LOCAL" />
-      <updated>1672965392011</updated>
     </task>
     <task id="LOCAL-00042" summary="Per-Bar Dimension adjustments for party list.&#10;&#10;Each bar has a length and girth setting which can be adjusted in-game.&#10;&#10;Player Stats is currently all adjusted via 1 bar.  Per-Bar adjustment and layout will be coming in a future update.">
       <created>1673027517090</created>
@@ -420,7 +408,14 @@
       <option name="project" value="LOCAL" />
       <updated>1679705449196</updated>
     </task>
-    <option name="localTasksCounter" value="90" />
+    <task id="LOCAL-00090" summary="New Features:&#10;Environment Panel&#10;   Time, Day, and Weather provided in a moveable panel.&#10;   &#10;Focus Target Panel&#10;   New Focus Target System and panel have been added.&#10;   Entries can be added with the new command /glam focus add&#10;   Entries can be removed individually with the button next to the entry's HP bar&#10;   List can be cleared entirely with the new command /glam focus clear&#10;   &#10;   &#10;To Do:&#10;   Config options for Environment Panel&#10;   Config options for Focus Target Panel&#10;   Click-To-Target for Focus Target Panel">
+      <created>1683903262270</created>
+      <option name="number" value="00090" />
+      <option name="presentableId" value="LOCAL-00090" />
+      <option name="project" value="LOCAL" />
+      <updated>1683903262271</updated>
+    </task>
+    <option name="localTasksCounter" value="91" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -435,7 +430,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Adjusted chatlog awareness to continue hiding party list until the chatlog is closed, even if the chat input bar is opened." />
     <MESSAGE value="Reimplemented Background to Party List&#10;&#10;Background Opacity only configurable through config file for the time being." />
     <MESSAGE value="Party Leader Indication&#10;Level Sync Indication&#10;Targeted Party Member Marker" />
     <MESSAGE value="Implemented Textured Background for Themes&#10;&#10;Due to the method used to make this work, the background image will not move smoothly when adjusting the location of the party.  Once in place, it will be fine." />
@@ -460,6 +454,7 @@
     <MESSAGE value="Crash Fix:  Oversight with new features" />
     <MESSAGE value="Disabled Treasure Pool Functionality while it's being rewritten." />
     <MESSAGE value="Crash Fix from broken treasure pool" />
-    <option name="LAST_COMMIT_MESSAGE" value="Crash Fix from broken treasure pool" />
+    <MESSAGE value="New Features:&#10;Environment Panel&#10;   Time, Day, and Weather provided in a moveable panel.&#10;   &#10;Focus Target Panel&#10;   New Focus Target System and panel have been added.&#10;   Entries can be added with the new command /glam focus add&#10;   Entries can be removed individually with the button next to the entry's HP bar&#10;   List can be cleared entirely with the new command /glam focus clear&#10;   &#10;   &#10;To Do:&#10;   Config options for Environment Panel&#10;   Config options for Focus Target Panel&#10;   Click-To-Target for Focus Target Panel" />
+    <option name="LAST_COMMIT_MESSAGE" value="New Features:&#10;Environment Panel&#10;   Time, Day, and Weather provided in a moveable panel.&#10;   &#10;Focus Target Panel&#10;   New Focus Target System and panel have been added.&#10;   Entries can be added with the new command /glam focus add&#10;   Entries can be removed individually with the button next to the entry's HP bar&#10;   List can be cleared entirely with the new command /glam focus clear&#10;   &#10;   &#10;To Do:&#10;   Config options for Environment Panel&#10;   Config options for Focus Target Panel&#10;   Click-To-Target for Focus Target Panel" />
   </component>
 </project>

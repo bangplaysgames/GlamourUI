@@ -148,8 +148,8 @@ target.GetNameplateColor = function(e)
 end
 
 target.AddFocusTarget = function()
-    local target = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(AshitaCore:GetMemoryManager():GetTarget():GetIsSubTargetActive());
-    local targetEntity = GetEntity(target);
+    local targ = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(AshitaCore:GetMemoryManager():GetTarget():GetIsSubTargetActive());
+    local targetEntity = GetEntity(targ);
     table.insert(gTarget.ftTable, targetEntity);
 end
 
