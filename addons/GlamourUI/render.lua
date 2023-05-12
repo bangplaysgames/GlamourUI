@@ -917,7 +917,8 @@ render.renderFTarget = function()
                 imgui.SetCursorPosX(10);
                 imgui.Image(hpfT, {150 * (ftTable[i].HPPercent / 100), 20}, {0,0}, {ftTable[i].HPPercent / 100, 1});
                 imgui.SameLine();
-                imgui.Text('   ');
+                imgui.SetCursorPosX(175);
+                imgui.Text('     ');
                 imgui.SameLine();
                 imgui.SetWindowFontScale(0.3);
                 if(imgui.Button('-----##GlamFT' .. tostring(i), {30, 20}))then
