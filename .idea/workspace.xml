@@ -1,13 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="Crash Fix on Zone&#10;Exception handling for no target on /glam focus add">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/environment.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/environment.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/party.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/party.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/render.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/render.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/resources.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/resources.lua" afterDir="false" />
+    <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/glamourui.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/glamourui.lua" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -80,13 +75,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1671821876609</updated>
-    </task>
-    <task id="LOCAL-00046" summary="Created awareness for chatlog expansion for party list.  If chatlog is expanded, then the party list will temporarily be hidden.">
-      <created>1673291216268</created>
-      <option name="number" value="00046" />
-      <option name="presentableId" value="LOCAL-00046" />
-      <option name="project" value="LOCAL" />
-      <updated>1673291216268</updated>
     </task>
     <task id="LOCAL-00047" summary="Adjusted chatlog awareness to continue hiding party list until the chatlog is closed, even if the chat input bar is opened.">
       <created>1673298955499</created>
@@ -424,7 +412,14 @@
       <option name="project" value="LOCAL" />
       <updated>1683919446582</updated>
     </task>
-    <option name="localTasksCounter" value="95" />
+    <task id="LOCAL-00095" summary="Implemented JP and CP into Player Stats Panel">
+      <created>1702415788287</created>
+      <option name="number" value="00095" />
+      <option name="presentableId" value="LOCAL-00095" />
+      <option name="project" value="LOCAL" />
+      <updated>1702415788288</updated>
+    </task>
+    <option name="localTasksCounter" value="96" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -439,7 +434,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Implemented Textured Background for Themes&#10;&#10;Due to the method used to make this work, the background image will not move smoothly when adjusting the location of the party.  Once in place, it will be fine." />
     <MESSAGE value="Added missing texture to Desat" />
     <MESSAGE value="Custom Fonts&#10;Better Textured Backgrounds&#10;Indicators (Now in a working version!)" />
     <MESSAGE value="Inventory Panel Implemented to cover Default Party List.&#10;&#10;Can be disabled via /glam config&#10;&#10;Changing font or font size on the inventory panel will reload the entire addon.  This is done as a temporary measure to avoid crashing the addons plugin while I search for a fix for the crash." />
@@ -464,6 +458,7 @@
     <MESSAGE value="New Features:&#10;Environment Panel&#10;   Time, Day, and Weather provided in a moveable panel.&#10;   &#10;Focus Target Panel&#10;   New Focus Target System and panel have been added.&#10;   Entries can be added with the new command /glam focus add&#10;   Entries can be removed individually with the button next to the entry's HP bar&#10;   List can be cleared entirely with the new command /glam focus clear&#10;   &#10;   &#10;To Do:&#10;   Config options for Environment Panel&#10;   Config options for Focus Target Panel&#10;   Click-To-Target for Focus Target Panel" />
     <MESSAGE value="Small Bugfix" />
     <MESSAGE value="Crash Fix on Zone&#10;Exception handling for no target on /glam focus add" />
-    <option name="LAST_COMMIT_MESSAGE" value="Crash Fix on Zone&#10;Exception handling for no target on /glam focus add" />
+    <MESSAGE value="Implemented JP and CP into Player Stats Panel" />
+    <option name="LAST_COMMIT_MESSAGE" value="Implemented JP and CP into Player Stats Panel" />
   </component>
 </project>
