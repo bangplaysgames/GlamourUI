@@ -228,6 +228,7 @@ ashita.events.register('d3d_present', 'present_cb', function()
             if(gHelper.getMenu() == 'loot')then
                 --gUI.renderLot();
             end
+            gUI.renderSkills();
         end
         --render_debug();
         imgui.PopFont();
@@ -310,6 +311,9 @@ ashita.events.register('command', 'command_cb', function (e)
             if(args[3]:any('clear'))then
                 gTarget.ClearFocusTarget();
             end
+        end
+        if(args[2]:any('skills'))then
+            gParty.ShowSkills = not gParty.ShowSkills;
         end
     end
 

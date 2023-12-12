@@ -500,6 +500,20 @@ party.render_player_stats = function()
                     imgui.SameLine();
                     imgui.SetCursorPosX(imgui.GetWindowWidth() * 0.66);
                     imgui.Text('Merits:  ' .. merits);
+                    if(gParty.Party[1].Level == 99)then
+                        local cp = player:GetCapacityPoints(gParty.Party[1].Job);
+                        local jp = player:GetJobPoints(gParty.Party[1].Job);
+                        imgui.SetCursorPosX(50);
+                        imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 50);
+                        imgui.Image(ebTex, {expBarLen, 5});
+                        imgui.SetCursorPosX(50);
+                        imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 50);
+                        imgui.Image(efTex, {expBarLen * (cp / 30000), 5}, {0,0}, {cp / 30000, 1});
+                        local JPStr = ('CP:  ' .. tostring(cp) .. ' / 30000 : (' .. tostring(jp) .. ' JP)');
+                        local JPStrOffset = (imgui.GetWindowWidth() - imgui.CalcTextSize(JPStr)) * 0.5;
+                        imgui.SetCursorPosX(JPStrOffset);
+                        imgui.Text(JPStr);
+                    end
                 end
 
             else
@@ -529,5 +543,106 @@ party.render_player_stats = function()
         end
     end
 end
+
+party.PlayerSkills = function()
+    local player = AshitaCore:GetMemoryManager():GetPlayer();
+    local combat = {}
+    local craft = {}
+    combat.Melee = {}
+    combat.Defensive = {}
+    combat.Ranged = {}
+    combat.Magic = {}
+
+    local skillTable = {
+        --Melee
+        [1] = 'Hand to Hand',
+        [2] = 'Dagger',
+        [3] = 'Sword',
+        [4] = 'Great Sword',
+        [5] = 'Axe',
+        [6] = 'Great Axe',
+        [7] = 'Scythe',
+        [8] = 'Polearm',
+        [9] = 'Katana',
+        [10] = 'Great Katana',
+        [11] = 'Club',
+        [12] = 'Staff',
+
+        --Ranged
+        [25] = 'Archery',
+        [26] = 'Marksmanship',
+        [27] = 'Throwing',
+
+        --Defensive
+        [28] = 'Guard',
+        [29] = 'Evasion',
+        [30] = 'Shield',
+        [31] = 'Parry',
+
+        --Magic
+        [32] = 'Divine',
+        [33] = 'Healing',
+        [34] = 'Enhancing',
+        [35] = 'Enfeebling',
+        [36] = 'Elemental',
+        [37] = 'Dark',
+        [38] = 'Summoning',
+        [39] = 'Ninjutsu',
+        [40] = 'Singing',
+        [41] = 'String',
+        [42] = 'Wind',
+        [43] = 'Blue Magic',
+
+        --Crafts
+        [48] = 'Fishing',
+        [49] = 'Woodworking',
+        [50] = 'Smithing',
+        [51] = 'Goldsmithing',
+        [52] = 'Clothcraft',
+        [53] = 'Leathercraft',
+        [54] = 'Bonecraft',
+        [55] = 'Alchemy',
+        [56] = 'Cooking',
+        [57] = 'Synergy',
+        [58] = 'Chocobo Digging'
+    }
+
+    for i = 1,12 do
+        local pCS = player:GetCombatSkill(i);
+        combat.Melee[skillTable[i]] = pCS;
+    end
+
+    for i = 25,27 do
+        local pCS = player:GetCombatSkill(i);
+        combat.Ranged[skillTable[i]] = pCS;
+    end
+
+    for i = 28,31 do
+        local pCS = player:GetCombatSkill(i);
+        combat.Defensive[skillTable[i]] = pCS;
+    end
+
+    for i = 32,43 do
+        local pCS = player:GetCombatSkill(i);
+        combat.Magic[skillTable[i]] = pCS;
+    end
+
+    for i = 0,10 do
+        local pCrS = player:GetCraftSkill(i);
+        craft[skillTable[i + 48]] = pCrS;
+    end
+
+    return combat, craft;
+end
+
+party.GetCraftRank = function(skill)
+    local ranks = {
+        'Amateur', 'Recruit', 'Initiate', 'Novice', 'Apprentice', 'Journeyman', 'Craftsman', 'Artisan', 'Adept', 'Veteran', 'Expert'
+    }
+    return ranks[skill];
+end
+
+party.Skill_Is_Open = false;
+party.ShowCrafts = false;
 
 return party;

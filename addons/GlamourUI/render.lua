@@ -861,30 +861,40 @@ end
 
 render.renderEnvironment = function()
     local time = gEnv.GetTime();
-    local weather, count = gEnv.GetWeather();
+    local weather, wthr = gEnv.GetWeather();
     local dTex = gResources.GetDayIcon(time.day);
+    local moonTex = gResources.getTex(GlamourUI.settings, 'Env', 'moon.png');
+    local mPhase, mPerc = gEnv.GetMoon();
+    local moonStr = mPhase .. ":  " .. tostring(mPerc) .. '%%';
 
     if(imgui.Begin('Environment##GlamEnv', gEnv.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
         imgui.SetWindowFontScale(0.6 * GlamourUI.settings.Env.font_scale);
 
+
+        if(weather.Count == 0)then
+            imgui.Text(weather.Type);
+        elseif(weather.Count == 1)then
+            imgui.Image(weather.Type, {25 * GlamourUI.settings.Env.gui_scale, 25 * GlamourUI.settings.Env.gui_scale});
+        elseif(weather.Count == 2)then
+            imgui.Image(weather.Type, {25 * GlamourUI.settings.Env.gui_scale, 25 * GlamourUI.settings.Env.gui_scale});
+            imgui.SameLine();
+            imgui.Image(weather.Type, {25 * GlamourUI.settings.Env.gui_scale, 25 * GlamourUI.settings.Env.gui_scale});
+        end
+        imgui.SameLine();
+        imgui.Text('    ');
+        imgui.SameLine();
+        imgui.Image(moonTex, {25 * GlamourUI.settings.Env.gui_scale, 25 * GlamourUI.settings.Env.gui_scale});
+        imgui.SameLine();
+        imgui.Text(moonStr);
+
+        local txtOffset = (imgui.GetWindowWidth() - (imgui.CalcTextSize('Day:    :' .. tostring(time.hour) .. tostring(time.minute)) + 25)) * 0.5 ;
+        imgui.SetCursorPosX(txtOffset);
+        imgui.Text('Day:  ');
+        imgui.SameLine();
         imgui.Image(dTex, {25 * GlamourUI.settings.Env.gui_scale,25 * GlamourUI.settings.Env.gui_scale});
         imgui.SameLine();
         imgui.Text('  ' .. tostring(time.hour) .. ':' .. tostring(time.minute));
-        if(count == 0)then
-            local txtOffset = imgui.CalcTextSize(weather);
-            imgui.SetCursorPosX((imgui.GetWindowWidth() - txtOffset) * 0.5);
-            imgui.Text(weather);
-        elseif(count == 1)then
-            local imgOffset = (imgui.GetWindowWidth() - 25) * 0.5;
-            imgui.SetCursorPosX(imgOffset);
-            imgui.Image(weather, {25 * GlamourUI.settings.Env.gui_scale, 25 * GlamourUI.settings.Env.gui_scale});
-        elseif(count == 2)then
-            local imgOffset = (imgui.GetWindowWidth() - 50) * 0.5;
-            imgui.SetCursorPosX(imgOffset);
-            imgui.Image(weather, {25 * GlamourUI.settings.Env.gui_scale, 25 * GlamourUI.settings.Env.gui_scale});
-            imgui.SameLine();
-            imgui.Image(weather, {25 * GlamourUI.settings.Env.gui_scale, 25 * GlamourUI.settings.Env.gui_scale});
-        end
+
         imgui.End();
     end
 end
@@ -924,6 +934,99 @@ render.renderFTarget = function()
                 if(imgui.Button('-----##GlamFT' .. tostring(i), {30, 20}))then
                     gTarget.RemoveFocusTarget(i);
                 end
+            end
+            imgui.End();
+        end
+    end
+end
+
+render.renderSkills = function()
+    local combat, craft = gParty.PlayerSkills();
+    local skillOffset = 400 * GlamourUI.settings.Party.pList.gui_scale;
+
+    if(gParty.ShowSkills == true)then
+        if(imgui.Begin('Skills##GlamPT', gParty.Skill_Is_Open, bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoDecoration)))then
+            imgui.SetWindowFontScale(0.4);
+            imgui.BeginTabBar('SkillsTB##GlamPT');
+            if(imgui.BeginTabItem('Melee Skills##GlamPTSkills'))then
+
+                for k,v in pairs(combat.Melee) do
+                    imgui.Text(k);
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(skillOffset);
+                    if(v:IsCapped())then
+                        imgui.PushStyleColor(ImGuiCol_Text, {0, 0.36, 0.79, 1});
+                    else
+                        imgui.PushStyleColor(ImGuiCol_Text, {1, 1, 1, 1});
+                    end
+                    imgui.Text(tostring(v:GetSkill()));
+                    imgui.PopStyleColor();
+                end
+                imgui.EndTabItem();
+            end
+            if(imgui.BeginTabItem('Ranged Skills##GlamPTSkills'))then
+                for k,v in pairs(combat.Ranged) do
+                    imgui.Text(k);
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(skillOffset);
+                    if(v:IsCapped())then
+                        imgui.PushStyleColor(ImGuiCol_Text, {0, 0.36, 0.79, 1});
+                    else
+                        imgui.PushStyleColor(ImGuiCol_Text, {1, 1, 1, 1});
+                    end
+                    imgui.Text(tostring(v:GetSkill()));
+                    imgui.PopStyleColor();
+                end
+                imgui.EndTabItem();
+            end
+            if(imgui.BeginTabItem('Defensive Skills##GlamPTSkills'))then
+                for k,v in pairs(combat.Defensive) do
+                    imgui.Text(k);
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(skillOffset);
+                    if(v:IsCapped())then
+                        imgui.PushStyleColor(ImGuiCol_Text, {0, 0.36, 0.79, 1});
+                    else
+                        imgui.PushStyleColor(ImGuiCol_Text, {1,1,1,1});
+                    end
+                    imgui.Text(tostring(v:GetSkill()));
+                    imgui.PopStyleColor();
+                end
+                imgui.EndTabItem();
+            end
+            if(imgui.BeginTabItem('Magic Skills##GlamPTSkills'))then
+                for k,v in pairs(combat.Magic) do
+                    imgui.Text(k);
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(skillOffset);
+                    if(v:IsCapped())then
+                        imgui.PushStyleColor(ImGuiCol_Text, {0, 0.36, 0.79, 1});
+                    else
+                        imgui.PushStyleColor(ImGuiCol_Text, {1, 1, 1, 1});
+                    end
+                    imgui.Text(tostring(v:GetSkill()));
+                    imgui.PopStyleColor();
+                end
+                imgui.EndTabItem();
+            end
+            if(imgui.BeginTabItem('Craft Skills##GlamPTSkills'))then
+                for k,v in pairs(craft) do
+
+                    imgui.Text(k);
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(skillOffset - 10);
+                    if(v:IsCapped() == true)then
+                        imgui.PushStyleColor(ImGuiCol_Text, {0, 0.36, 0.79, 1});
+                    else
+                        imgui.PushStyleColor(ImGuiCol_Text, {1, 1, 1, 1});
+                    end
+                    imgui.Text(tostring(v:GetSkill()));
+                    imgui.PopStyleColor();
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(skillOffset + 20);
+                    imgui.Text(tostring(gParty.GetCraftRank(v:GetRank() + 1)));
+                end
+                imgui.EndTabItem();
             end
             imgui.End();
         end

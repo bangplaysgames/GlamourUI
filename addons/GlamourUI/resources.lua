@@ -324,40 +324,35 @@ end
 
 resources.GetWeatherIcon = function(e)
     local tWeather = {
-        [1] = 'Clear',
-        [2] = 'Sunshine',
-        [3] = 'Clouds',
-        [4] = 'Fog',
-        [5] = 'Fire',
-        [6] = 'Fire',
-        [7] = 'Water',
-        [8] = 'Water',
-        [9] = 'Earth',
-        [10] = 'Earth',
-        [11] = 'Wind',
-        [12] = 'Wind',
-        [13] = 'Ice',
-        [14] = 'Ice',
-        [15] = 'Thunder',
-        [16] = 'Thunder',
-        [17] = 'Light',
-        [18] = 'Light',
-        [19] = 'Dark',
-        [20] = 'Dark'
+        [0] = { Type = 'Clear', Count = 0 },
+        [1] = { Type = 'Sunshine', Count = 0 },
+        [2] = { Type = 'Clouds', Count = 0 },
+        [3] = { Type = 'Fog', Count = 0 },
+        [4] = { Type = 'Fire', Count = 1 },
+        [5] = { Type = 'Fire', Count = 2 },    --Fire x2
+        [6] = { Type = 'Water', Count = 1 },  --Water x1
+        [7] = { Type = 'Water', Count = 2 },
+        [8] = { Type = 'Earth', Count = 1 }, --Earth x1
+        [9] = { Type = 'Earth', Count = 2 },
+        [10] = { Type = 'Wind', Count = 1 }, --Wind x1
+        [11] = { Type = 'Wind', Count = 2 },
+        [12] = { Type = 'Ice', Count = 1 },  --Ice
+        [13] = { Type = 'Ice', Count = 2 },  --Ice x2
+        [14] = { Type = 'Thunder', Count = 1 }, --Thunder x1
+        [15] = { Type = 'Thunder', Count = 2 },
+        [16] = { Type = 'Light', Count = 1 },
+        [17] = { Type = 'Light', Count = 2 }, --Light x2
+        [18] = { Type = 'Dark', Count = 1 }, --Dark
+        [19] = { Type = 'Dark', Count = 2 }, --Dark x2
     }
-    local count = 0;
-    local wbase = e - 4;
-    if(wbase > 0)then
-        if(wbase % 2 == 0)then
-            count = 2;
-        else
-            count = 1;
-        end
-    end
-    if(e >= 5)then
-        return gResources.getTex(GlamourUI.settings, 'Env', (tWeather[e] .. '.png')), count;
+
+    local weather = tWeather[e];
+
+    if(e >= 4)then
+        weather.Type = gResources.getTex(GlamourUI.settings, 'Env', (tWeather[e].Type .. '.png'));
+        return weather;
     else
-        return tWeather[e], 0;
+        return weather;
     end
 end
 
