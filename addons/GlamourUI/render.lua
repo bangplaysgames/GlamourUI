@@ -834,24 +834,46 @@ render.renderCastBar = function()
 end
 
 render.renderLot = function()
-    local party = gParty.GetParty();
+    local treasurePoolSize = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItemCount();
+    if(treasurePoolSize == 0)then
+        return;
+    end
     imgui.SetNextWindowSize({200,1}, ImGuiCond_FirstUseEver);
     local index = gParty.GetTreasurePoolSelectedIndex();
     if(imgui.Begin('Lots##GlamParty', gParty.tpoolis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
-        imgui.SetWindowFontScale(0.5);
+        imgui.SetWindowFontScale(0.7);
         imgui.SetCursorPosX((imgui.GetWindowWidth() - imgui.CalcTextSize('Loot Table')) * 0.5);
         imgui.Text('Loot Table');
-        imgui.SetWindowFontScale(0.3);
-        for i=1,#party do
-            if(party[i].Name == nil)then
-                return;
-            else
-                if(party[i].TPool ~= nil)then
-                    imgui.SetCursorPosX(10);
-                    imgui.Text(tostring(party[i].Name) .. ":                  ");
+        imgui.SetWindowFontScale(0.4);
+        for i=1,#gInv.treasurePool do
+            local item = gInv.treasurePool[i];
+            if(item.name ~= nil)then
+                imgui.Text(tostring(item.slot) .. ':  ' .. item.name);
+                imgui.SameLine();
+                imgui.SetCursorPosX(200);
+                imgui.Text('Time till Drop: ' .. item.time);
+                imgui.SameLine();
+                imgui.SetCursorPosX(350);
+                if(not item.current.hasRolled and not item.current.hasPassed)then
+                    if(imgui.Button('Lot##TPool' .. i, {35, 25}))then
+                        gInv.TPoolLot(item.slot);
+                    end
+                end
+                imgui.SameLine();
+                imgui.SetCursorPosX(390);
+                if(not item.current.hasPassed)then
+                    if(imgui.Button('Pass##TPool' .. i, {35, 25}))then
+                        gInv.TPoolPass(item.slot);
+                    end
+                end
+                imgui.Text('  Current Lot: ' .. tostring(item.current.lot));
+                imgui.SameLine();
+                imgui.SetCursorPosX(200);
+                imgui.Text('Winning Lot: ' .. item.winner.name .. ': ' .. tostring(item.winner.lot));
+                if(item.winner.exists)then
                     imgui.SameLine();
-                    imgui.SetCursorPosX(imgui.GetWindowWidth() - imgui.CalcTextSize(tostring(party[i].TPool[index])) - 10);
-                    imgui.Text(tostring(party[i].TPool[index]));
+                    imgui.SetCursorPosX(300);
+                    imgui.Text(item.winner.name);
                 end
             end
         end

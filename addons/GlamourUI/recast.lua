@@ -106,6 +106,8 @@ local jugs = T{
 
 rchelper.is_open = false;
 
+rchelper.sch_jp = 0;
+
 local function fmt_time(t)
     local time = t / 60;
     local h = math.floor(time / (60 * 60));
@@ -211,6 +213,7 @@ rchelper.makeTimers = function()
 
                 local player = AshitaCore:GetMemoryManager():GetPlayer();
                 local lvl = (player:GetMainJob() == 20) and player:GetMainJobLevel() or player:GetSubJobLevel();
+                rchelper.sch_jp = player:GetJobPointsSpent(20);
 
                 local val = 48;
                 if(lvl < 30) then

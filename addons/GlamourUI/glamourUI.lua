@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '1.2.2';
+addon.version = '1.4.0';
 
 local settings = require('settings');
 
@@ -35,33 +35,34 @@ local imgui = require('imgui');
 local chat = require('chat');
 
 local render_debug = function()
-    local tpool1, tpool2, tpool3 = gParty.GetTreasurePoolSelectedIndex();
-    local huh;
-    local poolItem = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItem(tpool2);
-    local inv = AshitaCore:GetMemoryManager():GetInventory():GetRawStructure();
-    local trpool;
-    local trpoolStatus;
-    if(inv ~= nil)then
-        trpool = inv.TreasurePool;
-        trpoolStatus = inv.TreasurePoolStatus;
-    end
-
     if(GlamourUI.debug == true)then
         if(imgui.Begin('Debug##GlamDebug', GlamourUI.debug, ImGuiWindow_AlwaysAutoResize))then
             imgui.SetWindowFontScale(0.5);
-            if(trpool ~= nil)then
-                imgui.Text(tostring(trpoolStatus));
-                for i=1,#trpool do
-                    imgui.Text('Slot:  ' .. tostring(i));
-                    local tpoolitem = trpool[i];
-                    imgui.Text("Player Lot:  " .. tostring(tpoolitem.Lot));
-                    imgui.Text("Winning Lot:  " .. tostring(tpoolitem.WinningEntityName) .. '[' .. tostring(tpoolitem.WinningLot) .. ']');
-                    for j=1,36 do
-                        imgui.SetCursorPosX(20);
-                        imgui.Text(tostring(tpoolitem.Unknown0000[j]));
-                    end
+            imgui.Text('Param1:  ');
+            if(gPacket.Kill.Param1[1] ~= nil)then
+                for i = 1,#gPacket.Kill.Param1 do
+                    imgui.Text(tostring(i) .. ':  ' .. tostring(gPacket.Kill.Param1[i]).. ', ');
                 end
             end
+            imgui.Text('Param2:  ');
+            if(gPacket.Kill.Param2[1] ~= nil)then
+                for i = 1,#gPacket.Kill.Param2 do
+                    imgui.Text(tostring(i) .. ':  ' .. tostring(gPacket.Kill.Param2[i]).. ', ');
+                end
+            end
+            imgui.Text('Message:  ');
+            if(gPacket.Kill.Message[1] ~= nil)then
+                for i = 1,#gPacket.Kill.Message do
+                    imgui.Text(tostring(i) .. ':  ' .. tostring(gPacket.Kill.Message[i]).. ', ');
+                end
+            end
+            imgui.Text('Flags:  ');
+            if(gPacket.Kill.Flags[1] ~= nil)then
+                for i = 1,#gPacket.Kill.Flags do
+                    imgui.Text(tostring(i) .. ':  ' .. tostring(gPacket.Kill.Flags[i]).. ', ');
+                end
+            end
+            imgui.End();
         end
     end
 end
@@ -162,10 +163,12 @@ GlamourUI = T{
     firstLoad = true,
     settings = settings.load(default_settings),
     font = nil,
-    debug = true
+    debug = false
 }
 
 local loaded = false;
+
+local menu = '';
 
 settings.register('settings', 'settings_update', function(s)
     if (s ~= nil) then
@@ -198,6 +201,20 @@ ashita.events.register('d3d_present', 'present_cb', function()
         pet = GetEntity(player.PetTargetIndex);
     end
 
+    if(gHelper.getMenu() == 'loot')then
+        menu = 'loot';
+    elseif(gHelper.getMenu() == '')then
+        menu = '';
+    end
+
+    local tpoolSize = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItemCount();
+    if(tpoolSize > 0)then
+        gInv.getTreasurePool();
+    else
+        gInv.timestamps = {}
+        gInv.treasurePool = T{}
+    end
+
     gParty.Party = gParty.GetParty();
 
     if(GlamourUI.firstLoad == true and playerSID ~= 0)then
@@ -225,12 +242,12 @@ ashita.events.register('d3d_present', 'present_cb', function()
             gUI.renderCastBar();
             gUI.renderEnvironment();
             gUI.renderFTarget();
-            if(gHelper.getMenu() == 'loot')then
-                --gUI.renderLot();
+            if(menu == 'loot')then
+                gUI.renderLot();
             end
             gUI.renderSkills();
         end
-        --render_debug();
+        render_debug();
         imgui.PopFont();
         if(gRecast.PetDeg.time > 0 and pet ~= nil)then
             if((gRecast.PetDeg.time <= gRecast.PetDeg.endtime) and gRecast.PetDeg.endtime > 0)then
@@ -277,7 +294,7 @@ end)
 ashita.events.register('command', 'command_cb', function (e)
     --Parse Arguments
     local args = e.command:args();
-    if (#args == 0 or not args[1]:any('/glam')) then
+    if (#args == 0 or not args[1]:any('/glam') or not args[1]:any('/lot') or not args[1]:any('/pass')) then
         if((args[1] == '/join' or args[1] == '/decline'))then
             gPacket.InviteActive = false;
         end
@@ -293,27 +310,37 @@ ashita.events.register('command', 'command_cb', function (e)
         print(chat.message('/glam - Show this help text'))
         print(chat.message('/glam config - Opens the Configuration window'));
         print(chat.message('/glam newlayout layoutname - Creates a new layout with name: layoutname'))
-    end
-    --Handle Command
-    if(#args > 1) then
-        if (args[2] == 'config') then
-            gConf.is_open = not gConf.is_open;
-        end
-        if (args[2] == 'newlayout') then
-            if(args[3] ~= nil)then
-                gHelper.createLayout(args[3]);
+    elseif(args[1]:any('/glam'))then
+        --Handle Command
+        if(#args > 1) then
+            if (args[2] == 'config') then
+                gConf.is_open = not gConf.is_open;
             end
-        end
-        if(args[2]:any('focus'))then
-            if(args[3]:any('add'))then
-                gTarget.AddFocusTarget();
+            if (args[2] == 'newlayout') then
+                if(args[3] ~= nil)then
+                    gHelper.createLayout(args[3]);
+                end
             end
-            if(args[3]:any('clear'))then
-                gTarget.ClearFocusTarget();
+            if(args[2] == 'debug' )then
+                GlamourUI.debug = not GlamourUI.debug;
             end
-        end
-        if(args[2]:any('skills'))then
-            gParty.ShowSkills = not gParty.ShowSkills;
+            if(args[2]:any('focus'))then
+                if(args[3]:any('add'))then
+                    gTarget.AddFocusTarget();
+                end
+                if(args[3]:any('clear'))then
+                    gTarget.ClearFocusTarget();
+                end
+            end
+            if(args[2]:any('skills'))then
+                gParty.ShowSkills = not gParty.ShowSkills;
+            end
+            if(args[2]:any('pass'))then
+                gInv.TPoolPass(args[3]);
+            end
+            if(args[2]:any('lot'))then
+                gInv.TPoolLot(args[3]);
+            end
         end
     end
 

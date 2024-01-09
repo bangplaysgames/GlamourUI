@@ -118,6 +118,11 @@ party.EXPTimeDelta = 0;
 party.EXPperHour = 0;
 party.EXPMode = 'EXP';
 party.EXPReset = false;
+party.CPperHour = 0;
+party.CPTimeDelta = 0;
+party.CPTable = {};
+party.CPTimeTable = {};
+party.CPSum = 0;
 
 party.GroupHeight1 = {}
 party.GroupHeight1.x = 0;
@@ -382,7 +387,6 @@ party.render_alliance_panel = function()
             end
             if(a2Count > 0)then
                 local strLen = imgui.CalcTextSize('Party 3');
-                imgui.SetCursorPosY(120);
                 imgui.SetCursorPosX((imgui.GetWindowWidth() - strLen) * 0.5);
                 imgui.Text('Party 3');
                 for i = 12,17,1 do
@@ -513,6 +517,8 @@ party.render_player_stats = function()
                         local JPStrOffset = (imgui.GetWindowWidth() - imgui.CalcTextSize(JPStr)) * 0.5;
                         imgui.SetCursorPosX(JPStrOffset);
                         imgui.Text(JPStr);
+                        imgui.SameLine();
+                        imgui.Text('    ' .. tostring(gParty.CPperHour) .. ' CP/Hr');
                     end
                 end
 

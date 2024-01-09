@@ -47,6 +47,32 @@ local calcEXPperHour = function()
     end
 end
 
+local calcCPperHour = function(p)
+    if(gParty.EXPReset == true)then
+        gParty.CPperHour = 0;
+        gParty.CPSum = 0;
+        gParty.CPTimeDelta = 0;
+        for k,_ in pairs(gParty.CPTable)do
+            table.remove(gParty.CPTable, k);
+        end
+        for k,_ in pairs(gParty.CPTimeTable)do
+            table.remove(gParty.CPTimeTable, k);
+        end
+        gParty.CPTimeTable = nil;
+        gParty.CPTimeTable = {}
+        gParty.CPTable = nil;
+        gParty.CPTable = {}
+        gParty.EXPReset = false;
+    end
+    if(gParty.CPTimeTable[1] ~= nil)then
+        gParty.CPTimeDelta = (os.time() - gParty.CPTimeTable[1]) / 3600;
+    end
+    gParty.CPperHour = math.floor((gParty.CPSum / gParty.CPTimeDelta) * 100) / 100;
+    if(gParty.CPSum == 0)then
+        gParty.CPperHour = 0;
+    end
+end
+
 local setEXPmode = function()
     local player = AshitaCore:GetMemoryManager():GetPlayer();
     if(player:GetIsExperiencePointsLocked() == true)then
@@ -80,6 +106,12 @@ packet.TreasurePool.Item = nil;
 packet.TreasurePool.Drop = nil;
 packet.TreasurePool.HighestLotter = nil;
 packet.TreasurePool.CurrentLotter = nil;
+
+packet.Kill = {}
+packet.Kill.Param1 = { } ;
+packet.Kill.Param2 = { };
+packet.Kill.Message = { };
+packet.Kill.Flags = { };
 
 --Handle Login Packets
 packet.LoginPacket = function(e)
@@ -150,17 +182,45 @@ packet.ActionMessage = function(Packet)
 
 end
 
+packet.MakeTreasureLot = {
+    id = 0x041,
+    name = 'Treasure Lot',
+    parse = nil,
+    make = function(this, slot)
+        return this.id, { 0x00, 0x00, 0x00, 0x00, slot }
+    end,
+}
+
+packet.MakeTreasurePass = {
+    id = 0x042,
+    name = 'Treasure Pass',
+    parse = nil,
+    make = function(this, slot)
+        return this.id, { 0x00, 0x00, 0x00, 0x00, slot }
+    end,
+}
 
 --Handle Kill Message Packets
 packet.KillMessage = function(pack)
     local player = GetPlayerEntity();
     local KMPlayer = struct.unpack('L', pack.data, 0x04 + 1);
     local KMEXP = struct.unpack('L', pack.data, 0x10 + 1);
+    local Param1 = struct.unpack('L', pack.data, 0x10 +1);
+    local Param2 = struct.unpack('L', pack.data, 0x14 +1);
+    local Message = struct.unpack('H', pack.data, 0x18 +1);
+    local Flags = struct.unpack('H', pack.data, 0x1A +1);
 
     if(KMPlayer == player.ServerId)then
-        table.insert(gParty.EXPTimeTable, os.time());
-        table.insert(gParty.EXPTable, KMEXP);
-        gParty.EXPSum = gParty.EXPSum + KMEXP;
+        if Message == 735 then
+            table.insert(gParty.CPTable, Param1);
+            table.insert(gParty.CPTimeTable, os.time());
+            gParty.CPSum = gParty.CPSum + Param1;
+            calcCPperHour();
+        else
+            table.insert(gParty.EXPTimeTable, os.time());
+            table.insert(gParty.EXPTable, KMEXP);
+            gParty.EXPSum = gParty.EXPSum + KMEXP;
+        end
     end
 
     if(gParty.EXPTable ~= nil)then
@@ -170,6 +230,8 @@ packet.KillMessage = function(pack)
             calcEXPperHour();
         end
     end
+
+
 
 end
 
@@ -244,6 +306,7 @@ packet.HandleIncoming = function(e)
         packet.ItemLots(e);
     end
     calcEXPperHour();
+    calcCPperHour();
     setEXPmode();
 end
 

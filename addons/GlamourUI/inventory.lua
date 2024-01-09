@@ -11,11 +11,16 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 local imgui = require('imgui');
 local env = require('scaling');
+local chat = require('chat');
 require('common');
 
 local inventory = {}
 
+inventory.timestamps = {}
+
 inventory.settings = {}
+
+inventory.treasurePool = T{}
 
 inventory.render_inv_panel = function()
     local player = AshitaCore:GetMemoryManager():GetPlayer();
@@ -41,7 +46,7 @@ inventory.render_inv_panel = function()
             local wardMax = gInv.getInventoryMax(8) + gInv.getInventoryMax(10) + gInv.getInventoryMax(11) + gInv.getInventoryMax(12) + gInv.getInventoryMax(13)+ gInv.getInventoryMax(14) + gInv.getInventoryMax(15) + gInv.getInventoryMax(16);
             local tPoolCount = AshitaCore:GetMemoryManager():GetInventory():GetTreasurePoolItemCount();
             local houseCount = gInv.getInventory(1) + gInv.getInventory(2) + gInv.getInventory(4) + gInv.getInventory(9);
-            local houseMax = gInv.getInventoryMax(1) + gInv.getInventoryMax(2) + gInv.getInventoryMax(4);
+            local houseMax = gInv.getInventoryMax(1) + gInv.getInventoryMax(2) + gInv.getInventoryMax(4) + gInv.getInventoryMax(9);
 
             imgui.SetNextWindowBgAlpha(1);
             imgui.SetNextWindowSize(size, ImGuiCond_Always);
@@ -103,6 +108,51 @@ end
 
 inventory.getInventoryMax = function(cont_id)
     return AshitaCore:GetMemoryManager():GetInventory():GetContainerCountMax(cont_id);
+end
+
+inventory.getTreasurePool = function()
+    local res = AshitaCore:GetResourceManager()
+    local inv = AshitaCore:GetMemoryManager():GetInventory()
+    local player = AshitaCore:GetMemoryManager():GetParty():GetMemberName(0)
+    local now = os.time()
+
+    inventory.treasurePool = {}
+
+    for i = 0,9 do
+        local treasureDrop = inv:GetTreasurePoolItem(i)
+        if treasureDrop ~= nil and treasureDrop.ItemId > 0 then
+            local itemInfo = res:GetItemById(treasureDrop.ItemId)
+
+            if not inventory.timestamps[treasureDrop.DropTime] then
+                inventory.timestamps[treasureDrop.DropTime] = now + 300
+            end
+
+            local drop = {}
+            drop.id = itemInfo.Id;
+            drop.slot = i;
+            drop.name = itemInfo.Name[1];
+            drop.time = string.format('%4i', inventory.timestamps[treasureDrop.DropTime] - now);
+            drop.winner = {}
+            drop.winner.exists = treasureDrop.WinningLot > 0;
+            drop.winner.name = treasureDrop.WinningEntityName;
+            drop.winner.lot = string.format('%4i', treasureDrop.WinningLot);
+            drop.current = {}
+            drop.current.name = player;
+            drop.current.lot = string.format('%4i', treasureDrop.Lot);
+            drop.current.hasRolled = treasureDrop.Lot > 0 and treasureDrop.Lot < 1000;
+            drop.current.hasPassed = treasureDrop.Lot > 1000;
+
+            table.insert(inventory.treasurePool, drop);
+        end
+    end
+end
+
+inventory.TPoolLot = function(slot)
+    AshitaCore:GetPacketManager():AddOutgoingPacket(gPacket.MakeTreasureLot:make(slot));
+end
+
+inventory.TPoolPass = function(slot)
+    AshitaCore:GetPacketManager():AddOutgoingPacket(gPacket.MakeTreasurePass:make(slot));
 end
 
 return inventory;
