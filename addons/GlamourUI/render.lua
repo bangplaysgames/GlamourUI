@@ -869,7 +869,7 @@ render.renderLot = function()
                 imgui.Text('  Current Lot: ' .. tostring(item.current.lot));
                 imgui.SameLine();
                 imgui.SetCursorPosX(200);
-                imgui.Text('Winning Lot: ' .. item.winner.name .. ': ' .. tostring(item.winner.lot));
+                imgui.Text('Winning Lot: ' .. item.winner.name .. ' | ' .. tostring(item.winner.lot));
                 if(item.winner.exists)then
                     imgui.SameLine();
                     imgui.SetCursorPosX(300);
