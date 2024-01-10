@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '1.4.0';
+addon.version = '1.4.2';
 
 local settings = require('settings');
 
@@ -294,23 +294,25 @@ end)
 ashita.events.register('command', 'command_cb', function (e)
     --Parse Arguments
     local args = e.command:args();
-    if (#args == 0 or not args[1]:any('/glam') or not args[1]:any('/lot') or not args[1]:any('/pass')) then
-        if((args[1] == '/join' or args[1] == '/decline'))then
-            gPacket.InviteActive = false;
-        end
+    if((args[1] == '/join' or args[1] == '/decline'))then
+        gPacket.InviteActive = false;
         return;
     end
 
-    --Block all related commands
-    e.blocked = true;
-
     --Show Help
     if(args[1]:any('/glam') and (#args ==1 or args[2]:any('help'))) then
+        --Block all related commands
+        e.blocked = true;
         print(chat.header('Glamour UI Commands:'));
         print(chat.message('/glam - Show this help text'))
         print(chat.message('/glam config - Opens the Configuration window'));
-        print(chat.message('/glam newlayout layoutname - Creates a new layout with name: layoutname'))
+        print(chat.message('/glam newlayout layoutname - Creates a new layout with name: layoutname'));
+        print(chat.message('/glam lot slot# - Lots on the treasure pool item in slot: slot#'));
+        print(chat.message('/glam pass slot# - Passes on the treasure pool item in slot: slot#'));
+        print(chat.error('The slot number is reflected in the GlamourUI Treasure Pool.  This number may not reflect the positioning in the default Treasure Pool Window'));
     elseif(args[1]:any('/glam'))then
+        --Block all related commands
+        e.blocked = true;
         --Handle Command
         if(#args > 1) then
             if (args[2] == 'config') then

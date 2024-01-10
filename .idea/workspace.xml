@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -75,13 +75,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1671821876609</updated>
-    </task>
-    <task id="LOCAL-00050" summary="Adjusted chatlog awareness to continue hiding party list until the chatlog is closed, even if the chat input bar is opened.">
-      <created>1673299509535</created>
-      <option name="number" value="00050" />
-      <option name="presentableId" value="LOCAL-00050" />
-      <option name="project" value="LOCAL" />
-      <updated>1673299509536</updated>
     </task>
     <task id="LOCAL-00051" summary="Reimplemented Background to Party List&#10;&#10;Background Opacity only configurable through config file for the time being.">
       <created>1673305127987</created>
@@ -419,7 +412,14 @@
       <option name="project" value="LOCAL" />
       <updated>1704905241214</updated>
     </task>
-    <option name="localTasksCounter" value="99" />
+    <task id="LOCAL-00099" summary="Fixed commands not working">
+      <created>1704906099701</created>
+      <option name="number" value="00099" />
+      <option name="presentableId" value="LOCAL-00099" />
+      <option name="project" value="LOCAL" />
+      <updated>1704906099701</updated>
+    </task>
+    <option name="localTasksCounter" value="100" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -434,7 +434,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Inventory Panel Implemented to cover Default Party List.&#10;&#10;Can be disabled via /glam config&#10;&#10;Changing font or font size on the inventory panel will reload the entire addon.  This is done as a temporary measure to avoid crashing the addons plugin while I search for a fix for the crash." />
     <MESSAGE value="Fix for Crash on Zoning issue" />
     <MESSAGE value="Fixed Gil Crash on Zone and improper login screen issues." />
     <MESSAGE value="Bug Fix:  Pet not lined up properly with rest of party.  Target Arrow not rendering on Pet.&#10;&#10;Preparations for buff/debuff icons on party list.  Not functional yet, but files and functions are starting to be added." />
@@ -459,6 +458,7 @@
     <MESSAGE value="Implemented JP and CP into Player Stats Panel" />
     <MESSAGE value="Mild Bug Fixes&#10;&#10;New Feature:  Treasure Pool&#10;When the treasure pool is open, a treasure pool panel will appear with information about items in the pool.  This panel also provides buttons to pass or lot on items in the pool." />
     <MESSAGE value="Formatting fixes in Treasure Pool Panel for readability." />
-    <option name="LAST_COMMIT_MESSAGE" value="Formatting fixes in Treasure Pool Panel for readability." />
+    <MESSAGE value="Fixed commands not working" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed commands not working" />
   </component>
 </project>
