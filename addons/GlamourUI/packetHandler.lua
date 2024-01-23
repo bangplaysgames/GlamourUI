@@ -97,6 +97,9 @@ packet.buff = {}
 packet.inviter = '';
 packet.InviteActive = false;
 
+--CharInfo
+packet.CharInfo = {}
+
 --Treasure Pool Drops
 packet.TreasurePool = {}
 packet.TreasurePool.Dropper = nil;
@@ -126,6 +129,7 @@ packet.LoginPacket = function(e)
     if(gPacket.action.Target == nil and GetPlayerEntity() ~= nil)then
         gPacket.action.Target = GetPlayerEntity().TargetIndex;
     end
+    packet.CharInfo = {}
 end
 
 
@@ -249,6 +253,15 @@ packet.ItemPacket = function(Packet)
 
 end
 
+packet.WSInfo = function(Packet)
+    local Info = {}
+    local Index = struct.unpack('H', Packet.data, 0x04 + 1);
+    Info.Level = struct.unpack('B', Packet.data, 0x06 + 1);
+    Info.Type = struct.unpack('B', Packet.data, 0x07 + 1);
+    Info.Name = struct.unpack('c16', Packet.data, 0x0C + 1);
+    packet.CharInfo[Index] = Info;
+end
+
 
 --NPC Message Packets
 packet.NPCMessage = function(Packet)
@@ -304,6 +317,8 @@ packet.HandleIncoming = function(e)
         packet.ItemDrop(e);
     elseif(e.id == 0xD3)then
         packet.ItemLots(e);
+    elseif(e.id == 0xF4)then
+        packet.WSInfo(e);
     end
     calcEXPperHour();
     calcCPperHour();

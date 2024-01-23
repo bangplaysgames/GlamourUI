@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '1.4.2';
+addon.version = '1.5.0';
 
 local settings = require('settings');
 
@@ -37,31 +37,15 @@ local chat = require('chat');
 local render_debug = function()
     if(GlamourUI.debug == true)then
         if(imgui.Begin('Debug##GlamDebug', GlamourUI.debug, ImGuiWindow_AlwaysAutoResize))then
-            imgui.SetWindowFontScale(0.5);
-            imgui.Text('Param1:  ');
-            if(gPacket.Kill.Param1[1] ~= nil)then
-                for i = 1,#gPacket.Kill.Param1 do
-                    imgui.Text(tostring(i) .. ':  ' .. tostring(gPacket.Kill.Param1[i]).. ', ');
+            local CharInfo = gPacket.CharInfo;
+                if #CharInfo > 0 then
+                    for i=1,#CharInfo do
+                        imgui.Text('Index:  ' .. tostring(CharInfo[i].Index));
+                        imgui.Text('Level:  ' .. tostring(CharInfo[i].Level));
+                        imgui.Text('Type:  ' .. tostring(CharInfo[i].Type));
+                        imgui.Text('Name:  ' .. tostring(CharInfo[i].Name));
+                    end
                 end
-            end
-            imgui.Text('Param2:  ');
-            if(gPacket.Kill.Param2[1] ~= nil)then
-                for i = 1,#gPacket.Kill.Param2 do
-                    imgui.Text(tostring(i) .. ':  ' .. tostring(gPacket.Kill.Param2[i]).. ', ');
-                end
-            end
-            imgui.Text('Message:  ');
-            if(gPacket.Kill.Message[1] ~= nil)then
-                for i = 1,#gPacket.Kill.Message do
-                    imgui.Text(tostring(i) .. ':  ' .. tostring(gPacket.Kill.Message[i]).. ', ');
-                end
-            end
-            imgui.Text('Flags:  ');
-            if(gPacket.Kill.Flags[1] ~= nil)then
-                for i = 1,#gPacket.Kill.Flags do
-                    imgui.Text(tostring(i) .. ':  ' .. tostring(gPacket.Kill.Flags[i]).. ', ');
-                end
-            end
             imgui.End();
         end
     end
@@ -300,52 +284,51 @@ ashita.events.register('command', 'command_cb', function (e)
     end
 
     --Show Help
-    if(args[1]:any('/glam') and (#args ==1 or args[2]:any('help'))) then
-        --Block all related commands
-        e.blocked = true;
-        print(chat.header('Glamour UI Commands:'));
-        print(chat.message('/glam - Show this help text'))
-        print(chat.message('/glam config - Opens the Configuration window'));
-        print(chat.message('/glam newlayout layoutname - Creates a new layout with name: layoutname'));
-        print(chat.message('/glam lot slot# - Lots on the treasure pool item in slot: slot#'));
-        print(chat.message('/glam pass slot# - Passes on the treasure pool item in slot: slot#'));
-        print(chat.error('The slot number is reflected in the GlamourUI Treasure Pool.  This number may not reflect the positioning in the default Treasure Pool Window'));
-    elseif(args[1]:any('/glam'))then
-        --Block all related commands
-        e.blocked = true;
-        --Handle Command
-        if(#args > 1) then
-            if (args[2] == 'config') then
-                gConf.is_open = not gConf.is_open;
-            end
-            if (args[2] == 'newlayout') then
-                if(args[3] ~= nil)then
-                    gHelper.createLayout(args[3]);
+    if(#args > 0)then
+        if(args[1]:any('/glam') and (#args ==1 or args[2]:any('help'))) then
+            --Block all related commands
+            e.blocked = true;
+            print(chat.header('Glamour UI Commands:'));
+            print(chat.message('/glam - Show this help text'))
+            print(chat.message('/glam config - Opens the Configuration window'));
+            print(chat.message('/glam newlayout layoutname - Creates a new layout with name: layoutname'));
+            print(chat.message('/glam lot slot# - Lots on the treasure pool item in slot: slot#'));
+            print(chat.message('/glam pass slot# - Passes on the treasure pool item in slot: slot#'));
+            print(chat.error('The slot number is reflected in the GlamourUI Treasure Pool.  This number may not reflect the positioning in the default Treasure Pool Window'));
+        elseif(args[1]:any('/glam'))then
+            --Block all related commands
+            e.blocked = true;
+            --Handle Command
+            if(#args > 1) then
+                if (args[2] == 'config') then
+                    gConf.is_open = not gConf.is_open;
                 end
-            end
-            if(args[2] == 'debug' )then
-                GlamourUI.debug = not GlamourUI.debug;
-            end
-            if(args[2]:any('focus'))then
-                if(args[3]:any('add'))then
-                    gTarget.AddFocusTarget();
+                if (args[2] == 'newlayout') then
+                    if(args[3] ~= nil)then
+                        gHelper.createLayout(args[3]);
+                    end
                 end
-                if(args[3]:any('clear'))then
-                    gTarget.ClearFocusTarget();
+                if(args[2] == 'debug' )then
+                    GlamourUI.debug = not GlamourUI.debug;
                 end
-            end
-            if(args[2]:any('skills'))then
-                gParty.ShowSkills = not gParty.ShowSkills;
-            end
-            if(args[2]:any('pass'))then
-                gInv.TPoolPass(args[3]);
-            end
-            if(args[2]:any('lot'))then
-                gInv.TPoolLot(args[3]);
+                if(args[2]:any('focus'))then
+                    if(args[3]:any('add'))then
+                        gTarget.AddFocusTarget();
+                    end
+                    if(args[3]:any('clear'))then
+                        gTarget.ClearFocusTarget();
+                    end
+                end
+                if(args[2]:any('skills'))then
+                    gParty.ShowSkills = not gParty.ShowSkills;
+                end
+                if(args[2]:any('pass'))then
+                    gInv.TPoolPass(args[3]);
+                end
+                if(args[2]:any('lot'))then
+                    gInv.TPoolLot(args[3]);
+                end
             end
         end
     end
-
-
-
 end)

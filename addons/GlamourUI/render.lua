@@ -626,6 +626,9 @@ render.RenderTargetBar = function()
         local target = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(AshitaCore:GetMemoryManager():GetTarget():GetIsSubTargetActive())
         local targetEntity = GetEntity(target);
         local subtarg = gTarget.getSubTargetEntity();
+        local flags1 = AshitaCore:GetMemoryManager():GetEntity():GetRenderFlags1(target);
+        local flags3 = AshitaCore:GetMemoryManager():GetEntity():GetRenderFlags3(target);
+        local nameStatus = getNameStatus(flags1, flags3, target);
 
 
         imgui.SetNextWindowSize({ -1, -1}, ImGuiCond_Always);
@@ -634,7 +637,12 @@ render.RenderTargetBar = function()
         if(targetEntity ~= nil) then
             if(imgui.Begin('TargetBar##GlamTB', gTarget.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
                 imgui.SetWindowFontScale((GlamourUI.settings.TargetBar.font_scale * .6) * GlamourUI.settings.TargetBar.gui_scale);
-                local targStrLen = imgui.CalcTextSize(targetEntity.Name);
+                local targStrLen;
+                if(gPacket.CharInfo[target] ~= nil)then
+                    targStrLen = imgui.CalcTextSize(targetEntity.Name .. "Lv. ???");
+                else
+                    targStrLen = imgui.CalcTextSize(targetEntity.Name);
+                end
                 local targHPLen = imgui.CalcTextSize(tostring(targetEntity.HPPercent));
                 local hpbTex = gResources.getTex(GlamourUI.settings, 'TargetBar', 'hpBar.png');
                 local hpfTex = gResources.getTex(GlamourUI.settings, 'TargetBar', 'hpFill.png');
@@ -657,9 +665,21 @@ render.RenderTargetBar = function()
                     local targHPOffset = (GlamourUI.settings.TargetBar.hpBarDim.l - targHPLen) * 0.5;
 
                     --Returns a single PushStyleColor()
-                    gTarget.GetNameplateColor(targetEntity);
+                    gTarget.GetNameplateColor(target);
                     imgui.SetCursorPosX(targOffset * GlamourUI.settings.TargetBar.gui_scale);;
                     imgui.Text(targetEntity.Name);
+                    imgui.SameLine();
+                    if(nameStatus.type == 'mob')then
+                        if(gPacket.CharInfo[target] == nil)then
+                            imgui.Text('Lv. ???');
+                        else
+                            if(gPacket.CharInfo[target].Level == nil)then
+                                imgui.Text('Lv. ???');
+                            else
+                                imgui.Text('Lv. ' .. tostring(gPacket.CharInfo[target].Level));
+                            end
+                        end
+                    end
                     imgui.PopStyleColor();
 
                     --Mob ID
@@ -841,6 +861,37 @@ render.renderLot = function()
     imgui.SetNextWindowSize({200,1}, ImGuiCond_FirstUseEver);
     local index = gParty.GetTreasurePoolSelectedIndex();
     if(imgui.Begin('Lots##GlamParty', gParty.tpoolis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
+        local passCount = 0;
+        local lotCount = 0;
+        for i=1,#gInv.treasurePool do
+            if(gInv.treasurePool[i].current.hasRolled)then
+               lotCount = lotCount + 1;
+            end
+            if(gInv.treasurePool[i].current.hasPassed)then
+                passCount = passCount +1;
+            end
+        end
+        local allPass = passCount == #gInv.treasurePool;
+        local allLot = lotCount == #gInv.treasurePool;
+        imgui.SetCursorPosX(50);
+        if(not allPass and not allLot)then
+            if(imgui.Button('Lot All##TPool'))then
+                for i=1,#gInv.treasurePool do
+                    if(not gInv.treasurePool[i].current.hasRool)then
+                        gInv.TPoolLot(gInv.treasurePool[i].slot);
+                    end
+                end
+            end
+        end
+        if(not allPass)then
+            imgui.SameLine();
+            imgui.SetCursorPosX(150);
+            if(imgui.Button('Pass All##TPool'))then
+                for i=1,#gInv.treasurePool do
+                    gInv.TPoolPass(gInv.treasurePool[i].slot);
+                end
+            end
+        end
         imgui.SetWindowFontScale(0.7);
         imgui.SetCursorPosX((imgui.GetWindowWidth() - imgui.CalcTextSize('Loot Table')) * 0.5);
         imgui.Text('Loot Table');
@@ -852,16 +903,16 @@ render.renderLot = function()
                 imgui.SameLine();
                 imgui.SetCursorPosX(200);
                 imgui.Text('Time till Drop: ' .. item.time);
-                imgui.SameLine();
-                imgui.SetCursorPosX(350);
                 if(not item.current.hasRolled and not item.current.hasPassed)then
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(350);
                     if(imgui.Button('Lot##TPool' .. i, {35, 25}))then
                         gInv.TPoolLot(item.slot);
                     end
                 end
-                imgui.SameLine();
-                imgui.SetCursorPosX(390);
                 if(not item.current.hasPassed)then
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(390);
                     if(imgui.Button('Pass##TPool' .. i, {35, 25}))then
                         gInv.TPoolPass(item.slot);
                     end
@@ -869,11 +920,11 @@ render.renderLot = function()
                 imgui.Text('  Current Lot: ' .. tostring(item.current.lot));
                 imgui.SameLine();
                 imgui.SetCursorPosX(200);
-                imgui.Text('Winning Lot: ' .. item.winner.name .. ' | ' .. tostring(item.winner.lot));
+                imgui.Text('Winning Lot: ' .. item.winner.name);
                 if(item.winner.exists)then
                     imgui.SameLine();
-                    imgui.SetCursorPosX(300);
-                    imgui.Text(item.winner.name);
+                    imgui.SetCursorPosX(350);
+                    imgui.Text(tostring(item.winner.lot));
                 end
             end
         end

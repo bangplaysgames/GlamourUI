@@ -18,7 +18,7 @@ end
 
 --Returns if entity is claimed, and if so, if it's by the player's party/alliance or not.
 local function getClaimed(e)
-    local claimStatus = e.ClaimStatus;
+    local claimStatus = AshitaCore:GetMemoryManager():GetEntity():GetClaimStatus(e);
     if (claimStatus == 0) then
         return 'unclaimed';
     end
@@ -34,55 +34,35 @@ local function getClaimed(e)
 end
 
 --Target Bar Nameplate Status
-local function getNameStatus(f1, f2, e)
+getNameStatus = function(f1, f2, e)
+    local spawnFlags = AshitaCore:GetMemoryManager():GetEntity():GetSpawnFlags(e);
     local t = {
-        mob = false,
-        player = false,
-        otherPlayer = false,
-        cfh = false,
-        partyClaimed = false,
-        otherClaimed = false,
-        charmed = false,
-        anon = false,
-        seekParty = false,
-        npc = false
+        type = '',
+        status = '',
     }
-    if(bit.band(f1, 0x800))then
-        t.npc = true;
-    end
-    if(bit.band(f1, 0x2000000) == 0x2000000)then
-        t.mob = true;
-
+    if(bit.band(spawnFlags, 0x02) == 0x02)then
+        t.type = 'npc';
+    elseif(bit.band(spawnFlags, 0x10) == 0x10)then
+        t.type = 'mob';
         if(bit.band(f2, 0x2000) == 0x2000)then
-            t.charmed = true;
-        end
-        if(bit.band(f1, 0x1000000) == 0x1000000)then
-            t.cfh = true;
-        end
-        if(getClaimed(e) == 'party')then
-            t.partyClaimed = true;
+            t.status = 'charmed';
+        elseif(bit.band(f1, 0x1000000) == 0x1000000)then
+            t.status = 'cfh';
+        elseif(getClaimed(e) == 'party')then
+            t.status = 'partyClaimed';
         elseif(getClaimed(e) == 'other')then
-            t.otherClaimed = true;
-        end
-    end
-    if(bit.band(f1, 0x3000000) == 0x3000000)then
-        t.cfh = true;
-    end
-    if(bit.band(f1, 0x8000000) == 0x8000000)then
-        if(bit.band(f1, 0x2000800) == 0x2000800)then
-            t.mob = false;
-            t.otherPlayer = true;
-            t.npc = false;
+            t.status = 'otherClaimed';
         else
-            t.player = true;
-            t.npc = false;
+            t.status = 'unclaimed';
         end
-    end
-    if(bit.band(f1, 0x800000) == 0x800000)then
-        t.anon = true;
-    end
-    if(bit.band(f1, 0x100000) == 0x100000)then
-        t.seekParty = true;
+    elseif(bit.band(spawnFlags, 0x01) == 0x01 or bit.band(spawnFlags, 0x0d) == 0x0d)then
+        t.type = 'player'
+
+        if(bit.band(f1, 0x800000) == 0x800000)then
+            t.status = 'anon';
+        elseif(bit.band(f1, 0x100000) == 0x100000)then
+            t.status = 'seekParty';
+        end
     end
     return t;
 end
@@ -109,36 +89,36 @@ end
 
 --Returns the Color of Target Bar Nameplate
 target.GetNameplateColor = function(e)
-    local flags1 = e.Render.Flags1;
-    local flags3 = e.Render.Flags3;
-    local status = getNameStatus(flags1, flags3, e);
+    local flags1 = AshitaCore:GetMemoryManager():GetEntity():GetRenderFlags1(e);
+    local flags3 = AshitaCore:GetMemoryManager():GetEntity():GetRenderFlags3(e);
+    local nameStatus = getNameStatus(flags1, flags3, e);
 
-    if(status.mob == true)then
-        if(status.partyClaimed == true)then
+    if(nameStatus.type == 'mob')then
+        if(nameStatus.status == 'partyClaimed')then
             imgui.PushStyleColor(ImGuiCol_Text, {1.0, 0.2, 0.2, 1.0});
             return;
-        elseif(status.otherClaimed == true)then
+        elseif(nameStatus.status == 'otherClaimed')then
             imgui.PushStyleColor(ImGuiCol_Text, {1.0, 0.2, 0.8, 1.0});
             return;
-        elseif(status.cfh == true) then
+        elseif(nameStatus.status == 'cfh') then
             imgui.PushStyleColor(ImGuiCol_Text, {1.0, 0.7, 0.3, 1.0});
             return;
-        else
+        elseif(nameStatus.status == 'unclaimed')then
             imgui.PushStyleColor(ImGuiCol_Text, {1.0, 1.0, 0.2, 1.0});
             return;
         end
     end
-    if(status.npc == true)then
+    if(nameStatus.type == 'npc')then
         imgui.PushStyleColor(ImGuiCol_Text, {0.2, 0.8, 0.2, 1.0});
         return;
     end
 
-    if(status.seekParty == true)then
+    if(nameStatus.status == 'seekParty')then
         imgui.PushStyleColor(ImGuiCol_Text, {0.8, 0.8, 1.0, 1.0});
         return;
     end
-    if(status.player == true or status.otherPlayer == true) then
-        if(status.anon == true)then
+    if(nameStatus.type == 'player') then
+        if(nameStatus.status == 'anon')then
             imgui.PushStyleColor(ImGuiCol_Text, {0.24, 0.56, 0.73, 1.0});
             return;
         else
