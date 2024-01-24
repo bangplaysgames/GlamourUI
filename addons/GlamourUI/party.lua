@@ -123,6 +123,12 @@ party.CPTimeDelta = 0;
 party.CPTable = {};
 party.CPTimeTable = {};
 party.CPSum = 0;
+party.ExemPTable = {}
+party.ExemPTimeTable = {}
+party.ExemPperHour = 0;
+party.ExemPSum = 0;
+party.ExemPTimeDelta = 0;
+
 
 party.GroupHeight1 = {}
 party.GroupHeight1.x = 0;
@@ -181,6 +187,12 @@ party.GetMember = function(i)
         end
         Member.Zone = getZone(i);
         Member.TPool = party.getLot(i);
+        if(i == 0)then
+            Member.Mastered = AshitaCore:GetMemoryManager():GetPlayer():GetJobPointsSpent(Member.Job) >= 2100;
+            Member.ML = AshitaCore:GetMemoryManager():GetPlayer():GetMasteryJobLevel(Member.Job);
+            Member.ExemP = AshitaCore:GetMemoryManager():GetPlayer():GetMasteryExp();
+            Member.MLTNL = AshitaCore:GetMemoryManager():GetPlayer():GetMasteryExpNeeded();
+        end
     end
     return Member;
 end
@@ -479,7 +491,11 @@ party.render_player_stats = function()
                 else
                     imgui.Image(efTex, {expBarLen * (curLP / 10000), 14}, {0,0}, {curLP / 10000, 1});
                 end
-                local phOffset = imgui.CalcTextSize(tostring(gParty.EXPperHour .. ' ' .. expModeStr));
+                local EXPperHourStr = tostring(gParty.EXPperHour);
+                if(gParty.EXPperHour >= 1000000)then
+                    EXPperHourStr = tostring(math.floor((gParty.EXPperHour / 1000000) * 100) / 100) .. 'M';
+                end
+                local phOffset = imgui.CalcTextSize(tostring(EXPperHourStr .. ' ' .. expModeStr));
                 imgui.SetCursorPosX(imgui.GetWindowWidth() - phOffset - 50);
                 imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 30);
                 imgui.Text('     ');
@@ -493,7 +509,7 @@ party.render_player_stats = function()
                 else
                     imgui.SetCursorPosX(imgui.GetWindowWidth() - phOffset - 50);
                     imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 30);
-                    imgui.Text(tostring(gParty.EXPperHour .. ' ' .. expModeStr));
+                    imgui.Text(tostring(EXPperHourStr .. ' ' .. expModeStr));
                 end
                 local stroffset = (imgui.GetWindowWidth() - imgui.CalcTextSize(job)) * 0.5;
                 imgui.SetCursorPosX(stroffset);
@@ -505,20 +521,49 @@ party.render_player_stats = function()
                     imgui.SetCursorPosX(imgui.GetWindowWidth() * 0.66);
                     imgui.Text('Merits:  ' .. merits);
                     if(gParty.Party[1].Level == 99)then
-                        local cp = player:GetCapacityPoints(gParty.Party[1].Job);
-                        local jp = player:GetJobPoints(gParty.Party[1].Job);
-                        imgui.SetCursorPosX(50);
-                        imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 50);
-                        imgui.Image(ebTex, {expBarLen, 5});
-                        imgui.SetCursorPosX(50);
-                        imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 50);
-                        imgui.Image(efTex, {expBarLen * (cp / 30000), 5}, {0,0}, {cp / 30000, 1});
-                        local JPStr = ('CP:  ' .. tostring(cp) .. ' / 30000 : (' .. tostring(jp) .. ' JP)');
-                        local JPStrOffset = (imgui.GetWindowWidth() - imgui.CalcTextSize(JPStr)) * 0.5;
-                        imgui.SetCursorPosX(JPStrOffset);
-                        imgui.Text(JPStr);
-                        imgui.SameLine();
-                        imgui.Text('    ' .. tostring(gParty.CPperHour) .. ' CP/Hr');
+                        if(not gParty.Party[1].Mastered)then
+                            local cp = player:GetCapacityPoints(gParty.Party[1].Job);
+                            local jp = player:GetJobPoints(gParty.Party[1].Job);
+                            imgui.SetCursorPosX(50);
+                            imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 50);
+                            imgui.Image(ebTex, {expBarLen, 5});
+                            imgui.SetCursorPosX(50);
+                            imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 50);
+                            imgui.Image(efTex, {expBarLen * (cp / 30000), 5}, {0,0}, {cp / 30000, 1});
+                            local JPStr = ('CP:  ' .. tostring(cp) .. ' / 30000 : (' .. tostring(jp) .. ' JP)');
+                            local JPStrOffset = (imgui.GetWindowWidth() - imgui.CalcTextSize(JPStr)) * 0.5;
+                            imgui.SetCursorPosX(JPStrOffset);
+                            imgui.Text(JPStr);
+                            imgui.SameLine();
+                            local CPperHourStr = tostring(gParty.CPperHour);
+                            if(gParty.CPperHour >= 1000000)then
+                                CPperHourStr = tostring(math.floor((gParty.CPperHour / 1000000) * 100) / 100) .. 'M';
+                            end
+                            local CPphOffset = (imgui.CalcTextSize(CPperHourStr));
+                            imgui.SetCursorPosX(imgui.GetWindowWidth() - CPphOffset - 50);
+                            imgui.Text(tostring(CPperHourStr) .. ' CP/Hr');
+                        else
+                            local ExemP = gParty.Party[1].ExemP;
+                            local MLTNL = gParty.Party[1].MLTNL;
+                            imgui.SetCursorPosX(50);
+                            imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 50);
+                            imgui.Image(ebTex, {expBarLen, 5});
+                            imgui.SetCursorPosX(50);
+                            imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 50);
+                            imgui.Image(efTex, {expBarLen * (ExemP / MLTNL), 5}, {0,0}, {ExemP / MLTNL, 1});
+                            local JPStr = ('ExemP:  ' .. tostring(ExemP) .. ' / ' .. tostring(MLTNL) .. ' | Master Level:  ' .. tostring(gParty.Party[1].ML));
+                            local JPStrOffset = (imgui.GetWindowWidth() - imgui.CalcTextSize(JPStr)) * 0.5;
+                            imgui.SetCursorPosX(JPStrOffset);
+                            imgui.Text(JPStr);
+                            imgui.SameLine();
+                            local ExemPperHourStr = tostring(gParty.ExemPperHour);
+                            if(gParty.ExemPperHour >= 1000000)then
+                                ExemPperHourStr = tostring(math.floor((gParty.ExemPperHour / 1000000) * 100) / 100) .. 'M';
+                            end
+                            local ExemPphOffset = (imgui.CalcTextSize(ExemPperHourStr));
+                            imgui.SetCursorPosX(imgui.GetWindowWidth() - ExemPphOffset - 150);
+                            imgui.Text(tostring(ExemPperHourStr) .. ' ExemP/Hr');
+                        end
                     end
                 end
 

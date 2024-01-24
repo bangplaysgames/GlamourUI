@@ -48,6 +48,7 @@ local calcEXPperHour = function()
 end
 
 local calcCPperHour = function(p)
+    gParty.GetParty();
     if(gParty.EXPReset == true)then
         gParty.CPperHour = 0;
         gParty.CPSum = 0;
@@ -70,6 +71,32 @@ local calcCPperHour = function(p)
     gParty.CPperHour = math.floor((gParty.CPSum / gParty.CPTimeDelta) * 100) / 100;
     if(gParty.CPSum == 0)then
         gParty.CPperHour = 0;
+    end
+end
+
+local calcExemPperHour = function(p)
+    if(gParty.EXPReset == true)then
+        gParty.ExemPperHour = 0;
+        gParty.ExemPSum = 0;
+        gParty.ExemPTimeDelta = 0;
+        for k,_ in pairs(gParty.ExemPTable)do
+            table.remove(gParty.ExemPTable, k);
+        end
+        for k,_ in pairs(gParty.ExemPTimeTable)do
+            table.remove(gParty.ExemPTimeTable, k);
+        end
+        gParty.ExemPTimeTable = nil;
+        gParty.ExemPTimeTable = {}
+        gParty.ExemPTable = nil;
+        gParty.ExemPTable = {}
+        gParty.EXPReset = false;
+    end
+    if(gParty.ExemPTimeTable[1] ~= nil)then
+        gParty.ExemPTimeDelta = (os.time() - gParty.ExemPTimeTable[1]) / 3600;
+    end
+    gParty.ExemPperHour = math.floor((gParty.ExemPSum / gParty.ExemPTimeDelta) * 100) / 100;
+    if(gParty.ExemPSum == 0)then
+        gParty.ExemPperHour = 0;
     end
 end
 
@@ -220,6 +247,11 @@ packet.KillMessage = function(pack)
             table.insert(gParty.CPTimeTable, os.time());
             gParty.CPSum = gParty.CPSum + Param1;
             calcCPperHour();
+        elseif(Message == 810)then
+            table.insert(gParty.ExemPTable, Param1);
+            table.insert(gParty.ExemPTimeTable, os.time());
+            gParty.ExemPSum = gParty.ExemPSum + Param1;
+            calcExemPperHour();
         else
             table.insert(gParty.EXPTimeTable, os.time());
             table.insert(gParty.EXPTable, KMEXP);

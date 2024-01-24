@@ -3,9 +3,9 @@
   <component name="ChangeListManager">
     <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="Fixed">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/glamourui.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/glamourui.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/render.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/render.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/target.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/target.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/packetHandler.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/packetHandler.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/party.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/party.lua" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
