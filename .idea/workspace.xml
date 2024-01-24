@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="">
+    <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="Fixed">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/packetHandler.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/packetHandler.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/glamourui.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/glamourui.lua" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/addons/GlamourUI/render.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/render.lua" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/addons/GlamourUI/target.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/target.lua" afterDir="false" />
     </list>
@@ -79,13 +78,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1671821876609</updated>
-    </task>
-    <task id="LOCAL-00053" summary="Implemented Textured Background for Themes&#10;&#10;Due to the method used to make this work, the background image will not move smoothly when adjusting the location of the party.  Once in place, it will be fine.">
-      <created>1673489453636</created>
-      <option name="number" value="00053" />
-      <option name="presentableId" value="LOCAL-00053" />
-      <option name="project" value="LOCAL" />
-      <updated>1673489453636</updated>
     </task>
     <task id="LOCAL-00054" summary="Implemented Textured Background for Themes&#10;&#10;Due to the method used to make this work, the background image will not move smoothly when adjusting the location of the party.  Once in place, it will be fine.">
       <created>1673489622489</created>
@@ -423,7 +415,14 @@
       <option name="project" value="LOCAL" />
       <updated>1704906741377</updated>
     </task>
-    <option name="localTasksCounter" value="102" />
+    <task id="LOCAL-00102" summary="Fixed Target Window Name Color Inconsistency&#10;&#10;Added mob level to target window when targeting a combat target mob. --- This level requires receiving a widescan packet for the mob in question.  Without data on the mob in question, the level will read as ???.">
+      <created>1706043664743</created>
+      <option name="number" value="00102" />
+      <option name="presentableId" value="LOCAL-00102" />
+      <option name="project" value="LOCAL" />
+      <updated>1706043664743</updated>
+    </task>
+    <option name="localTasksCounter" value="103" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -438,7 +437,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Fix for Crash on Zoning issue" />
     <MESSAGE value="Fixed Gil Crash on Zone and improper login screen issues." />
     <MESSAGE value="Bug Fix:  Pet not lined up properly with rest of party.  Target Arrow not rendering on Pet.&#10;&#10;Preparations for buff/debuff icons on party list.  Not functional yet, but files and functions are starting to be added." />
     <MESSAGE value="Hiding of UI elements when opening /rmap, /cmap, /bmap, or /map." />
@@ -463,6 +461,7 @@
     <MESSAGE value="Mild Bug Fixes&#10;&#10;New Feature:  Treasure Pool&#10;When the treasure pool is open, a treasure pool panel will appear with information about items in the pool.  This panel also provides buttons to pass or lot on items in the pool." />
     <MESSAGE value="Formatting fixes in Treasure Pool Panel for readability." />
     <MESSAGE value="Fixed commands not working" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed commands not working" />
+    <MESSAGE value="Fixed Target Window Name Color Inconsistency&#10;&#10;Added mob level to target window when targeting a combat target mob. --- This level requires receiving a widescan packet for the mob in question.  Without data on the mob in question, the level will read as ???." />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed Target Window Name Color Inconsistency&#10;&#10;Added mob level to target window when targeting a combat target mob. --- This level requires receiving a widescan packet for the mob in question.  Without data on the mob in question, the level will read as ???." />
   </component>
 </project>

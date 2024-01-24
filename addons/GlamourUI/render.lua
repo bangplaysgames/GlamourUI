@@ -623,12 +623,10 @@ render.RenderTargetBar = function()
     gResources.pokeCache(GlamourUI.settings);
     if (GlamourUI.settings.TargetBar.enabled) then
         local player = AshitaCore:GetMemoryManager():GetPlayer();
-        local target = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(AshitaCore:GetMemoryManager():GetTarget():GetIsSubTargetActive())
+        local target = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(0)
         local targetEntity = GetEntity(target);
         local subtarg = gTarget.getSubTargetEntity();
-        local flags1 = AshitaCore:GetMemoryManager():GetEntity():GetRenderFlags1(target);
-        local flags3 = AshitaCore:GetMemoryManager():GetEntity():GetRenderFlags3(target);
-        local nameStatus = getNameStatus(flags1, flags3, target);
+        local nameStatus = getNameStatus();
 
 
         imgui.SetNextWindowSize({ -1, -1}, ImGuiCond_Always);
@@ -665,18 +663,22 @@ render.RenderTargetBar = function()
                     local targHPOffset = (GlamourUI.settings.TargetBar.hpBarDim.l - targHPLen) * 0.5;
 
                     --Returns a single PushStyleColor()
-                    gTarget.GetNameplateColor(target);
+                    if(nameStatus ~= nil)then
+                        gTarget.GetNameplateColor(target);
+                    end
                     imgui.SetCursorPosX(targOffset * GlamourUI.settings.TargetBar.gui_scale);;
                     imgui.Text(targetEntity.Name);
                     imgui.SameLine();
-                    if(nameStatus.type == 'mob')then
-                        if(gPacket.CharInfo[target] == nil)then
-                            imgui.Text('Lv. ???');
-                        else
-                            if(gPacket.CharInfo[target].Level == nil)then
+                    if(nameStatus ~= nil)then
+                        if(nameStatus.type == 'mob')then
+                            if(gPacket.CharInfo[target] == nil)then
                                 imgui.Text('Lv. ???');
                             else
-                                imgui.Text('Lv. ' .. tostring(gPacket.CharInfo[target].Level));
+                                if(gPacket.CharInfo[target].Level == nil)then
+                                    imgui.Text('Lv. ???');
+                                else
+                                    imgui.Text('Lv. ' .. tostring(gPacket.CharInfo[target].Level));
+                                end
                             end
                         end
                     end

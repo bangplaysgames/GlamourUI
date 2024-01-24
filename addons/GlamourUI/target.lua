@@ -34,8 +34,9 @@ local function getClaimed(e)
 end
 
 --Target Bar Nameplate Status
-getNameStatus = function(f1, f2, e)
-    local spawnFlags = AshitaCore:GetMemoryManager():GetEntity():GetSpawnFlags(e);
+getNameStatus = function()
+    local target = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(0)
+    local spawnFlags = AshitaCore:GetMemoryManager():GetEntity():GetSpawnFlags(target);
     local t = {
         type = '',
         status = '',
@@ -44,25 +45,15 @@ getNameStatus = function(f1, f2, e)
         t.type = 'npc';
     elseif(bit.band(spawnFlags, 0x10) == 0x10)then
         t.type = 'mob';
-        if(bit.band(f2, 0x2000) == 0x2000)then
-            t.status = 'charmed';
-        elseif(bit.band(f1, 0x1000000) == 0x1000000)then
-            t.status = 'cfh';
-        elseif(getClaimed(e) == 'party')then
+        if(getClaimed(target) == 'party')then
             t.status = 'partyClaimed';
-        elseif(getClaimed(e) == 'other')then
+        elseif(getClaimed(target) == 'other')then
             t.status = 'otherClaimed';
         else
             t.status = 'unclaimed';
         end
     elseif(bit.band(spawnFlags, 0x01) == 0x01 or bit.band(spawnFlags, 0x0d) == 0x0d)then
         t.type = 'player'
-
-        if(bit.band(f1, 0x800000) == 0x800000)then
-            t.status = 'anon';
-        elseif(bit.band(f1, 0x100000) == 0x100000)then
-            t.status = 'seekParty';
-        end
     end
     return t;
 end
@@ -88,10 +79,8 @@ target.getSubTargetEntity = function()
 end
 
 --Returns the Color of Target Bar Nameplate
-target.GetNameplateColor = function(e)
-    local flags1 = AshitaCore:GetMemoryManager():GetEntity():GetRenderFlags1(e);
-    local flags3 = AshitaCore:GetMemoryManager():GetEntity():GetRenderFlags3(e);
-    local nameStatus = getNameStatus(flags1, flags3, e);
+target.GetNameplateColor = function()
+    local nameStatus = getNameStatus(AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(0));
 
     if(nameStatus.type == 'mob')then
         if(nameStatus.status == 'partyClaimed')then
