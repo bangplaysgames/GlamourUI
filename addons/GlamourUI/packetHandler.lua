@@ -111,6 +111,9 @@ end
 
 local packet = {}
 
+packet.IncActionType = 0;
+packet.IncActionMessage = {}
+
 packet.Player = 0;
 packet.action = {}
 packet.action.Casting = false;
@@ -186,12 +189,12 @@ packet.IncActionPacket = function(Packet)
     local user = struct.unpack('L', Packet.data, 0x05 + 1);
     local actionType = ashita.bits.unpack_be(Packet.data_raw, 10, 2, 4);
 
+    packet.IncActionType = actionType;
     
     --Check if player server ID set.  If not, Set it.
     if(gPacket.Player == 0) then
         gPacket.Player = GetPlayerEntity().ServerId;
     end
-    
 
     if(user == gPacket.Player)then
         if(actionType == 8) then
@@ -203,14 +206,16 @@ packet.IncActionPacket = function(Packet)
             end
             coroutine.sleep(gPacket.action.Resource.CastTime * .4);
             gPacket.action.Casting = false;
+        elseif(actionType == 6)then
+            packet.IncActionMessage.Actor = struct.unpack('L', Packet.data, 0x05 +1);
+            packet.IncActionMessage.Roll = ashita.bits.unpack_be(Packet.data_raw, 86, 10);
+            packet.IncActionMessage.Param = ashita.bits.unpack_be(Packet.data_raw, 213, 17);
         end
     end
 end
 
 --Handle Action Message Packets
 packet.ActionMessage = function(Packet)
-    
-
 end
 
 packet.MakeTreasureLot = {

@@ -171,6 +171,12 @@ conf.render_config = function()
                     if(imgui.Checkbox('Hide Default Party List##Plist', {GlamourUI.settings.Party.pList.hideDefault}))then
                         GlamourUI.settings.Party.pList.hideDefault = not GlamourUI.settings.Party.pList.hideDefault;
                     end
+
+                    --FillDown
+                    if(imgui.Checkbox('Fill Down##Plist', {GlamourUI.settings.Party.pList.FillDown}))then
+                        GlamourUI.settings.Party.pList.FillDown = not GlamourUI.settings.Party.pList.FillDown;
+                    end;
+
                     imgui.EndChild();
                     imgui.EndTabItem();
                 end

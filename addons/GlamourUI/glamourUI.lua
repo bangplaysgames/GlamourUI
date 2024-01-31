@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '1.5.1';
+addon.version = '1.7.0';
 
 local settings = require('settings');
 
@@ -37,15 +37,12 @@ local chat = require('chat');
 local render_debug = function()
     if(GlamourUI.debug == true)then
         if(imgui.Begin('Debug##GlamDebug', GlamourUI.debug, ImGuiWindow_AlwaysAutoResize))then
-            local CharInfo = gPacket.CharInfo;
-                if #CharInfo > 0 then
-                    for i=1,#CharInfo do
-                        imgui.Text('Index:  ' .. tostring(CharInfo[i].Index));
-                        imgui.Text('Level:  ' .. tostring(CharInfo[i].Level));
-                        imgui.Text('Type:  ' .. tostring(CharInfo[i].Type));
-                        imgui.Text('Name:  ' .. tostring(CharInfo[i].Name));
-                    end
-                end
+            if(gPacket.IncActionMessage ~= nil)then
+                imgui.Text('Action Type: ' .. tostring(gPacket.IncActionType));
+                imgui.Text('Actor: ' .. tostring(gPacket.IncActionMessage.Actor));
+                imgui.Text('Roll:  ' .. tostring(gPacket.IncActionMessage.Actor));
+                imgui.Text('Param1:  ' .. tostring(gPacket.IncActionMessage.Param));
+            end
             imgui.End();
         end
     end
@@ -64,6 +61,7 @@ local default_settings = T{
             buff_scale = 1,
             buffTheme = 'Default',
             layout = 'Default',
+            FillDown = false,
             theme = 'Default',
             themed = true,
             x = 12,

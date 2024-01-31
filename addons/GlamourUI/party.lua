@@ -257,8 +257,6 @@ party.render_party_list = function()
     if(GlamourUI.settings.Party.pList.enabled == true and gHelper.chatIsOpen == false)then
 
         --Party List Rendering
-        imgui.SetNextWindowSize({ -1, -1 }, ImGuiCond_Always);
-        imgui.SetNextWindowPos({GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y}, ImGuiCond_FirstUseEver);
         local hpbTex = gResources.getTex(GlamourUI.settings.Party, 'pList', 'hpBar.png');
         local hpfTex = gResources.getTex(GlamourUI.settings.Party, 'pList','hpFill.png');
         local mpbTex = gResources.getTex(GlamourUI.settings.Party, 'pList', 'mpBar.png');
@@ -270,6 +268,19 @@ party.render_party_list = function()
         local lsyncTex = gResources.getTex(GlamourUI.settings.Party, 'pList', 'levelSync.png');
         local stargTex = gResources.getTex(GlamourUI.settings.Party, 'pList', 'subTarget.png');
         local glowTex = gResources.getTex(GlamourUI.settings.Party, 'pList', 'glow.png');
+        local Party = AshitaCore:GetMemoryManager():GetParty();
+        local partyCount = 0;
+        local pListPos = {GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y }
+
+        for i=0,5,1 do
+            if (Party:GetMemberIsActive(i) > 0)then
+                partyCount = partyCount + 1;
+            end
+        end
+
+        if(GlamourUI.settings.Party.pList.FillDown)then
+            pListPos = {GlamourUI.settings.Party.pList.x - ((55 + gParty.layout.padding) * partyCount), GlamourUI.settings.Party.pList.y}
+        end
 
         --Check for missing textures.  Disable themeing and skip frame if textures are missing
         if(hpbTex == nil or hpfTex == nil or mpbTex == nil or mpfTex == nil or tpbTex == nil or tpfTex == nil or targTex == nil or pleadTex == nil or lsyncTex == nil) then
@@ -277,18 +288,15 @@ party.render_party_list = function()
             return;
         end
 
+        imgui.SetNextWindowSize({ -1, -1 }, ImGuiCond_Always);
+        imgui.SetNextWindowPos(pListPos, ImGuiCond_FirstUseEver);
+
         --Party List Rendering
         if(imgui.Begin('PartyList##GlamPList', gParty.plistis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
             local pos = {imgui.GetCursorScreenPos()};
-            local Party = AshitaCore:GetMemoryManager():GetParty();
-            local partyCount = 0;
             imgui.Text('');
 
-            for i=0,5,1 do
-                if (Party:GetMemberIsActive(i) > 0)then
-                    partyCount = partyCount + 1;
-                end
-            end
+
 
             --Draw Party Members on Party List
             local player = GetPlayerEntity();
@@ -299,56 +307,106 @@ party.render_party_list = function()
             if(Party:GetMemberServerId(0) ~= 0)then
                 pet = GetEntity(player.PetTargetIndex);
             end
-            for m = 1,partyCount,1 do
-                if(gParty.Party[m] ~= nil)then
+
+            if(GlamourUI.settings.Party.pList.FillDown)then
+                for m = 1,partyCount,1 do
+                    if(gParty.Party[m] ~= nil)then
 
 
-                    imgui.BeginGroup(('PartyMember %s##GlamPList'):fmt(gParty.Party[m].Name));
+                        imgui.BeginGroup(('PartyMember %s##GlamPList'):fmt(gParty.Party[m].Name));
 
-                    --[[if(gParty.Hovered == true)then
-                        local x = imgui.CalcItemWidth();
-                        local y = gParty.GroupHeight2.y - gParty.GroupHeight1.y;
-                        imgui.SetCursorPos({gParty.GroupHeight1.x, gParty.GroupHeight1.y});
-                        imgui.Image(glowTex, {x, y});
-                    end]]
+                        --[[if(gParty.Hovered == true)then
+                            local x = imgui.CalcItemWidth();
+                            local y = gParty.GroupHeight2.y - gParty.GroupHeight1.y;
+                            imgui.SetCursorPos({gParty.GroupHeight1.x, gParty.GroupHeight1.y});
+                            imgui.Image(glowTex, {x, y});
+                        end]]
 
-                    --Determine Render Priority and then render objects in order of lowest priority tobhighest
+                        --Determine Render Priority and then render objects in order of lowest priority tobhighest
+                        for i = 1,5,1 do
+                            local p = i - 1;
+                            p = 5 - p;
+                            gUI.renderPlayerThemed(p, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, stargTex, pleadTex, lsyncTex, m - 1, gParty.Party[m]);
+                        end
+                        imgui.EndGroup();
+                        imgui.SameLine();
+                        gParty.GroupHeight2.x, gParty.GroupHeight2.y =  imgui.GetCursorPos();
+                        if(imgui.IsItemHovered())then
+                            gParty.Hovered = true;
+                        else
+                            gParty.Hovered = false;
+                        end
+                        if(imgui.IsItemClicked())then
+                            AshitaCore:GetChatManager():QueueCommand(-1, ("/ta %s"):fmt(gParty.Party[m].Name));
+                        end
+                        imgui.NewLine();
+                    end
+                end
+
+                --Add Pet to Party List
+                if(pet ~= nil) then
+                    imgui.BeginGroup('Pet##GlamPList');
                     for i = 1,5,1 do
                         local p = i - 1;
                         p = 5 - p;
-                        gUI.renderPlayerThemed(p, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, stargTex, pleadTex, lsyncTex, m - 1, gParty.Party[m]);
+                        gUI.renderPetThemed(p, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, stargTex, pet, partyCount);
                     end
                     imgui.EndGroup();
-                    imgui.SameLine();
-                    gParty.GroupHeight2.x, gParty.GroupHeight2.y =  imgui.GetCursorPos();
-                    if(imgui.IsItemHovered())then
-                        gParty.Hovered = true;
-                    else
-                        gParty.Hovered = false;
-                    end
                     if(imgui.IsItemClicked())then
-                        AshitaCore:GetChatManager():QueueCommand(-1, ("/ta %s"):fmt(gParty.Party[m].Name));
+                        AshitaCore:GetChatManager():QueueCommand(-1, ("/ta <pet>"));
                     end
-                    imgui.NewLine();
                 end
-            end
+            elseif(not GlamourUI.settings.Party.pList.FillDown)then
+                for m = partyCount,1,-1 do
+                    if(gParty.Party[m] ~= nil)then
 
-            --Add Pet to Party List
-            if(pet ~= nil) then
-                imgui.BeginGroup('Pet##GlamPList');
-                for i = 1,5,1 do
-                    local p = i - 1;
-                    p = 5 - p;
-                    gUI.renderPetThemed(p, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, stargTex, pet, partyCount);
-                end
-                imgui.EndGroup();
-                if(imgui.IsItemClicked())then
-                    AshitaCore:GetChatManager():QueueCommand(-1, ("/ta <pet>"));
-                end
-            end
 
-            imgui.Text('');
-            imgui.End();
+                        imgui.BeginGroup(('PartyMember %s##GlamPList'):fmt(gParty.Party[m].Name));
+
+                        --[[if(gParty.Hovered == true)then
+                            local x = imgui.CalcItemWidth();
+                            local y = gParty.GroupHeight2.y - gParty.GroupHeight1.y;
+                            imgui.SetCursorPos({gParty.GroupHeight1.x, gParty.GroupHeight1.y});
+                            imgui.Image(glowTex, {x, y});
+                        end]]
+
+                        --Determine Render Priority and then render objects in order of lowest priority tobhighest
+                        for i = 1,5,1 do
+                            local p = i - 1;
+                            p = 5 - p;
+                            gUI.renderPlayerThemed(p, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, stargTex, pleadTex, lsyncTex, (m - partyCount) * -1, gParty.Party[m]);
+                        end
+                        imgui.EndGroup();
+                        imgui.SameLine();
+                        gParty.GroupHeight2.x, gParty.GroupHeight2.y =  imgui.GetCursorPos();
+                        if(imgui.IsItemHovered())then
+                            gParty.Hovered = true;
+                        else
+                            gParty.Hovered = false;
+                        end
+                        if(imgui.IsItemClicked())then
+                            AshitaCore:GetChatManager():QueueCommand(-1, ("/ta %s"):fmt(gParty.Party[m].Name));
+                        end
+                        imgui.NewLine();
+                    end
+                end
+
+                --Add Pet to Party List
+                if(pet ~= nil) then
+                    imgui.BeginGroup('Pet##GlamPList');
+                    for i = 1,5,1 do
+                        local p = i - 1;
+                        p = 5 - p;
+                        gUI.renderPetThemed(p, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, stargTex, pet, partyCount);
+                    end
+                    imgui.EndGroup();
+                    if(imgui.IsItemClicked())then
+                        AshitaCore:GetChatManager():QueueCommand(-1, ("/ta <pet>"));
+                    end
+                end
+                imgui.Text('');
+                imgui.End();
+            end
         end
     end
 end

@@ -687,6 +687,7 @@ render.RenderTargetBar = function()
                     --Mob ID
                     imgui.SameLine();
                     imgui.SetCursorPosX(30 * GlamourUI.settings.TargetBar.gui_scale);
+                    imgui.SetWindowFontScale((GlamourUI.settings.TargetBar.font_scale * .4) * GlamourUI.settings.TargetBar.gui_scale);
                     imgui.Text(string.format('Mob ID:  %x', targetEntity.ServerId));
 
                     --Distance
@@ -694,6 +695,7 @@ render.RenderTargetBar = function()
                     imgui.SetCursorPosX(GlamourUI.settings.TargetBar.hpBarDim.l - imgui.CalcTextSize(tostring(math.floor(math.sqrt(targetEntity.Distance) * 100) / 100)));
                     imgui.Text('     ' .. tostring(math.floor(math.sqrt(targetEntity.Distance) * 100) / 100));
 
+                    imgui.SetWindowFontScale((GlamourUI.settings.TargetBar.font_scale * .6) * GlamourUI.settings.TargetBar.gui_scale);
                     imgui.SetCursorPosX(30 * GlamourUI.settings.TargetBar.gui_scale);
                     imgui.PushStyleColor(ImGuiCol_Text, {1.0, 1.0, 1.0, 1.0});
                     imgui.Image(hpbTex, {GlamourUI.settings.TargetBar.hpBarDim.l * GlamourUI.settings.TargetBar.gui_scale, GlamourUI.settings.TargetBar.hpBarDim.g * GlamourUI.settings.TargetBar.gui_scale});
