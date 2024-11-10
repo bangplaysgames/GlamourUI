@@ -84,14 +84,16 @@ render.renderPlayerThemed = function(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ
             --Check Target and Set Cursor
             if(targetEntity ~= nil) then
                 if(targetEntity.ServerId == Member.Id) then
+                    imgui.SetCursorPosX((5 + gParty.layout.jobIconPos.x) * GlamourUI.settings.Party.pList.gui_scale);
+                    imgui.SetCursorPosY((yOffset + gParty.layout.jobIconPos.y) * GlamourUI.settings.Party.pList.gui_scale);
                     imgui.Image(targ, {25 * GlamourUI.settings.Party.pList.gui_scale, 25 * GlamourUI.settings.Party.pList.gui_scale});
                 end
             end
 
             --Check for Sub Target and set cursor
             if((sTargActive == true and sTarget == p) or subtarg.ServerId == Member.Id)then
-                imgui.SetCursorPosX(gParty.layout.NamePosition.x * GlamourUI.settings.Party.pList.gui_scale);
-                imgui.SetCursorPosY((yOffset + gParty.layout.NamePosition.y) * GlamourUI.settings.Party.pList.gui_scale);
+                imgui.SetCursorPosX((5 + gParty.layout.jobIconPos.x) * GlamourUI.settings.Party.pList.gui_scale);
+                imgui.SetCursorPosY((yOffset + gParty.layout.jobIconPos.y) * GlamourUI.settings.Party.pList.gui_scale);
                 imgui.Image(starg, {25 * GlamourUI.settings.Party.pList.gui_scale, 25 * GlamourUI.settings.Party.pList.gui_scale});
             end
 

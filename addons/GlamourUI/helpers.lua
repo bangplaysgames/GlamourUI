@@ -72,7 +72,7 @@ helpers.createLayout = function(name)
     file:write('        \'hp\',\n');
     file:write('        \'mp\',\n');
     file:write('        \'tp\',\n');
-    file:write('        \'buffs\'\n');
+    file:write('        \'buffs\',\n');
     file:write('        \'jobIcon\'\n');
     file:write('    },\n');
     file:write('    NamePosition = {\n');
@@ -114,9 +114,9 @@ helpers.createLayout = function(name)
     file:write('        y = 0\n');
     file:write('    },\n');
     file:write('    jobIconPos = {\n');
-    file:write('        x = 0\n');
+    file:write('        x = 0,\n');
     file:write('        y = 0\n');
-    file:write('    }\n')
+    file:write('    },\n')
     file:write('    padding = 0')
     file:write('};\n')
     file:write('return layout;')
@@ -137,7 +137,7 @@ helpers.updateLayoutFile = function(name)
     file:write('        \'hp\',\n');
     file:write('        \'mp\',\n');
     file:write('        \'tp\',\n');
-    file:write('        \'buffs\'\n');
+    file:write('        \'buffs\',\n');
     file:write('        \'jobIcon\n');
     file:write('    },\n');
     file:write('    NamePosition = {\n');
