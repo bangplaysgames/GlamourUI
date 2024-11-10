@@ -1,17 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="Lots of new updates, most of which are bug-fixes.&#10;&#10;Added Job Icons">
+    <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/conf.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/conf.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/helpers.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/helpers.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/packetHandler.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/packetHandler.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/party.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/party.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/render.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/render.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/target.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/target.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Layouts/Angular/layout.lua" beforeDir="false" afterPath="$PROJECT_DIR$/config/addons/GlamourUI/Layouts/Angular/layout.lua" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Layouts/Bubble/layout.lua" beforeDir="false" afterPath="$PROJECT_DIR$/config/addons/GlamourUI/Layouts/Bubble/layout.lua" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -84,13 +75,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1671821876609</updated>
-    </task>
-    <task id="LOCAL-00056" summary="Added missing texture to Desat">
-      <created>1673490095605</created>
-      <option name="number" value="00056" />
-      <option name="presentableId" value="LOCAL-00056" />
-      <option name="project" value="LOCAL" />
-      <updated>1673490095605</updated>
     </task>
     <task id="LOCAL-00057" summary="Custom Fonts&#10;Better Textured Backgrounds&#10;Indicators (Now in a working version!)">
       <created>1673545533155</created>
@@ -428,7 +412,14 @@
       <option name="project" value="LOCAL" />
       <updated>1706734212811</updated>
     </task>
-    <option name="localTasksCounter" value="105" />
+    <task id="LOCAL-00105" summary="Lots of new updates, most of which are bug-fixes.&#10;&#10;Added Job Icons">
+      <created>1731260633190</created>
+      <option name="number" value="00105" />
+      <option name="presentableId" value="LOCAL-00105" />
+      <option name="project" value="LOCAL" />
+      <updated>1731260633190</updated>
+    </task>
+    <option name="localTasksCounter" value="106" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">

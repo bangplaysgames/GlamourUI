@@ -4,7 +4,8 @@ local layout = {
         'hp',
         'mp',
         'tp',
-        'buffs'
+        'buffs',
+        'jobIcon',
     },
     NamePosition = {
         x = 48,
