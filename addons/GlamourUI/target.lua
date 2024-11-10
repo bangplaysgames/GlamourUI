@@ -119,6 +119,7 @@ end
 
 target.AddFocusTarget = function()
     local targ = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(AshitaCore:GetMemoryManager():GetTarget():GetIsSubTargetActive());
+
     local targetEntity = GetEntity(targ);
     if(targetEntity == nil)then
         print(chat.header('No Target Selected to Add to Focus List'));

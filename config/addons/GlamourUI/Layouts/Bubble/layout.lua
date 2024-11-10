@@ -44,5 +44,9 @@ local layout = {
         x = 400,
         y = 0
     },
+    jobIconPos = {
+        x = 0,
+        y = 0,
+    },
     padding = 28};
 return layout;

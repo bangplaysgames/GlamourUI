@@ -33,6 +33,12 @@ local abgpos = {
     x = 0,
     y = 0
 }
+PartyMemberSize = T{
+    x1 = 0,
+    y1 = 0,
+    x2 = 0,
+    y2 = 0
+}
 
 party.Leader1 = '';
 party.Leader2 = '';
@@ -51,7 +57,9 @@ party.layout = {
         'name',
         'hp',
         'mp',
-        'tp'
+        'tp',
+        'buffs',
+        'jobIcon'
     },
     NamePosition = {
         x = 0,
@@ -88,6 +96,10 @@ party.layout = {
         g = 16
     },
     BuffPos = {
+        x = 0,
+        y = 0
+    },
+    jobIconPos = {
         x = 0,
         y = 0
     },
@@ -140,7 +152,10 @@ party.GroupHeight2.y = 0;
 
 party.tpoolis_open = false;
 
-
+party.UpdatePos = function()
+    GlamourUI.settings.Party.pList.x = GlamourUI.PartyList.x;
+    GlamourUI.settings.Party.pList.y = GlamourUI.PartyList.y;
+end
 
 party.LevelSync = function(p)
     if(bit.band(AshitaCore:GetMemoryManager():GetParty():GetMemberFlagMask(p), 0x100) == 0x100)then
@@ -270,7 +285,6 @@ party.render_party_list = function()
         local glowTex = gResources.getTex(GlamourUI.settings.Party, 'pList', 'glow.png');
         local Party = AshitaCore:GetMemoryManager():GetParty();
         local partyCount = 0;
-        local pListPos = {GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y }
 
         for i=0,5,1 do
             if (Party:GetMemberIsActive(i) > 0)then
@@ -278,9 +292,18 @@ party.render_party_list = function()
             end
         end
 
-        if(GlamourUI.settings.Party.pList.FillDown)then
-            pListPos = {GlamourUI.settings.Party.pList.x - ((55 + gParty.layout.padding) * partyCount), GlamourUI.settings.Party.pList.y}
+        if(not GlamourUI.settings.Party.pList.FillDown)then
+            if(GlamourUI.PartyList.Drag)then
+                imgui.SetNextWindowPos({GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y}, ImGuiCond_Once, {0.0, 1.0});
+                GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y = imgui.GetWindowPos();
+            end
+        else
+            if(GlamourUI.PartyList.Drag)then
+                imgui.SetNextWindowPos({GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y}, ImGuiCond_Once, {0.0, 0.0});
+                GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y = imgui.GetWindowPos();
+            end
         end
+
 
         --Check for missing textures.  Disable themeing and skip frame if textures are missing
         if(hpbTex == nil or hpfTex == nil or mpbTex == nil or mpfTex == nil or tpbTex == nil or tpfTex == nil or targTex == nil or pleadTex == nil or lsyncTex == nil) then
@@ -289,14 +312,20 @@ party.render_party_list = function()
         end
 
         imgui.SetNextWindowSize({ -1, -1 }, ImGuiCond_Always);
-        imgui.SetNextWindowPos(pListPos, ImGuiCond_FirstUseEver);
 
         --Party List Rendering
         if(imgui.Begin('PartyList##GlamPList', gParty.plistis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
             local pos = {imgui.GetCursorScreenPos()};
-            imgui.Text('');
 
-
+            if(not GlamourUI.settings.Party.pList.FillDown)then
+                if(not GlamourUI.PartyList.Drag)then
+                    imgui.SetWindowPos({GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y}, 0, {0.0, 1.0});
+                end
+            else
+                if(not GlamourUI.PartyList.Drag)then
+                    imgui.SetWindowPos({GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y}, 0, {0.0, 0.0});
+                end
+            end
 
             --Draw Party Members on Party List
             local player = GetPlayerEntity();
@@ -311,22 +340,15 @@ party.render_party_list = function()
             if(GlamourUI.settings.Party.pList.FillDown)then
                 for m = 1,partyCount,1 do
                     if(gParty.Party[m] ~= nil)then
-
+                        local jobIconTex = gResources.getTex(GlamourUI.settings.Party, 'pList', ('%s.png'):fmt(AshitaCore:GetResourceManager():GetString("jobs.names_abbr", gParty.Party[m].Job)));
 
                         imgui.BeginGroup(('PartyMember %s##GlamPList'):fmt(gParty.Party[m].Name));
 
-                        --[[if(gParty.Hovered == true)then
-                            local x = imgui.CalcItemWidth();
-                            local y = gParty.GroupHeight2.y - gParty.GroupHeight1.y;
-                            imgui.SetCursorPos({gParty.GroupHeight1.x, gParty.GroupHeight1.y});
-                            imgui.Image(glowTex, {x, y});
-                        end]]
-
                         --Determine Render Priority and then render objects in order of lowest priority tobhighest
-                        for i = 1,5,1 do
+                        for i = 1,6,1 do
                             local p = i - 1;
-                            p = 5 - p;
-                            gUI.renderPlayerThemed(p, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, stargTex, pleadTex, lsyncTex, m - 1, gParty.Party[m]);
+                            p = 6 - p;
+                            gUI.renderPlayerThemed(p, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, stargTex, pleadTex, lsyncTex, m - 1, gParty.Party[m], jobIconTex);
                         end
                         imgui.EndGroup();
                         imgui.SameLine();
@@ -404,7 +426,7 @@ party.render_party_list = function()
                         AshitaCore:GetChatManager():QueueCommand(-1, ("/ta <pet>"));
                     end
                 end
-                imgui.Text('');
+                GlamourUI.PartyList.x, GlamourUI.PartyList.y = imgui.GetWindowPos();
                 imgui.End();
             end
         end
@@ -575,13 +597,13 @@ party.render_player_stats = function()
                 imgui.Text(job);
                 if(party.EXPMode == 'LP')then
                     local merits = tostring(player:GetMeritPoints()) .. '/' .. tostring(player:GetMeritPointsMax());
+                    local cp = player:GetCapacityPoints(gParty.Party[1].Job);
+                    local jp = player:GetJobPoints(gParty.Party[1].Job);
                     imgui.SameLine();
                     imgui.SetCursorPosX(imgui.GetWindowWidth() * 0.66);
                     imgui.Text('Merits:  ' .. merits);
-                    if(gParty.Party[1].Level == 99)then
+                    if(gParty.Party[1].Level == 99 or cp > 0 or jp > 0)then
                         if(not gParty.Party[1].Mastered)then
-                            local cp = player:GetCapacityPoints(gParty.Party[1].Job);
-                            local jp = player:GetJobPoints(gParty.Party[1].Job);
                             imgui.SetCursorPosX(50);
                             imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 50);
                             imgui.Image(ebTex, {expBarLen, 5});

@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '1.7.0';
+addon.version = '1.8.0';
 
 local settings = require('settings');
 
@@ -37,12 +37,8 @@ local chat = require('chat');
 local render_debug = function()
     if(GlamourUI.debug == true)then
         if(imgui.Begin('Debug##GlamDebug', GlamourUI.debug, ImGuiWindow_AlwaysAutoResize))then
-            if(gPacket.IncActionMessage ~= nil)then
-                imgui.Text('Action Type: ' .. tostring(gPacket.IncActionType));
-                imgui.Text('Actor: ' .. tostring(gPacket.IncActionMessage.Actor));
-                imgui.Text('Roll:  ' .. tostring(gPacket.IncActionMessage.Actor));
-                imgui.Text('Param1:  ' .. tostring(gPacket.IncActionMessage.Param));
-            end
+
+            imgui.Text(tostring(GlamourUI.PartyList.Pos));
             imgui.End();
         end
     end
@@ -145,7 +141,12 @@ GlamourUI = T{
     firstLoad = true,
     settings = settings.load(default_settings),
     font = nil,
-    debug = false
+    debug = false,
+    PartyList = {
+        Drag = false,
+        x = 0,
+        y = 0
+    }
 }
 
 local loaded = false;
@@ -173,6 +174,8 @@ ashita.events.register('load', 'load_cb', function()
     end
     gPartyBuffs = gResources.ReadPartyBuffsFromMemory();
     gHide.Load();
+    GlamourUI.PartyList.x = GlamourUI.settings.Party.pList.x;
+    GlamourUI.PartyList.y = GlamourUI.settings.Party.pList.y;
 end)
 
 ashita.events.register('d3d_present', 'present_cb', function()
@@ -228,6 +231,7 @@ ashita.events.register('d3d_present', 'present_cb', function()
                 gUI.renderLot();
             end
             gUI.renderSkills();
+            gInv.render_inv_panel();
         end
         render_debug();
         imgui.PopFont();

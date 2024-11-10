@@ -49,7 +49,7 @@ end
 
 local render = {}
 
-render.renderPlayerThemed = function(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, starg, plead, lsync, p, Member)
+render.renderPlayerThemed = function(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, starg, plead, lsync, p, Member, jIT)
     local element = gParty.layout.Priority;
     local target = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(AshitaCore:GetMemoryManager():GetTarget():GetIsSubTargetActive());
     local targetEntity = GetEntity(target);
@@ -75,6 +75,8 @@ render.renderPlayerThemed = function(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ
     --Draw Member Element
     imgui.SetWindowFontScale((GlamourUI.settings.Party.pList.font_scale * 0.5) * GlamourUI.settings.Party.pList.gui_scale);
     if(GlamourUI.settings.Party.pList.themed == true)then
+        local MainJob = AshitaCore:GetResourceManager():GetString("jobs.names_abbr", Member.Job);
+        local SubJob = AshitaCore:GetResourceManager():GetString("jobs.names_abbr", Member.SJob);
         if(element[e] == 'name')then
             imgui.SetCursorPosX(gParty.layout.NamePosition.x * GlamourUI.settings.Party.pList.gui_scale);
             imgui.SetCursorPosY((yOffset + gParty.layout.NamePosition.y) * GlamourUI.settings.Party.pList.gui_scale);
@@ -105,6 +107,10 @@ render.renderPlayerThemed = function(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ
             imgui.PushStyleColor(ImGuiCol_Text, Member.Color);
             imgui.Text(Member.Name);
             imgui.PopStyleColor();
+            imgui.SameLine();
+            imgui.SetCursorPosX((gParty.layout.NamePosition.x + 100) * GlamourUI.settings.Party.pList.gui_scale);
+            imgui.SetCursorPosY((yOffset + gParty.layout.NamePosition.y) * GlamourUI.settings.Party.pList.gui_scale);
+            imgui.Text(MainJob .. Member.Level .. '/' .. SubJob .. Member.SJLevel);
             if(p ~= 0) then
                 imgui.SameLine();
                 local strOffset = imgui.CalcTextSize(tostring(distance));
@@ -205,9 +211,12 @@ render.renderPlayerThemed = function(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ
                     DrawStatusIcons(debuffs, (20 * GlamourUI.settings.Party.pList.buff_scale) * GlamourUI.settings.Party.pList.gui_scale, 8, 2, GlamourUI.settings.Party.pList.buffTheme);
                     imgui.PopStyleVar(1);
                 end
-
                 return;
             end
+        elseif(element[e] == 'jobIcon')then
+            imgui.SetCursorPosX((5 + gParty.layout.jobIconPos.x) * GlamourUI.settings.Party.pList.gui_scale);
+            imgui.SetCursorPosY((yOffset + gParty.layout.jobIconPos.y) * GlamourUI.settings.Party.pList.gui_scale);
+            imgui.Image(jIT, {64 * GlamourUI.settings.Party.pList.gui_scale, 64 * GlamourUI.settings.Party.pList.gui_scale});
         end
     else
         if(element[e] == 'name')then
@@ -400,7 +409,7 @@ render.renderPetThemed = function(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ, s
             imgui.Image(hpfT, {(gParty.layout.hpBarDim.l * (p.HPPercent / 100)) * GlamourUI.settings.Party.pList.gui_scale, gParty.layout.hpBarDim.g * GlamourUI.settings.Party.pList.gui_scale}, {0, 0}, {(p.HPPercent / 100), 1});
             imgui.SetCursorPosX((30 + gParty.layout.HPBarPosition.x + gParty.layout.HPBarPosition.textX) * GlamourUI.settings.Party.pList.gui_scale);
             imgui.SetCursorPosY((yOffset + gParty.layout.HPBarPosition.y + gParty.layout.HPBarPosition.textY) * GlamourUI.settings.Party.pList.gui_scale);
-            imgui.Text(tostring(p.HPPercent) .. '%%');
+            imgui.Text(tostring(p.HPPercent) .. '%');
             return;
         end
 
@@ -675,7 +684,7 @@ render.RenderTargetBar = function()
                                 imgui.Text('Lv. ???');
                             else
                                 if(gPacket.CharInfo[target].Level == nil)then
-                                    imgui.Text('Lv. ???');
+
                                 else
                                     imgui.Text('Lv. ' .. tostring(gPacket.CharInfo[target].Level));
                                 end
@@ -704,7 +713,7 @@ render.RenderTargetBar = function()
                     imgui.Image(hpfTex, {(GlamourUI.settings.TargetBar.hpBarDim.l*(targetEntity.HPPercent /100) * GlamourUI.settings.TargetBar.gui_scale),(GlamourUI.settings.TargetBar.hpBarDim.g * GlamourUI.settings.TargetBar.gui_scale)}, {0, 0}, {targetEntity.HPPercent / 100, 1 });
                     imgui.SetCursorPosY(35 * GlamourUI.settings.TargetBar.gui_scale);
                     imgui.SetCursorPosX(targHPOffset * GlamourUI.settings.TargetBar.gui_scale);
-                    imgui.Text(tostring(targetEntity.HPPercent) .. '%%');
+                    imgui.Text(tostring(targetEntity.HPPercent) .. '%');
                     imgui.PopStyleColor();
                     if(gTarget.IsTargetLocked()) then
                         imgui.SetCursorPosX(0);
@@ -903,6 +912,7 @@ render.renderLot = function()
         for i=1,#gInv.treasurePool do
             local item = gInv.treasurePool[i];
             if(item.name ~= nil)then
+                imgui.BeginChild('TPool'..tostring(i)..'##TPOOL', {450, 50 }, false);
                 imgui.Text(tostring(item.slot) .. ':  ' .. item.name);
                 imgui.SameLine();
                 imgui.SetCursorPosX(200);
@@ -930,6 +940,7 @@ render.renderLot = function()
                     imgui.SetCursorPosX(350);
                     imgui.Text(tostring(item.winner.lot));
                 end
+                imgui.EndChild();
             end
         end
         imgui.End();
@@ -942,7 +953,7 @@ render.renderEnvironment = function()
     local dTex = gResources.GetDayIcon(time.day);
     local moonTex = gResources.getTex(GlamourUI.settings, 'Env', 'moon.png');
     local mPhase, mPerc = gEnv.GetMoon();
-    local moonStr = mPhase .. ":  " .. tostring(mPerc) .. '%%';
+    local moonStr = mPhase .. ":  " .. tostring(mPerc) .. '%';
 
     if(imgui.Begin('Environment##GlamEnv', gEnv.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
         imgui.SetWindowFontScale(0.6 * GlamourUI.settings.Env.font_scale);

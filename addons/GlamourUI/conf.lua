@@ -74,7 +74,7 @@ conf.render_config = function()
 
 
     if(conf.is_open == true)then
-        imgui.SetNextWindowSize({500, 325});
+        imgui.SetNextWindowSize({600, 350});
         if(imgui.Begin('ConfMain##GlamConf', conf.is_open, bit.bor(ImGuiWindowFlags_NoDecoration)))then
             local txtOffset = ((500 - imgui.CalcTextSize('Glamour UI Configuration')) * 0.5);
             imgui.SetCursorPosX(txtOffset);
@@ -83,19 +83,27 @@ conf.render_config = function()
             imgui.SetWindowFontScale(0.35);
             if(imgui.BeginTabBar('ConfTabBar##Glam'))then
                 if(imgui.BeginTabItem('Party List'))then
-                    imgui.BeginChild('PartyList##GlamPList', {485, 210}, false);
+                    imgui.BeginChild('PartyList##GlamPList', {585, 235}, false);
 
                     --Enable Toggle
                     if(imgui.Checkbox('Enabled##Plist', {GlamourUI.settings.Party.pList.enabled}))then
                         GlamourUI.settings.Party.pList.enabled = not GlamourUI.settings.Party.pList.enabled;
-                    end;imgui.SameLine();
+                    end;
+                    imgui.SameLine();
                     imgui.SetCursorPosX(200);
                     
                     --Theme Toggle
                     if(imgui.Checkbox('Themed##Plist', {GlamourUI.settings.Party.pList.themed}))then
                         GlamourUI.settings.Party.pList.themed = not GlamourUI.settings.Party.pList.themed;
                     end
-                    
+
+                    imgui.SameLine();
+                    imgui.SetCursorPosX(400);
+                    if(imgui.Checkbox('EnableDrag##Plist', {GlamourUI.PartyList.Drag}))then
+                        gParty.UpdatePos();
+                        GlamourUI.PartyList.Drag = not GlamourUI.PartyList.Drag;
+                    end
+
                     --Theme Selector
                     if(imgui.BeginCombo('Theme##PList', GlamourUI.settings.Party.pList.theme, combo_flags))then
                         imgui.SetWindowFontScale(0.3);
@@ -133,7 +141,7 @@ conf.render_config = function()
 
                     --Layout Editor
                     imgui.SameLine();
-                    imgui.SetCursorPosX(400);
+                    imgui.SetCursorPosX(450);
                     if(imgui.Button('Layout Editor##GlamPList'))then
                         plLEditor = not plLEditor;
                     end
@@ -586,7 +594,7 @@ conf.render_config = function()
     end
 
     if(plLEditor == true)then
-        imgui.SetNextWindowSize({465, 765});
+        imgui.SetNextWindowSize({465, 845});
         if(imgui.Begin('LayoutEditor##Glam', plLEditor, bit.bor(ImGuiWindowFlags_NoDecoration)))then
             imgui.SetWindowFontScale(0.3);
             local priority = gParty.layout.Priority;
@@ -621,6 +629,10 @@ conf.render_config = function()
             local buffPos = T{
                 x = {gParty.layout.BuffPos.x},
                 y = {gParty.layout.BuffPos.y}
+            }
+            local jIPos = T{
+                x = {gParty.layout.jobIconPos.x},
+                y = {gParty.layout.jobIconPos.y}
             }
 
             imgui.Text('Layout Editor');
@@ -933,6 +945,38 @@ conf.render_config = function()
             imgui.SameLine();
             if(imgui.ArrowButton('Yright##GlamBuffPos', ImGuiDir_Down))then
                 gParty.layout.BuffPos.y = gParty.layout.BuffPos.y + 1;
+            end
+            imgui.EndChild();
+
+            imgui.BeginChild('jIcon##GlamPList', {450, 75}, true);
+
+            --Job Icons Layout and Dimensions
+            imgui.Text('Job Icon');
+            imgui.SliderInt("X##GlamjIconPos", jIPos.x, 0, 700);
+            if(gParty.layout.jobIconPos.x ~= jIPos.x[1])then
+                gParty.layout.jobIconPos.x = jIPos.x[1];
+            end
+            imgui.SameLine();
+            imgui.SetCursorPosX(385);
+            if(imgui.ArrowButton('Xleft##GlamjIconPos', ImGuiDir_Left))then
+                gParty.layout.jobIconPos.x = gParty.layout.jobIconPos.x - 1;
+            end
+            imgui.SameLine();
+            if(imgui.ArrowButton('Xright##GlamjIconPos', ImGuiDir_Right))then
+                gParty.layout.jobIconPos.x = gParty.layout.jobIconPos.x + 1;
+            end
+            imgui.SliderInt("Y##GlamjIconPos", jIPos.y, 0, 100);
+            if(gParty.layout.jobIconPos.y ~= jIPos.y[1])then
+                gParty.layout.jobIconPos.y = jIPos.y[1];
+            end
+            imgui.SameLine();
+            imgui.SetCursorPosX(385);
+            if(imgui.ArrowButton('jYleft', ImGuiDir_Up))then
+                gParty.layout.jobIconPos.y = gParty.layout.jobIconPos.y - 1;
+            end
+            imgui.SameLine();
+            if(imgui.ArrowButton('jYright', ImGuiDir_Down))then
+                gParty.layout.jobIconPos.y = gParty.layout.jobIconPos.y + 1;
             end
             imgui.EndChild();
 

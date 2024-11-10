@@ -112,6 +112,10 @@ helpers.createLayout = function(name)
     file:write('        x = 670,\n');
     file:write('        y = 0\n');
     file:write('    },\n');
+    file:write('    jobIconPos = {\n');
+    file:write('        x = 0\n');
+    file:write('        y = 0\n');
+    file:write('    }\n')
     file:write('    padding = 0')
     file:write('};\n')
     file:write('return layout;')
@@ -172,6 +176,10 @@ helpers.updateLayoutFile = function(name)
     file:write(('        x = %s,\n'):fmt(gParty.layout.BuffPos.x));
     file:write(('        y = %s\n'):fmt(gParty.layout.BuffPos.y));
     file:write('    },\n');
+    file:write('        jobIconPos = {\n')
+    file:write(('        x = %s,\n'):fmt(gParty.layout.jobIconPos.x));
+    file:write(('        y = %s\n'):fmt(gParty.layout.jobIconPos.y));
+    file:write(('   },\n'))
     file:write(('    padding = %s'):fmt(gParty.layout.padding));
     file:write('};\n')
     file:write('return layout;')

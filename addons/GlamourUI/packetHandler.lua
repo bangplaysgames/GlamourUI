@@ -189,6 +189,7 @@ packet.IncActionPacket = function(Packet)
     local user = struct.unpack('L', Packet.data, 0x05 + 1);
     local actionType = ashita.bits.unpack_be(Packet.data_raw, 10, 2, 4);
 
+
     packet.IncActionType = actionType;
     
     --Check if player server ID set.  If not, Set it.
@@ -216,6 +217,14 @@ end
 
 --Handle Action Message Packets
 packet.ActionMessage = function(Packet)
+    local target = struct.unpack('H', Packet.data, 0x16 + 0x01);
+    local entity = GetEntity(target);
+    local p1    = struct.unpack('l', Packet.data, 0x0C + 0x01);
+
+    if (gPacket.CharInfo[target] == nil) then
+        gPacket.CharInfo[target] = {}
+        gPacket.CharInfo[target].Level = p1;
+    end
 end
 
 packet.MakeTreasureLot = {
@@ -239,6 +248,7 @@ packet.MakeTreasurePass = {
 --Handle Kill Message Packets
 packet.KillMessage = function(pack)
     local player = GetPlayerEntity();
+    local target = struct.unpack('L', pack.data, 0x08 +1);
     local KMPlayer = struct.unpack('L', pack.data, 0x04 + 1);
     local KMEXP = struct.unpack('L', pack.data, 0x10 + 1);
     local Param1 = struct.unpack('L', pack.data, 0x10 +1);
@@ -272,7 +282,9 @@ packet.KillMessage = function(pack)
         end
     end
 
-
+    if(gPacket.CharInfo[target] ~= nil)then
+        gPacket.CharInfo[target] = nil
+    end
 
 end
 

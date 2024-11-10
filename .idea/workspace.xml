@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="New setting:  Checkbox:  &quot;Fill Down&quot;&#10;&#10;This setting determines the order in which the party list populates.">
+    <list default="true" id="7cd9532a-3d31-4d55-be8a-60a4db480a40" name="Changes" comment="Lots of new updates, most of which are bug-fixes.&#10;&#10;Added Job Icons">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/addons/GlamourUI/conf.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/conf.lua" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/glamourUI.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/helpers.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/helpers.lua" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/addons/GlamourUI/packetHandler.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/packetHandler.lua" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/addons/GlamourUI/party.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/party.lua" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/addons/GlamourUI/render.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/render.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/addons/GlamourUI/target.lua" beforeDir="false" afterPath="$PROJECT_DIR$/addons/GlamourUI/target.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Layouts/Angular/layout.lua" beforeDir="false" afterPath="$PROJECT_DIR$/config/addons/GlamourUI/Layouts/Angular/layout.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/addons/GlamourUI/Layouts/Bubble/layout.lua" beforeDir="false" afterPath="$PROJECT_DIR$/config/addons/GlamourUI/Layouts/Bubble/layout.lua" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -80,13 +84,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1671821876609</updated>
-    </task>
-    <task id="LOCAL-00055" summary="Implemented Textured Background for Themes&#10;&#10;Due to the method used to make this work, the background image will not move smoothly when adjusting the location of the party.  Once in place, it will be fine.">
-      <created>1673489664758</created>
-      <option name="number" value="00055" />
-      <option name="presentableId" value="LOCAL-00055" />
-      <option name="project" value="LOCAL" />
-      <updated>1673489664758</updated>
     </task>
     <task id="LOCAL-00056" summary="Added missing texture to Desat">
       <created>1673490095605</created>
@@ -424,7 +421,14 @@
       <option name="project" value="LOCAL" />
       <updated>1706130982104</updated>
     </task>
-    <option name="localTasksCounter" value="104" />
+    <task id="LOCAL-00104" summary="New setting:  Checkbox:  &quot;Fill Down&quot;&#10;&#10;This setting determines the order in which the party list populates.&#10;&#10;***This WILL require one of 2 prep steps if upgrading from a previous version of GlamourUI:  &#10;&#10;You must either delete your existing settings file, or add the following into your settings file:&#10;&#10;settings[&quot;Party&quot;][&quot;pList&quot;][&quot;FillDown&quot;] = true|false;  -- use true or false&#10;&#10;OR&#10;&#10;Delete your settings.lua file in config\addons\GlamourUI\CharName_ID\settings.lua">
+      <created>1706734212811</created>
+      <option name="number" value="00104" />
+      <option name="presentableId" value="LOCAL-00104" />
+      <option name="project" value="LOCAL" />
+      <updated>1706734212811</updated>
+    </task>
+    <option name="localTasksCounter" value="105" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -439,8 +443,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Bug Fix:  Pet not lined up properly with rest of party.  Target Arrow not rendering on Pet.&#10;&#10;Preparations for buff/debuff icons on party list.  Not functional yet, but files and functions are starting to be added." />
-    <MESSAGE value="Hiding of UI elements when opening /rmap, /cmap, /bmap, or /map." />
     <MESSAGE value="Target Name reflecting claim, NPC, Mob, Anon, etc.." />
     <MESSAGE value="Reworked Fill Texture Adjustment for cleaner appearance." />
     <MESSAGE value="Complete Rewrite from the Ground Up.&#10;Official Release of Version 1.0&#10;Performance increases across the board.&#10;New Features:&#10;Party Member Buff Icons in Party list.&#10;Redesign of Alliance Panel&#10;Rework of Treasure Pool Lot Rendering for Alliance Panel&#10;Default In-Game Party list toggle (Hides rendering of default party list.)&#10;Completely redesigned Configuration GUI.&#10;Control of all settings moved to Configuration GUI.&#10;Element dimensions for party list moved into the Layout Files.  Loading a different layout will change dimensions of elements.&#10;Party Invite Notification (Use /join or /decline to clear this notification for now.)" />
@@ -464,6 +466,8 @@
     <MESSAGE value="Fixed commands not working" />
     <MESSAGE value="Fixed Target Window Name Color Inconsistency&#10;&#10;Added mob level to target window when targeting a combat target mob. --- This level requires receiving a widescan packet for the mob in question.  Without data on the mob in question, the level will read as ???." />
     <MESSAGE value="Added Exemplar Points and Master Levels into the Player Stats Panel.  &#10;&#10;*KNOWN ISSUE*&#10;Due to how FFXI updates the player information in-game, the exp bar, current exp value, the merit, JP, and ML equivalents, and the current JP totals may be outdated.  This is due to the fact that FFXI does not update these values until zoning, logging in, or opening the status menu.  If the values lag behind,  opening the status menu will update them." />
-    <option name="LAST_COMMIT_MESSAGE" value="Added Exemplar Points and Master Levels into the Player Stats Panel.  &#10;&#10;*KNOWN ISSUE*&#10;Due to how FFXI updates the player information in-game, the exp bar, current exp value, the merit, JP, and ML equivalents, and the current JP totals may be outdated.  This is due to the fact that FFXI does not update these values until zoning, logging in, or opening the status menu.  If the values lag behind,  opening the status menu will update them." />
+    <MESSAGE value="New setting:  Checkbox:  &quot;Fill Down&quot;&#10;&#10;This setting determines the order in which the party list populates.&#10;&#10;***This WILL require one of 2 prep steps if upgrading from a previous version of GlamourUI:  &#10;&#10;You must either delete your existing settings file, or add the following into your settings file:&#10;&#10;settings[&quot;Party&quot;][&quot;pList&quot;][&quot;FillDown&quot;] = true|false;  -- use true or false&#10;&#10;OR&#10;&#10;Delete your settings.lua file in config\addons\GlamourUI\CharName_ID\settings.lua" />
+    <MESSAGE value="Lots of new updates, most of which are bug-fixes.&#10;&#10;Added Job Icons" />
+    <option name="LAST_COMMIT_MESSAGE" value="Lots of new updates, most of which are bug-fixes.&#10;&#10;Added Job Icons" />
   </component>
 </project>
