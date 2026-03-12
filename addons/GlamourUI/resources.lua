@@ -207,6 +207,19 @@ resources.load_status_icon_from_resource = function (status_id)
     return load_dummy_icon();
 end
 
+resources.load_item_icon_from_resource = function (item)
+    local bitmap = item.Bitmap;
+    local size = item.ImageSize;
+    if (bitmap ~= nil) then
+        local dx_texture_ptr = ffi.new('IDirect3DTexture8*[1]');
+        if (ffi.C.D3DXCreateTextureFromFileInMemoryEx(d3d8_device, bitmap, size, 0xFFFFFFFF, 0xFFFFFFFF, 1, 0, ffi.C.D3DFMT_A8R8G8B8, ffi.C.D3DPOOL_MANAGED, ffi.C.D3DX_DEFAULT, ffi.C.D3DX_DEFAULT, 0xFF000000, nil, nil, dx_texture_ptr) == ffi.C.S_OK) then
+            return tonumber(ffi.cast("uint32_t", d3d8.gc_safe_release(ffi.cast('IDirect3DTexture8*', dx_texture_ptr[0]))));
+        end
+    end
+    
+    return load_dummy_icon();
+end
+
 resources.get_member_status = function(server_id, p)
     local party = AshitaCore:GetMemoryManager():GetParty();
     local player = AshitaCore:GetMemoryManager():GetPlayer();

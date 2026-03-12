@@ -138,7 +138,7 @@ helpers.updateLayoutFile = function(name)
     file:write('        \'mp\',\n');
     file:write('        \'tp\',\n');
     file:write('        \'buffs\',\n');
-    file:write('        \'jobIcon\n');
+    file:write('        \'jobIcon\'\n');
     file:write('    },\n');
     file:write('    NamePosition = {\n');
     file:write(('        x = %s,\n'):fmt(gParty.layout.NamePosition.x));

@@ -110,7 +110,7 @@ render.renderPlayerThemed = function(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ
             imgui.Text(Member.Name);
             imgui.PopStyleColor();
             imgui.SameLine();
-            imgui.SetCursorPosX((gParty.layout.NamePosition.x + 100) * GlamourUI.settings.Party.pList.gui_scale);
+            imgui.SetCursorPosX((gParty.layout.NamePosition.x + 150) * GlamourUI.settings.Party.pList.gui_scale);
             imgui.SetCursorPosY((yOffset + gParty.layout.NamePosition.y) * GlamourUI.settings.Party.pList.gui_scale);
             imgui.Text(MainJob .. Member.Level .. '/' .. SubJob .. Member.SJLevel);
             if(p ~= 0) then
@@ -216,9 +216,11 @@ render.renderPlayerThemed = function(e, hpbT, hpfT, mpbT, mpfT, tpbT, tpfT, targ
                 return;
             end
         elseif(element[e] == 'jobIcon')then
-            imgui.SetCursorPosX((5 + gParty.layout.jobIconPos.x) * GlamourUI.settings.Party.pList.gui_scale);
-            imgui.SetCursorPosY((yOffset + gParty.layout.jobIconPos.y) * GlamourUI.settings.Party.pList.gui_scale);
-            imgui.Image(jIT, {64 * GlamourUI.settings.Party.pList.gui_scale, 64 * GlamourUI.settings.Party.pList.gui_scale});
+            if(jIT ~= nil)then
+                imgui.SetCursorPosX((5 + gParty.layout.jobIconPos.x) * GlamourUI.settings.Party.pList.gui_scale);
+                imgui.SetCursorPosY((yOffset + gParty.layout.jobIconPos.y) * GlamourUI.settings.Party.pList.gui_scale);
+                imgui.Image(jIT, {64 * GlamourUI.settings.Party.pList.gui_scale, 64 * GlamourUI.settings.Party.pList.gui_scale});
+            end
         end
     else
         if(element[e] == 'name')then
@@ -570,18 +572,18 @@ render.RenderAllianceMember = function(hpbT, hpfT, targ, sTarg, pLead, t, a, o, 
 end
 
 render.RenderPlayerStats = function(b, f, s, p, o)
-    imgui.SetCursorPosX(o + 5);
+    imgui.SetCursorPosX((o + 5) * GlamourUI.settings.PlayerStats.gui_scale);
     imgui.Image(b, {GlamourUI.settings.PlayerStats.BarDim.l * GlamourUI.settings.PlayerStats.gui_scale, GlamourUI.settings.PlayerStats.BarDim.g * GlamourUI.settings.PlayerStats.gui_scale});
     imgui.SameLine();
-    imgui.SetCursorPosX(o + 5);
+    imgui.SetCursorPosX((o + 5) * GlamourUI.settings.PlayerStats.gui_scale);
     if(p ~= nil)then
         imgui.Image(f, {((p * GlamourUI.settings.PlayerStats.BarDim.l) * GlamourUI.settings.PlayerStats.gui_scale), GlamourUI.settings.PlayerStats.BarDim.g * GlamourUI.settings.PlayerStats.gui_scale}, { 0, 0 }, { p, 1 });
     else
         imgui.Image(f, {(math.clamp(s / 1000, 0, 1)) * GlamourUI.settings.PlayerStats.BarDim.l  * (GlamourUI.settings.PlayerStats.gui_scale), GlamourUI.settings.PlayerStats.BarDim.g * GlamourUI.settings.PlayerStats.gui_scale}, { 0, 0 }, { math.clamp((s / 1000), 0, 1), 1 });
     end
-    local strLen = imgui.CalcTextSize(tostring(s));
+    local strLen = (imgui.CalcTextSize(tostring(s)) * GlamourUI.settings.PlayerStats.gui_scale);
     imgui.SameLine();
-    imgui.SetCursorPosX(o + ((GlamourUI.settings.PlayerStats.BarDim.l - strLen) * 0.5));
+    imgui.SetCursorPosX((o + ((GlamourUI.settings.PlayerStats.BarDim.l - strLen) * 0.5)) * GlamourUI.settings.PlayerStats.gui_scale);
     imgui.Text(tostring(s));
 end
 
@@ -600,7 +602,7 @@ render.renderRecast = function()
     if(GlamourUI.settings.rcPanel.enabled == true and chatOpen == false)then
         local acts, timers, progs = gRecast.makeTimers();
         if(progs[1] ~= nil) then
-            if(imgui.Begin('Recast##GlamRCPanel', gRecast.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
+            if(imgui.Begin('Recast##GlamRCPanel' .. gParty.Party[1].Name, gRecast.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
                 imgui.SetWindowFontScale((GlamourUI.settings.rcPanel.font_scale * 0.4) * GlamourUI.settings.rcPanel.gui_scale);
                 imgui.PushStyleColor(ImGuiCol_Text, { 1.0, 1.0, 1.0, 1.0 });
                 for i = 1,#timers,1 do
@@ -644,15 +646,15 @@ render.RenderTargetBar = function()
         imgui.SetNextWindowPos({GlamourUI.settings.TargetBar.x, GlamourUI.settings.TargetBar.y}, ImGuiCond_FirstUseEver);
 
         if(targetEntity ~= nil) then
-            if(imgui.Begin('TargetBar##GlamTB', gTarget.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
+            if(imgui.Begin('TargetBar##GlamTB' .. gParty.Party[1].Name, gTarget.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
                 imgui.SetWindowFontScale((GlamourUI.settings.TargetBar.font_scale * .6) * GlamourUI.settings.TargetBar.gui_scale);
                 local targStrLen;
                 if(gPacket.CharInfo[target] ~= nil)then
-                    targStrLen = imgui.CalcTextSize(targetEntity.Name .. "Lv. ???");
+                    targStrLen = (imgui.CalcTextSize(targetEntity.Name .. "Lv. ???")  * GlamourUI.settings.PlayerStats.gui_scale);
                 else
-                    targStrLen = imgui.CalcTextSize(targetEntity.Name);
+                    targStrLen = (imgui.CalcTextSize(targetEntity.Name) * GlamourUI.settings.PlayerStats.gui_scale);
                 end
-                local targHPLen = imgui.CalcTextSize(tostring(targetEntity.HPPercent));
+                local targHPLen = (imgui.CalcTextSize(tostring(targetEntity.HPPercent)) * GlamourUI.settings.PlayerStats.gui_scale);
                 local hpbTex = gResources.getTex(GlamourUI.settings, 'TargetBar', 'hpBar.png');
                 local hpfTex = gResources.getTex(GlamourUI.settings, 'TargetBar', 'hpFill.png');
 
@@ -683,7 +685,7 @@ render.RenderTargetBar = function()
                     if(nameStatus ~= nil)then
                         if(nameStatus.type == 'mob')then
                             if(gPacket.CharInfo[target] == nil)then
-                                imgui.Text('Lv. ???');
+
                             else
                                 if(gPacket.CharInfo[target].Level == nil)then
 
@@ -807,7 +809,7 @@ end
 
 render.render_invite = function()
     if(gPacket.InviteActive == true)then
-        if(imgui.Begin('PartyInvite##GlamPI', true, bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoDecoration)))then
+        if(imgui.Begin('PartyInvite##GlamPI' .. gParty.Party[1].Name, true, bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoDecoration)))then
             imgui.SetWindowFontScale(GlamourUI.settings.Party.pList.font_scale * GlamourUI.settings.Party.pList.gui_scale);
             imgui.Text('Party Invite From:  ' .. gPacket.inviter);
 
@@ -838,7 +840,7 @@ render.renderCastBar = function()
 
 
         imgui.SetNextWindowPos({GlamourUI.settings.cBar.x, GlamourUI.settings.cBar.y}, ImGuiCond_FirstUseEver);
-        if(imgui.Begin('CastBar##GlamCBar', gCBar.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
+        if(imgui.Begin('CastBar##GlamCBar' .. gParty.Party[1].Name, gCBar.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
             imgui.SetWindowFontScale(GlamourUI.settings.cBar.font_scale * 0.3);
             if(GlamourUI.settings.cBar.themed == true)then
                 imgui.SetCursorPosX(10);
@@ -875,9 +877,10 @@ render.renderLot = function()
     end
     imgui.SetNextWindowSize({200,1}, ImGuiCond_FirstUseEver);
     local index = gParty.GetTreasurePoolSelectedIndex();
-    if(imgui.Begin('Lots##GlamParty', gParty.tpoolis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
+    if(imgui.Begin('Lots##GlamParty' .. gParty.Party[1].Name, gParty.tpoolis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
         local passCount = 0;
         local lotCount = 0;
+        local topline = 0;
         for i=1,#gInv.treasurePool do
             if(gInv.treasurePool[i].current.hasRolled)then
                lotCount = lotCount + 1;
@@ -903,7 +906,10 @@ render.renderLot = function()
             imgui.SetCursorPosX(150);
             if(imgui.Button('Pass All##TPool'))then
                 for i=1,#gInv.treasurePool do
-                    gInv.TPoolPass(gInv.treasurePool[i].slot);
+                    local item = gInv.treasurePool[i];
+                    if(not item.current.hasRolled)then
+                        gInv.TPoolPass(gInv.treasurePool[i].slot);
+                    end
                 end
             end
         end
@@ -911,10 +917,21 @@ render.renderLot = function()
         imgui.SetCursorPosX((imgui.GetWindowWidth() - imgui.CalcTextSize('Loot Table')) * 0.5);
         imgui.Text('Loot Table');
         imgui.SetWindowFontScale(0.4);
+        topline = imgui.GetCursorPosY();
         for i=1,#gInv.treasurePool do
             local item = gInv.treasurePool[i];
+            local offset = 0;
+            --[[if(i > 5)then
+                offset = 500;
+            end
+            if(i == 0 or i == 5)then
+                imgui.SetCursorPosY(topline);
+            end]]
+            imgui.SetCursorPosX(offset + 10);
             if(item.name ~= nil)then
-                imgui.BeginChild('TPool'..tostring(i)..'##TPOOL', {450, 50 }, false);
+                imgui.BeginChild('TPool'..tostring(i)..'##TPOOL', {450, 60 }, false);
+                imgui.Image(item.icon, {25,25});
+                imgui.SameLine();
                 imgui.Text(tostring(item.slot) .. ':  ' .. item.name);
                 imgui.SameLine();
                 imgui.SetCursorPosX(200);
@@ -957,7 +974,7 @@ render.renderEnvironment = function()
     local mPhase, mPerc = gEnv.GetMoon();
     local moonStr = mPhase .. ":  " .. tostring(mPerc) .. '%';
 
-    if(imgui.Begin('Environment##GlamEnv', gEnv.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
+    if(imgui.Begin('Environment##GlamEnv' .. gParty.Party[1].Name, gEnv.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
         imgui.SetWindowFontScale(0.6 * GlamourUI.settings.Env.font_scale);
 
 
@@ -997,7 +1014,7 @@ render.renderFTarget = function()
 
     if(ftTable ~= nil and #ftTable > 0)then
         imgui.SetNextWindowSize({0, 0});
-        if(imgui.Begin('FocusTarget##GlamFT', gTarget.ft_is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
+        if(imgui.Begin('FocusTarget##GlamFT' .. gParty.Party[1].Name, gTarget.ft_is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
             imgui.SetWindowFontScale(0.5);
             imgui.Text('   Focus Targets');
             for i=1,#ftTable do
@@ -1035,7 +1052,7 @@ render.renderSkills = function()
     local skillOffset = 400 * GlamourUI.settings.Party.pList.gui_scale;
 
     if(gParty.ShowSkills == true)then
-        if(imgui.Begin('Skills##GlamPT', gParty.Skill_Is_Open, bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoDecoration)))then
+        if(imgui.Begin('Skills##GlamPT' .. gParty.Party[1].Name, gParty.Skill_Is_Open, bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoDecoration)))then
             imgui.SetWindowFontScale(0.4);
             imgui.BeginTabBar('SkillsTB##GlamPT');
             if(imgui.BeginTabItem('Melee Skills##GlamPTSkills'))then

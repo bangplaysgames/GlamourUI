@@ -129,6 +129,7 @@ inventory.getTreasurePool = function()
 
             local drop = {}
             drop.id = itemInfo.Id;
+            drop.icon = gResources.load_item_icon_from_resource(itemInfo);
             drop.slot = i;
             drop.name = itemInfo.Name[1];
             drop.time = string.format('%4i', inventory.timestamps[treasureDrop.DropTime] - now);

@@ -6,6 +6,19 @@ ffi.cdef[[
     int32_t memcmp(const void* buff1, const void* buff2, size_t count);
 ]];
 
+ffi.cdef[[
+    typedef struct {
+        char flag;
+        char unknown1;
+        short unknown2;
+    } wsPacket;
+]]
+
+local WSPacket = ffi.new('wsPacket');
+WSPacket.flag = 1;
+WSPacket.unknown1 = 0;
+WSPacket.unknown2 = 0;
+
 local function fmt_time(t)
     local time = t / 60;
     local h = math.floor(time / (60 * 60));
@@ -111,6 +124,8 @@ end
 
 local packet = {}
 
+packet.timer = 0;
+
 packet.IncActionType = 0;
 packet.IncActionMessage = {}
 
@@ -160,6 +175,7 @@ packet.LoginPacket = function(e)
         gPacket.action.Target = GetPlayerEntity().TargetIndex;
     end
     packet.CharInfo = {}
+    packet.timer = os.time() + 30;
 end
 
 
@@ -219,12 +235,15 @@ end
 packet.ActionMessage = function(Packet)
     local target = struct.unpack('H', Packet.data, 0x16 + 0x01);
     local entity = GetEntity(target);
-    local p1    = struct.unpack('l', Packet.data, 0x0C + 0x01);
+    local p1 = struct.unpack('l', Packet.data, 0x0C + 0x01);
+    local p2 = struct.unpack('l', Packet.data, 0x10 + 0x01);
+    local t = struct.unpack('l', Packet.data, 0x08 + 0x01);
+    local m = struct.unpack('H', Packet.data, 0x18 + 0x01);
 
-    if (gPacket.CharInfo[target] == nil) then
+    --[[if (gPacket.CharInfo[target] == nil) then
         gPacket.CharInfo[target] = {}
         gPacket.CharInfo[target].Level = p1;
-    end
+    end]]
 end
 
 packet.MakeTreasureLot = {
@@ -392,6 +411,8 @@ packet.HandleOutgoingChunk = function(e)
             gPacket.ItemPacket(struct.unpack('c' .. size, e.chunk_data, offset + 1));
         elseif(id == 0x074)then
             gPacket.PartyInviteResponse(e);
+        elseif(id == 0x0DD)then
+            packet.InjectWSPacket();
         end
 
         offset = offset + size;
@@ -406,5 +427,8 @@ packet.HandleOutgoing = function(e)
     end
 end
 
+packet.InjectWSPacket = function()
+    AshitaCore:GetPacketManager():AddOutgoingPacket(0xF4, struct.pack('LL', 0, 1):totable());
+end
 
 return packet;

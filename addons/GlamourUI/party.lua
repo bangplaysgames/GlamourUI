@@ -300,7 +300,6 @@ party.render_party_list = function()
         else
             if(GlamourUI.PartyList.Drag)then
                 imgui.SetNextWindowPos({GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y}, ImGuiCond_Once, {0.0, 0.0});
-                GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y = imgui.GetWindowPos();
             end
         end
 
@@ -313,8 +312,12 @@ party.render_party_list = function()
 
         imgui.SetNextWindowSize({ -1, -1 }, ImGuiCond_Always);
 
+        if(GlamourUI.PartyList.Drag)then
+            GlamourUI.WindowPos = imgui.GetWindowPos();
+        end
+
         --Party List Rendering
-        if(imgui.Begin('PartyList##GlamPList', gParty.plistis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
+        if(imgui.Begin('PartyList##GlamPList' .. gParty.Party[1].Name, gParty.plistis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
             local pos = {imgui.GetCursorScreenPos()};
 
             if(not GlamourUI.settings.Party.pList.FillDown)then
@@ -331,6 +334,7 @@ party.render_party_list = function()
             local player = GetPlayerEntity();
             local pet = '';
             if(player == nil) then
+                GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y = imgui.GetWindowPos();
                 player = 0;
             end
             if(Party:GetMemberServerId(0) ~= 0)then
@@ -447,7 +451,7 @@ party.render_alliance_panel = function()
         local evenOffset = (GlamourUI.settings.Party.aPanel.hpBarDim.l * 2) + 100;
 
 
-        if(imgui.Begin('APanel##GlamAP', gParty.apanelis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
+        if(imgui.Begin('APanel##GlamAP' .. gParty.Party[1].Name, gParty.apanelis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
             imgui.SetWindowFontScale(0.3 * GlamourUI.settings.Party.aPanel.font_scale);
             if(a1Count > 0)then
                 local strLen = imgui.CalcTextSize('Party 2');
@@ -518,7 +522,7 @@ end
 
 party.render_player_stats = function()
     imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
-    imgui.SetNextWindowPos({GlamourUI.settings.PlayerStats.x, GlamourUI.settings.PlayerStats.y}, ImGuiCond_FirstUseEver);
+    imgui.SetNextWindowPos({GlamourUI.settings.PlayerStats.x, GlamourUI.settings.PlayerStats.y}, ImGuiCond_Once);
     local player = AshitaCore:GetMemoryManager():GetPlayer();
     local curEXP = player:GetExpCurrent();
     local maxEXP = player:GetExpNeeded();
@@ -531,7 +535,7 @@ party.render_player_stats = function()
     end
 
     if(GlamourUI.settings.PlayerStats.enabled == true)then
-        if (imgui.Begin('PlayerStats##GlamPStats', gParty.pstatsis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
+        if (imgui.Begin('PlayerStats##GlamPStats' .. gParty.Party[1].Name, gParty.pstatsis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
             imgui.SetWindowFontScale(GlamourUI.settings.PlayerStats.font_scale * 0.5);
             if(GlamourUI.settings.PlayerStats.themed == true) then
 
@@ -545,27 +549,27 @@ party.render_player_stats = function()
                 local efTex = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'expFill.png');
 
 
-                gUI.RenderPlayerStats(hpbTex, hpfTex, gParty.Party[1].HP, gParty.Party[1].HPP, 0);
+                gUI.RenderPlayerStats(hpbTex, hpfTex, gParty.Party[1].HP, gParty.Party[1].HPP, GlamourUI.settings.PlayerStats.gui_scale * 0);
                 imgui.SameLine();
-                gUI.RenderPlayerStats(mpbTex, mpfTex, gParty.Party[1].MP, gParty.Party[1].MPP, 250);
+                gUI.RenderPlayerStats(mpbTex, mpfTex, gParty.Party[1].MP, gParty.Party[1].MPP, GlamourUI.settings.PlayerStats.gui_scale * 250);
                 imgui.SameLine();
-                gUI.RenderPlayerStats(tpbTex, tpfTex, gParty.Party[1].TP, nil, 500);
+                gUI.RenderPlayerStats(tpbTex, tpfTex, gParty.Party[1].TP, nil, GlamourUI.settings.PlayerStats.gui_scale * 500);
 
                 imgui.SetWindowFontScale(GlamourUI.settings.PlayerStats.font_scale * 0.3);
                 --EXP Bar
-                imgui.SetCursorPosX(50);
-                imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 30);
+                imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * 50);
+                imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.gui_scale * (GlamourUI.settings.PlayerStats.BarDim.g + 30));
                 if(party.EXPMode == 'EXP')then
                     imgui.Text(tostring(curEXP) .. '/' .. tostring(maxEXP));
                 else
                     imgui.Text(tostring(curLP) .. '/10000');
                 end
-                imgui.SetCursorPosX(50);
-                imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 15);
+                imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * 50);
+                imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.gui_scale * (GlamourUI.settings.PlayerStats.BarDim.g + 15));
                 local expBarLen = imgui.GetWindowWidth() - 100
                 imgui.Image(ebTex, {expBarLen, 14});
-                imgui.SetCursorPosX(50);
-                imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 15);
+                imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * 50);
+                imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.gui_scale * (GlamourUI.settings.PlayerStats.BarDim.g + 15));
                 if(party.EXPMode == 'EXP')then
                     imgui.Image(efTex, {expBarLen * (curEXP / maxEXP), 14}, {0,0}, {curEXP / maxEXP, 1});
                 else
@@ -576,42 +580,42 @@ party.render_player_stats = function()
                     EXPperHourStr = tostring(math.floor((gParty.EXPperHour / 1000000) * 100) / 100) .. 'M';
                 end
                 local phOffset = imgui.CalcTextSize(tostring(EXPperHourStr .. ' ' .. expModeStr));
-                imgui.SetCursorPosX(imgui.GetWindowWidth() - phOffset - 50);
-                imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 30);
+                imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * (imgui.GetWindowWidth() - phOffset - 50));
+                imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.gui_scale * (GlamourUI.settings.PlayerStats.BarDim.g + 30));
                 imgui.Text('     ');
                 if(imgui.IsItemHovered())then
-                    imgui.SetCursorPosX(imgui.GetWindowWidth() - phOffset - 50);
-                    imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 30);
+                    imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * (imgui.GetWindowWidth() - phOffset - 50));
+                    imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.gui_scale * (GlamourUI.settings.PlayerStats.BarDim.g + 30));
                     imgui.Text('Reset?');
                     if(imgui.IsItemClicked())then
                         gParty.EXPReset = true;
                     end
                 else
-                    imgui.SetCursorPosX(imgui.GetWindowWidth() - phOffset - 50);
-                    imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 30);
+                    imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * (imgui.GetWindowWidth() - phOffset - 50));
+                    imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.gui_scale * (GlamourUI.settings.PlayerStats.BarDim.g + 30));
                     imgui.Text(tostring(EXPperHourStr .. ' ' .. expModeStr));
                 end
                 local stroffset = (imgui.GetWindowWidth() - imgui.CalcTextSize(job)) * 0.5;
                 imgui.SetCursorPosX(stroffset);
-                imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 30);
+                imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.gui_scale * (GlamourUI.settings.PlayerStats.BarDim.g + 30));
                 imgui.Text(job);
                 if(party.EXPMode == 'LP')then
                     local merits = tostring(player:GetMeritPoints()) .. '/' .. tostring(player:GetMeritPointsMax());
                     local cp = player:GetCapacityPoints(gParty.Party[1].Job);
                     local jp = player:GetJobPoints(gParty.Party[1].Job);
                     imgui.SameLine();
-                    imgui.SetCursorPosX(imgui.GetWindowWidth() * 0.66);
+                    imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * (imgui.GetWindowWidth() * 0.66));
                     imgui.Text('Merits:  ' .. merits);
                     if(gParty.Party[1].Level == 99 or cp > 0 or jp > 0)then
                         if(not gParty.Party[1].Mastered)then
-                            imgui.SetCursorPosX(50);
-                            imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 50);
+                            imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * 50);
+                            imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.gui_scale * (GlamourUI.settings.PlayerStats.BarDim.g + 50));
                             imgui.Image(ebTex, {expBarLen, 5});
-                            imgui.SetCursorPosX(50);
-                            imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 50);
+                            imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * 50);
+                            imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.gui_scale * (GlamourUI.settings.PlayerStats.BarDim.g + 50));
                             imgui.Image(efTex, {expBarLen * (cp / 30000), 5}, {0,0}, {cp / 30000, 1});
                             local JPStr = ('CP:  ' .. tostring(cp) .. ' / 30000 : (' .. tostring(jp) .. ' JP)');
-                            local JPStrOffset = (imgui.GetWindowWidth() - imgui.CalcTextSize(JPStr)) * 0.5;
+                            local JPStrOffset = GlamourUI.settings.PlayerStats.gui_scale * (imgui.GetWindowWidth() - imgui.CalcTextSize(JPStr)) * 0.5;
                             imgui.SetCursorPosX(JPStrOffset);
                             imgui.Text(JPStr);
                             imgui.SameLine();
@@ -620,19 +624,19 @@ party.render_player_stats = function()
                                 CPperHourStr = tostring(math.floor((gParty.CPperHour / 1000000) * 100) / 100) .. 'M';
                             end
                             local CPphOffset = (imgui.CalcTextSize(CPperHourStr));
-                            imgui.SetCursorPosX(imgui.GetWindowWidth() - CPphOffset - 50);
+                            imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * (imgui.GetWindowWidth() - CPphOffset - 50));
                             imgui.Text(tostring(CPperHourStr) .. ' CP/Hr');
                         else
                             local ExemP = gParty.Party[1].ExemP;
                             local MLTNL = gParty.Party[1].MLTNL;
-                            imgui.SetCursorPosX(50);
-                            imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 50);
+                            imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * 50);
+                            imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.gui_scale * (GlamourUI.settings.PlayerStats.BarDim.g + 50));
                             imgui.Image(ebTex, {expBarLen, 5});
-                            imgui.SetCursorPosX(50);
-                            imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 50);
+                            imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * 50);
+                            imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.gui_scale * (GlamourUI.settings.PlayerStats.BarDim.g + 50));
                             imgui.Image(efTex, {expBarLen * (ExemP / MLTNL), 5}, {0,0}, {ExemP / MLTNL, 1});
                             local JPStr = ('ExemP:  ' .. tostring(ExemP) .. ' / ' .. tostring(MLTNL) .. ' | Master Level:  ' .. tostring(gParty.Party[1].ML));
-                            local JPStrOffset = (imgui.GetWindowWidth() - imgui.CalcTextSize(JPStr)) * 0.5;
+                            local JPStrOffset = GlamourUI.settings.PlayerStats.gui_scale * (imgui.GetWindowWidth() - imgui.CalcTextSize(JPStr)) * 0.5;
                             imgui.SetCursorPosX(JPStrOffset);
                             imgui.Text(JPStr);
                             imgui.SameLine();
@@ -641,7 +645,7 @@ party.render_player_stats = function()
                                 ExemPperHourStr = tostring(math.floor((gParty.ExemPperHour / 1000000) * 100) / 100) .. 'M';
                             end
                             local ExemPphOffset = (imgui.CalcTextSize(ExemPperHourStr));
-                            imgui.SetCursorPosX(imgui.GetWindowWidth() - ExemPphOffset - 150);
+                            imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * (imgui.GetWindowWidth() - ExemPphOffset - 150));
                             imgui.Text(tostring(ExemPperHourStr) .. ' ExemP/Hr');
                         end
                     end

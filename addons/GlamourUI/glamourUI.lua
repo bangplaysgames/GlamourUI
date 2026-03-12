@@ -143,7 +143,7 @@ GlamourUI = T{
     font = nil,
     debug = false,
     PartyList = {
-        Drag = false,
+        Drag = true,
         x = 0,
         y = 0
     }
