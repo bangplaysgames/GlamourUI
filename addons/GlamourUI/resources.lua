@@ -5,6 +5,7 @@ local ffi = require('ffi');
 local chat = require('chat');
 local compat = require('compat');
 local imgui = require('imgui');
+local gBuffs = require('buffTable');
 
 local d3d8_device = d3d8.get_device();
 
@@ -18,6 +19,10 @@ local icon_cache = T{
 
 };
 
+local item_icon_cache = T{
+
+};
+
 local buffIcon;
 local debuffIcon;
 
@@ -27,7 +32,58 @@ local id_overrides = T{
 
 };
 
+local INFINITE_DURATION = 0x7FFFFFFF;
+local player_utcstamp_ptr = nil;
+
+local function ensure_player_utcstamp_ptr()
+    if (player_utcstamp_ptr ~= nil) then
+        return player_utcstamp_ptr ~= 0;
+    end
+
+    local found = ashita.memory.find('FFXiMain.dll', 0, '8B0D????????8B410C8B49108D04808D04808D04808D04C1C3', 2, 0);
+    player_utcstamp_ptr = (found ~= nil and found ~= 0) and found or 0;
+    return player_utcstamp_ptr ~= 0;
+end
+
+local function get_game_utcstamp()
+    if (ensure_player_utcstamp_ptr() ~= true) then
+        return INFINITE_DURATION;
+    end
+
+    local ptr = player_utcstamp_ptr;
+    ptr = ashita.memory.read_uint32(ptr);
+    ptr = ashita.memory.read_uint32(ptr);
+    return ashita.memory.read_uint32(ptr + 0x0C);
+end
+
+local function buff_duration_seconds(raw_duration)
+    if (raw_duration == nil) then
+        return nil;
+    end
+
+    if (raw_duration == INFINITE_DURATION) then
+        return -1;
+    end
+
+    local vana_base_stamp = 0x3C307D70;
+    local offset = get_game_utcstamp() - vana_base_stamp;
+    local comparand = offset * 60;
+    local real_duration = raw_duration - comparand;
+
+    while (real_duration < -2147483648) do
+        real_duration = real_duration + 0xFFFFFFFF;
+    end
+
+    if (real_duration < 1) then
+        return 0;
+    end
+
+    return math.ceil(real_duration / 60);
+end
+
 local resources = {}
+
+resources.fontBaseSize = 45
 
 local function load_dummy_icon()
     local icon_path = ('%s\\addons\\%s\\ladybug.png'):fmt(AshitaCore:GetInstallPath(), 'GlamourUI');
@@ -182,6 +238,7 @@ end
 
 resources.clear_cache = function()
     icon_cache = T{};
+    item_icon_cache = T{};
     buffIcon = nil;
     debuffIcon = nil;
     jobIcons = T{};
@@ -208,16 +265,45 @@ resources.load_status_icon_from_resource = function (status_id)
 end
 
 resources.load_item_icon_from_resource = function (item)
-    local bitmap = item.Bitmap;
-    local size = item.ImageSize;
-    if (bitmap ~= nil) then
-        local dx_texture_ptr = ffi.new('IDirect3DTexture8*[1]');
-        if (ffi.C.D3DXCreateTextureFromFileInMemoryEx(d3d8_device, bitmap, size, 0xFFFFFFFF, 0xFFFFFFFF, 1, 0, ffi.C.D3DFMT_A8R8G8B8, ffi.C.D3DPOOL_MANAGED, ffi.C.D3DX_DEFAULT, ffi.C.D3DX_DEFAULT, 0xFF000000, nil, nil, dx_texture_ptr) == ffi.C.S_OK) then
-            return tonumber(ffi.cast("uint32_t", d3d8.gc_safe_release(ffi.cast('IDirect3DTexture8*', dx_texture_ptr[0]))));
+    if (item == nil or item.Bitmap == nil) then
+        return load_dummy_icon();
+    end
+    local size = -1;
+    if (ashita.interface_version == nil) then
+        size = item.ImageSize;
+        if (size == nil or size <= 0) then
+            return load_dummy_icon();
         end
     end
-    
+
+    local function decode_item_bitmap(sz)
+        local dx_texture_ptr = ffi.new('IDirect3DTexture8*[1]');
+        if (ffi.C.D3DXCreateTextureFromFileInMemoryEx(d3d8_device, item.Bitmap, sz, 0xFFFFFFFF, 0xFFFFFFFF, 1, 0, ffi.C.D3DFMT_A8R8G8B8, ffi.C.D3DPOOL_MANAGED, ffi.C.D3DX_DEFAULT, ffi.C.D3DX_DEFAULT, 0xFF000000, nil, nil, dx_texture_ptr) == ffi.C.S_OK) then
+            return d3d8.gc_safe_release(ffi.cast('IDirect3DTexture8*', dx_texture_ptr[0]));
+        end
+        return nil;
+    end
+
+    local tex = decode_item_bitmap(size);
+    if (tex == nil and size == -1 and item.ImageSize ~= nil and item.ImageSize > 0) then
+        tex = decode_item_bitmap(item.ImageSize);
+    end
+    if (tex ~= nil) then
+        return tex;
+    end
+
     return load_dummy_icon();
+end
+
+resources.get_item_icon = function(itemId, item)
+    if (not item_icon_cache:haskey(itemId)) then
+        local tex_ptr = resources.load_item_icon_from_resource(item);
+        if (tex_ptr == nil) then
+            return nil;
+        end
+        item_icon_cache[itemId] = tex_ptr;
+    end
+    return tonumber(ffi.cast('uint32_t', item_icon_cache[itemId]));
 end
 
 resources.get_member_status = function(server_id, p)
@@ -295,7 +381,6 @@ resources.ReadPartyBuffsFromPacket = function(e)
                 if empty then
                     buffs[j + 1] = -1;
                 else
-                    --This is at offset 8 from member start.. memberoffset is using +1 for the lua struct.unpacks
                     local highBits = bit.lshift(ashita.bits.unpack_be(e.data_raw, memberOffset + 7, j * 2, 2), 8);
                     local lowBits = struct.unpack('B', e.data, memberOffset + 0x10 + j);
                     local buff = highBits + lowBits;
@@ -313,8 +398,94 @@ resources.ReadPartyBuffsFromPacket = function(e)
     return partyBuffTable;
 end
 
+resources.get_player_buff_timer_seconds_split = function()
+    local buffSecs = T{};
+    local debuffSecs = T{};
+
+    local player = AshitaCore:GetMemoryManager():GetPlayer();
+    if (player == nil or is_player_valid() ~= true) then
+        return buffSecs, debuffSecs;
+    end
+
+    if (player.GetBuffs == nil or player.GetStatusTimers == nil) then
+        return buffSecs, debuffSecs;
+    end
+
+    local icons = player:GetBuffs();
+    local timers = player:GetStatusTimers();
+    if (icons == nil or timers == nil) then
+        return buffSecs, debuffSecs;
+    end
+
+    for j = 0, 31 do
+        local id = icons[j + 1];
+        if (id ~= nil and id ~= 255 and id > 0) then
+            local secs = buff_duration_seconds(timers[j + 1]);
+            if (gBuffs.IsBuff(id) == true) then
+                buffSecs[#buffSecs + 1] = secs;
+            else
+                debuffSecs[#debuffSecs + 1] = secs;
+            end
+        end
+    end
+
+    return buffSecs, debuffSecs;
+end
+
+local function merge_gob_star_glyph(fontSize)
+    if (ImFontConfig == nil or ImFontGlyphRangesBuilder == nil) then
+        return false;
+    end
+
+    local mergeCandidates = {
+        'C:\\Windows\\Fonts\\seguisym.ttf',
+        'C:\\Windows\\Fonts\\arial.ttf',
+        'C:\\Windows\\Fonts\\DejaVuSans.ttf',
+    };
+
+    local mergePath = nil;
+    for i = 1, #mergeCandidates do
+        if (ashita.fs.exists(mergeCandidates[i])) then
+            mergePath = mergeCandidates[i];
+            break;
+        end
+    end
+
+    if (mergePath == nil) then
+        return false;
+    end
+
+    local ok = pcall(function()
+        local ranges = ffi.new('uint16_t[3]', 0x2605, 0x2606, 0);
+        local cfg = ImFontConfig();
+        cfg.MergeMode = true;
+        cfg.PixelSnapH = true;
+        imgui.AddFontFromFileTTF(mergePath, fontSize, cfg, ranges);
+    end);
+
+    return ok == true;
+end
+
 resources.loadFont = function(f)
-    GlamourUI.font = imgui.AddFontFromFileTTF(('%s\\config\\addons\\%s\\Fonts\\%s'):fmt(AshitaCore:GetInstallPath(), addon.name, f), 45);
+    local fontSize = resources.fontBaseSize;
+    GlamourUI.font = imgui.AddFontFromFileTTF(('%s\\config\\addons\\%s\\Fonts\\%s'):fmt(AshitaCore:GetInstallPath(), addon.name, f), fontSize);
+    GlamourUI.starGlyphMerged = merge_gob_star_glyph(fontSize);
+end
+
+resources.push_font_scale = function(scale)
+    if(GlamourUI.font == nil)then
+        return false;
+    end
+
+    local fontSize = math.max(resources.fontBaseSize * scale, 1);
+    imgui.PushFont(GlamourUI.font, fontSize);
+    return true;
+end
+
+resources.pop_font = function(isPushed)
+    if(isPushed)then
+        imgui.PopFont();
+    end
 end
 
 resources.GetJobIcon = function()

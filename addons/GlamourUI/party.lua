@@ -13,6 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 local imgui = require('imgui');
 require('common');
 local chat = require('chat');
+local panelStyle = require('panelStyle');
 local buffs = require('bufftable');
 
 
@@ -109,9 +110,101 @@ party.layout = {
 --Treasure Pool Selected Item
 local treasurePoolPointer = ashita.memory.find('FFXiMain.dll', 0, '8BD18B0D????????E8????????66394222', 4, 0);
 
-local getZone = function(index)
-    local id = AshitaCore:GetMemoryManager():GetParty():GetMemberZone(index);
-    return AshitaCore:GetResourceManager():GetString('zones.names', id);
+local getManagers = function()
+    return MemoryManager or AshitaCore:GetMemoryManager(), ResourceManager or AshitaCore:GetResourceManager();
+end
+
+local getZone = function(resourceManager, zoneId)
+    return resourceManager:GetString('zones.names', zoneId);
+end
+
+local get_party_list_pivot = function()
+    if(GlamourUI.settings.Party.pList.FillDown)then
+        return {0.0, 0.0};
+    end
+
+    return {0.0, 1.0};
+end
+
+local set_next_party_list_anchor = function()
+    imgui.SetNextWindowPos(
+        {GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y},
+        ImGuiCond_Once,
+        get_party_list_pivot()
+    );
+end
+
+local set_party_list_anchor = function()
+    imgui.SetWindowPos(
+        {GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y},
+        0,
+        get_party_list_pivot()
+    );
+end
+
+local update_party_list_anchor = function()
+    local windowPos = {imgui.GetWindowPos()};
+
+    GlamourUI.settings.Party.pList.x = windowPos[1];
+    if(GlamourUI.settings.Party.pList.FillDown)then
+        GlamourUI.settings.Party.pList.y = windowPos[2];
+    else
+        GlamourUI.settings.Party.pList.y = windowPos[2] + imgui.GetWindowHeight();
+    end
+end
+
+local get_display_size = function()
+    local success, io = pcall(function()
+        return imgui.GetIO();
+    end);
+
+    if(not success or io == nil or io.DisplaySize == nil)then
+        return nil, nil;
+    end
+
+    local displaySize = io.DisplaySize;
+    local width = displaySize.x or displaySize[1];
+    local height = displaySize.y or displaySize[2];
+
+    return width, height;
+end
+
+local ensure_party_list_on_screen = function()
+    local displayWidth, displayHeight = get_display_size();
+    if(displayWidth == nil or displayHeight == nil)then
+        return;
+    end
+
+    local windowPos = {imgui.GetWindowPos()};
+    local windowWidth = imgui.GetWindowWidth();
+    local windowHeight = imgui.GetWindowHeight();
+    local windowX = windowPos[1];
+    local windowY = windowPos[2];
+
+    local isOffScreen = (windowX >= displayWidth)
+        or (windowY >= displayHeight)
+        or ((windowX + windowWidth) <= 0)
+        or ((windowY + windowHeight) <= 0);
+
+    if(not isOffScreen)then
+        return;
+    end
+
+    imgui.SetWindowPos({15, 15}, 0, {0.0, 0.0});
+    GlamourUI.settings.Party.pList.x = 15;
+    if(GlamourUI.settings.Party.pList.FillDown)then
+        GlamourUI.settings.Party.pList.y = 15;
+    else
+        GlamourUI.settings.Party.pList.y = 15 + windowHeight;
+    end
+end
+
+local get_window_suffix = function()
+    if(gParty.Party[1] ~= nil and gParty.Party[1].Name ~= nil)then
+        return gParty.Party[1].Name;
+    end
+
+    return 'Init';
 end
 
 
@@ -152,82 +245,96 @@ party.GroupHeight2.y = 0;
 
 party.tpoolis_open = false;
 
-party.UpdatePos = function()
+party.update_pos = function()
     GlamourUI.settings.Party.pList.x = GlamourUI.PartyList.x;
     GlamourUI.settings.Party.pList.y = GlamourUI.PartyList.y;
 end
 
-party.LevelSync = function(p)
-    if(bit.band(AshitaCore:GetMemoryManager():GetParty():GetMemberFlagMask(p), 0x100) == 0x100)then
+party.level_sync = function(p)
+    local memoryManager = MemoryManager or AshitaCore:GetMemoryManager();
+    if(bit.band(memoryManager:GetParty():GetMemberFlagMask(p), 0x100) == 0x100)then
         return true;
     else
         return false;
     end
 end
 
-party.SetPartyLeads = function()
-    local Party = AshitaCore:GetMemoryManager():GetParty();
-    gParty.Leader1 = Party:GetAlliancePartyLeaderServerId1();
-    gParty.Leader2 = Party:GetAlliancePartyLeaderServerId2();
-    gParty.Leader3 = Party:GetAlliancePartyLeaderServerId3();
-    if(AshitaCore:GetMemoryManager():GetParty():GetAlliancePartyMemberCount2() > 0 or AshitaCore:GetMemoryManager():GetParty():GetAlliancePartyMemberCount3() > 0)then
-        gParty.ALeader = Party:GetAllianceLeaderServerId();
+party.set_party_leads = function()
+    local memoryManager = MemoryManager or AshitaCore:GetMemoryManager();
+    local partyManager = memoryManager:GetParty();
+    gParty.Leader1 = partyManager:GetAlliancePartyLeaderServerId1();
+    gParty.Leader2 = partyManager:GetAlliancePartyLeaderServerId2();
+    gParty.Leader3 = partyManager:GetAlliancePartyLeaderServerId3();
+    if(partyManager:GetAlliancePartyMemberCount2() > 0 or partyManager:GetAlliancePartyMemberCount3() > 0)then
+        gParty.ALeader = partyManager:GetAllianceLeaderServerId();
     end
 end
 
-party.IsLevelSync = function(p)
-    return (bit.band(AshitaCore:GetMemoryManager():GetParty():GetMemberFlagMask(p), 0x100) == 0x100);
+party.is_level_sync = function(p)
+    local memoryManager = MemoryManager or AshitaCore:GetMemoryManager();
+    return (bit.band(memoryManager:GetParty():GetMemberFlagMask(p), 0x100) == 0x100);
 end
 
-party.GetMember = function(i)
-    local Party = AshitaCore:GetMemoryManager():GetParty();
-    local Member = {}
-    local active = Party:GetMemberIsActive(i) > 0;
+party.get_member = function(i)
+    local memoryManager, resourceManager = getManagers();
+    local partyManager = memoryManager:GetParty();
+    local player = memoryManager:GetPlayer();
+    local member = {}
+    local active = partyManager:GetMemberIsActive(i) > 0;
 
     if(active == true)then
-        Member.Id = Party:GetMemberServerId(i);
-        Member.Name = Party:GetMemberName(i);
-        Member.HP = Party:GetMemberHP(i);
-        Member.HPP = Party:GetMemberHPPercent(i) / 100;
-        Member.MP = Party:GetMemberMP(i);
-        Member.MPP = Party:GetMemberMPPercent(i) / 100;
-        Member.TP = Party:GetMemberTP(i);
-        Member.Color = gParty.GetNameColor(Member.HPP);
-        Member.Job = Party:GetMemberMainJob(i);
-        Member.SJob = Party:GetMemberSubJob(i);
-        Member.Level = Party:GetMemberMainJobLevel(i);
-        Member.SJLevel = Party:GetMemberSubJobLevel(i);
+        member.Id = partyManager:GetMemberServerId(i);
+        member.Name = partyManager:GetMemberName(i);
+        member.HP = partyManager:GetMemberHP(i);
+        member.HPP = partyManager:GetMemberHPPercent(i) / 100;
+        member.MP = partyManager:GetMemberMP(i);
+        member.MPP = partyManager:GetMemberMPPercent(i) / 100;
+        member.TP = partyManager:GetMemberTP(i);
+        member.Color = gParty.get_name_color(member.HPP);
+        member.Job = partyManager:GetMemberMainJob(i);
+        member.SJob = partyManager:GetMemberSubJob(i);
+        member.Level = partyManager:GetMemberMainJobLevel(i);
+        member.SJLevel = partyManager:GetMemberSubJobLevel(i);
+        member.MainJobAbbr = resourceManager:GetString("jobs.names_abbr", member.Job);
+        member.SubJobAbbr = resourceManager:GetString("jobs.names_abbr", member.SJob);
+        member.JobDisplay = member.MainJobAbbr .. member.Level .. '/' .. member.SubJobAbbr .. member.SJLevel;
+        member.JobIcon = ('%s.png'):fmt(member.MainJobAbbr);
+        member.ZoneId = partyManager:GetMemberZone(i);
+        member.Zone = getZone(resourceManager, member.ZoneId);
+        member.LevelSync = (bit.band(partyManager:GetMemberFlagMask(i), 0x100) == 0x100);
         if(i < 6)then
-            Member.Buffs = gResources.get_member_status(Member.Id, i);
+            member.Buffs = gResources.get_member_status(member.Id, i);
         end
-        Member.Zone = getZone(i);
-        Member.TPool = party.getLot(i);
+        member.TPool = party.get_lot(i);
         if(i == 0)then
-            Member.Mastered = AshitaCore:GetMemoryManager():GetPlayer():GetJobPointsSpent(Member.Job) >= 2100;
-            Member.ML = AshitaCore:GetMemoryManager():GetPlayer():GetMasteryJobLevel(Member.Job);
-            Member.ExemP = AshitaCore:GetMemoryManager():GetPlayer():GetMasteryExp();
-            Member.MLTNL = AshitaCore:GetMemoryManager():GetPlayer():GetMasteryExpNeeded();
+            member.Mastered = player:GetJobPointsSpent(member.Job) >= 2100;
+            member.ML = player:GetMasteryJobLevel(member.Job);
+            member.ExemP = player:GetMasteryExp();
+            member.MLTNL = player:GetMasteryExpNeeded();
         end
     end
-    return Member;
+    return member;
 end
 
-party.GetParty = function()
-    local Party = AshitaCore:GetMemoryManager():GetParty();
-    local PartyList = {}
+party.get_party = function()
+    local memoryManager = MemoryManager or AshitaCore:GetMemoryManager();
+    local partyManager = memoryManager:GetParty();
+    local partyList = {}
 
     for i = 0,17,1 do
-        table.insert(PartyList, party.GetMember(i));
+        table.insert(partyList, party.get_member(i));
     end
-    gParty.SetPartyLeads();
-    party.Party = PartyList;
-    return PartyList;
+    gParty.set_party_leads();
+    party.Party = partyList;
+    return partyList;
 end
 
-party.getLot = function(p)
+party.get_lot = function(p)
+    local memoryManager = MemoryManager or AshitaCore:GetMemoryManager();
+    local partyManager = memoryManager:GetParty();
     local lotTable = {}
     for i = 0,9 do
-        local lot = AshitaCore:GetMemoryManager():GetParty():GetMemberTreasureLot(p, i);
+        local lot = partyManager:GetMemberTreasureLot(p, i);
         if(lot == 0) then
             lotTable[i] = 'No Lot';
         elseif(lot == 65535) then
@@ -240,13 +347,13 @@ party.getLot = function(p)
     return lotTable;
 end
 
-party.GetTreasurePoolSelectedIndex = function()
+party.get_treasure_pool_selected_index = function()
     local ptr = ashita.memory.read_uint32(treasurePoolPointer);
     ptr = ashita.memory.read_uint32(ptr);
     return ashita.memory.read_uint16(ptr + 0x15c), ashita.memory.read_uint16(ptr + 0x15E), ashita.memory.read_uint8(ptr + 0x160);
 end
 
-party.GetNameColor = function(h)
+party.get_name_color = function(h)
     if(h >= 0.75)then
         return GlamourUI.settings.Party.pList.hp1Color;
     elseif(h < 0.75 and h >= 0.55)then
@@ -261,6 +368,7 @@ end
 party.render_party_list = function()
     gResources.pokeCache(GlamourUI.settings);
     local menu = gHelper.getMenu();
+    local memoryManager = MemoryManager or AshitaCore:GetMemoryManager();
 
     --Check if chatlog is expanded
     if( menu == 'fulllog') then
@@ -283,31 +391,23 @@ party.render_party_list = function()
         local lsyncTex = gResources.getTex(GlamourUI.settings.Party, 'pList', 'levelSync.png');
         local stargTex = gResources.getTex(GlamourUI.settings.Party, 'pList', 'subTarget.png');
         local glowTex = gResources.getTex(GlamourUI.settings.Party, 'pList', 'glow.png');
-        local Party = AshitaCore:GetMemoryManager():GetParty();
+        local partyManager = memoryManager:GetParty();
         local partyCount = 0;
 
         for i=0,5,1 do
-            if (Party:GetMemberIsActive(i) > 0)then
+            if (partyManager:GetMemberIsActive(i) > 0)then
                 partyCount = partyCount + 1;
             end
         end
 
-        if(not GlamourUI.settings.Party.pList.FillDown)then
-            if(GlamourUI.PartyList.Drag)then
-                imgui.SetNextWindowPos({GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y}, ImGuiCond_Once, {0.0, 1.0});
-                GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y = imgui.GetWindowPos();
-            end
-        else
-            if(GlamourUI.PartyList.Drag)then
-                imgui.SetNextWindowPos({GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y}, ImGuiCond_Once, {0.0, 0.0});
-            end
+        if(GlamourUI.PartyList.Drag)then
+            set_next_party_list_anchor();
         end
 
 
-        --Check for missing textures.  Disable themeing and skip frame if textures are missing
-        if(hpbTex == nil or hpfTex == nil or mpbTex == nil or mpfTex == nil or tpbTex == nil or tpfTex == nil or targTex == nil or pleadTex == nil or lsyncTex == nil) then
+        -- Only require themed textures when the themed party list is enabled.
+        if(GlamourUI.settings.Party.pList.themed and (hpbTex == nil or hpfTex == nil or mpbTex == nil or mpfTex == nil or tpbTex == nil or tpfTex == nil or targTex == nil or pleadTex == nil or lsyncTex == nil)) then
             GlamourUI.settings.Party.pList.themed = false;
-            return;
         end
 
         imgui.SetNextWindowSize({ -1, -1 }, ImGuiCond_Always);
@@ -317,42 +417,39 @@ party.render_party_list = function()
         end
 
         --Party List Rendering
-        if(imgui.Begin('PartyList##GlamPList' .. gParty.Party[1].Name, gParty.plistis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
-            local pos = {imgui.GetCursorScreenPos()};
+        local plistBgPops = panelStyle.push_panel_background(GlamourUI.settings.Party.pList);
+        if(imgui.Begin('PartyList##GlamPList' .. get_window_suffix(), gParty.plistis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
+            ensure_party_list_on_screen();
 
-            if(not GlamourUI.settings.Party.pList.FillDown)then
-                if(not GlamourUI.PartyList.Drag)then
-                    imgui.SetWindowPos({GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y}, 0, {0.0, 1.0});
-                end
-            else
-                if(not GlamourUI.PartyList.Drag)then
-                    imgui.SetWindowPos({GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y}, 0, {0.0, 0.0});
-                end
+            if(not GlamourUI.PartyList.Drag)then
+                set_party_list_anchor();
             end
 
             --Draw Party Members on Party List
             local player = GetPlayerEntity();
             local pet = '';
             if(player == nil) then
-                GlamourUI.settings.Party.pList.x, GlamourUI.settings.Party.pList.y = imgui.GetWindowPos();
+                update_party_list_anchor();
                 player = 0;
             end
-            if(Party:GetMemberServerId(0) ~= 0)then
+            if(partyManager:GetMemberServerId(0) ~= 0)then
                 pet = GetEntity(player.PetTargetIndex);
             end
 
             if(GlamourUI.settings.Party.pList.FillDown)then
                 for m = 1,partyCount,1 do
                     if(gParty.Party[m] ~= nil)then
-                        local jobIconTex = gResources.getTex(GlamourUI.settings.Party, 'pList', ('%s.png'):fmt(AshitaCore:GetResourceManager():GetString("jobs.names_abbr", gParty.Party[m].Job)));
+                        local member = gParty.Party[m];
+                        local renderContext = gUI.build_member_render_context(m - 1, member, partyManager, memoryManager);
+                        local jobIconTex = gResources.getTex(GlamourUI.settings.Party, 'pList', member.JobIcon);
 
-                        imgui.BeginGroup(('PartyMember %s##GlamPList'):fmt(gParty.Party[m].Name));
+                        imgui.BeginGroup(('PartyMember %s##GlamPList'):fmt(member.Name));
 
-                        --Determine Render Priority and then render objects in order of lowest priority tobhighest
+                        --Determine Render Priority and then render objects in order of lowest priority to highest
                         for i = 1,6,1 do
                             local p = i - 1;
                             p = 6 - p;
-                            gUI.renderPlayerThemed(p, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, stargTex, pleadTex, lsyncTex, m - 1, gParty.Party[m], jobIconTex);
+                            gUI.render_player_themed(p, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, stargTex, pleadTex, lsyncTex, m - 1, member, jobIconTex, renderContext);
                         end
                         imgui.EndGroup();
                         imgui.SameLine();
@@ -363,7 +460,7 @@ party.render_party_list = function()
                             gParty.Hovered = false;
                         end
                         if(imgui.IsItemClicked())then
-                            AshitaCore:GetChatManager():QueueCommand(-1, ("/ta %s"):fmt(gParty.Party[m].Name));
+                            AshitaCore:GetChatManager():QueueCommand(-1, ("/ta %s"):fmt(member.Name));
                         end
                         imgui.NewLine();
                     end
@@ -375,7 +472,7 @@ party.render_party_list = function()
                     for i = 1,5,1 do
                         local p = i - 1;
                         p = 5 - p;
-                        gUI.renderPetThemed(p, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, stargTex, pet, partyCount);
+                        gUI.render_pet_themed(p, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, stargTex, pet, partyCount);
                     end
                     imgui.EndGroup();
                     if(imgui.IsItemClicked())then
@@ -385,22 +482,18 @@ party.render_party_list = function()
             elseif(not GlamourUI.settings.Party.pList.FillDown)then
                 for m = partyCount,1,-1 do
                     if(gParty.Party[m] ~= nil)then
+                        local member = gParty.Party[m];
+                        local renderContext = gUI.build_member_render_context((m - partyCount) * -1, member, partyManager, memoryManager);
 
 
-                        imgui.BeginGroup(('PartyMember %s##GlamPList'):fmt(gParty.Party[m].Name));
+                        imgui.BeginGroup(('PartyMember %s##GlamPList'):fmt(member.Name));
 
-                        --[[if(gParty.Hovered == true)then
-                            local x = imgui.CalcItemWidth();
-                            local y = gParty.GroupHeight2.y - gParty.GroupHeight1.y;
-                            imgui.SetCursorPos({gParty.GroupHeight1.x, gParty.GroupHeight1.y});
-                            imgui.Image(glowTex, {x, y});
-                        end]]
 
                         --Determine Render Priority and then render objects in order of lowest priority tobhighest
                         for i = 1,5,1 do
                             local p = i - 1;
                             p = 5 - p;
-                            gUI.renderPlayerThemed(p, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, stargTex, pleadTex, lsyncTex, (m - partyCount) * -1, gParty.Party[m]);
+                            gUI.render_player_themed(p, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, stargTex, pleadTex, lsyncTex, (m - partyCount) * -1, member, nil, renderContext);
                         end
                         imgui.EndGroup();
                         imgui.SameLine();
@@ -411,7 +504,7 @@ party.render_party_list = function()
                             gParty.Hovered = false;
                         end
                         if(imgui.IsItemClicked())then
-                            AshitaCore:GetChatManager():QueueCommand(-1, ("/ta %s"):fmt(gParty.Party[m].Name));
+                            AshitaCore:GetChatManager():QueueCommand(-1, ("/ta %s"):fmt(member.Name));
                         end
                         imgui.NewLine();
                     end
@@ -423,23 +516,26 @@ party.render_party_list = function()
                     for i = 1,5,1 do
                         local p = i - 1;
                         p = 5 - p;
-                        gUI.renderPetThemed(p, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, stargTex, pet, partyCount);
+                        gUI.render_pet_themed(p, hpbTex, hpfTex, mpbTex, mpfTex, tpbTex, tpfTex, targTex, stargTex, pet, partyCount);
                     end
                     imgui.EndGroup();
                     if(imgui.IsItemClicked())then
                         AshitaCore:GetChatManager():QueueCommand(-1, ("/ta <pet>"));
                     end
                 end
-                GlamourUI.PartyList.x, GlamourUI.PartyList.y = imgui.GetWindowPos();
-                imgui.End();
             end
+            update_party_list_anchor();
+            GlamourUI.PartyList.x, GlamourUI.PartyList.y = imgui.GetWindowPos();
+            imgui.End();
         end
+        panelStyle.pop_panel_background(plistBgPops);
     end
 end
 
 party.render_alliance_panel = function()
-    local a1Count = AshitaCore:GetMemoryManager():GetParty():GetAlliancePartyMemberCount2();
-    local a2Count = AshitaCore:GetMemoryManager():GetParty():GetAlliancePartyMemberCount3();
+    local memoryManager = MemoryManager or AshitaCore:GetMemoryManager();
+    local a1Count = memoryManager:GetParty():GetAlliancePartyMemberCount2();
+    local a2Count = memoryManager:GetParty():GetAlliancePartyMemberCount3();
 
     if((a1Count >= 1 or a2Count >= 1) and GlamourUI.settings.Party.aPanel.enabled)then
         local hpbTex = gResources.getTex(GlamourUI.settings.Party, 'aPanel', 'hpBar.png');
@@ -447,12 +543,13 @@ party.render_alliance_panel = function()
         local targTex = gResources.getTex(GlamourUI.settings.Party, 'aPanel', 'partyTarget.png');
         local stargTex = gResources.getTex(GlamourUI.settings.Party, 'aPanel', 'subTarget.png');
         local pLeadTex = gResources.getTex(GlamourUI.settings.Party, 'aPanel', 'partyLead.png');
-        local target = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(AshitaCore:GetMemoryManager():GetTarget():GetIsSubTargetActive())
+        local target = memoryManager:GetTarget():GetTargetIndex(memoryManager:GetTarget():GetIsSubTargetActive())
         local evenOffset = (GlamourUI.settings.Party.aPanel.hpBarDim.l * 2) + 100;
 
 
-        if(imgui.Begin('APanel##GlamAP' .. gParty.Party[1].Name, gParty.apanelis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
-            imgui.SetWindowFontScale(0.3 * GlamourUI.settings.Party.aPanel.font_scale);
+        local apBgPops = panelStyle.push_panel_background(GlamourUI.settings.Party.aPanel);
+        if(imgui.Begin('APanel##GlamAP' .. get_window_suffix(), gParty.apanelis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
+            local fontPushed = gResources.push_font_scale(0.3 * GlamourUI.settings.Party.aPanel.font_scale);
             if(a1Count > 0)then
                 local strLen = imgui.CalcTextSize('Party 2');
                 imgui.SetCursorPosX((imgui.GetWindowWidth() - strLen) * 0.5);
@@ -465,15 +562,13 @@ party.render_alliance_panel = function()
                     local yOff = (mult * GlamourUI.settings.Party.aPanel.hpBarDim.g + 16);
                     imgui.BeginGroup(('APanel %s##'):fmt(gParty.Party[i+1].Name));
                     if(i % 2 == 0)then
-                        imgui.SetWindowFontScale(0.3 * GlamourUI.settings.Party.aPanel.font_scale);
                         local o = 50;
                         imgui.SetCursorPosY(yOff + 1);
-                        gUI.RenderAllianceMember(hpbTex, hpfTex, targTex, stargTex, pLeadTex, target, mult, o, gParty.Party[i + 1], i);
+                        gUI.render_alliance_member(hpbTex, hpfTex, pLeadTex, o, gParty.Party[i + 1], i);
                     else
                         local o = 100  + GlamourUI.settings.Party.aPanel.hpBarDim.l
-                        imgui.SetWindowFontScale(0.3 * GlamourUI.settings.Party.aPanel.font_scale);
                         imgui.SetCursorPosY(yOff + 1);
-                        gUI.RenderAllianceMember(hpbTex, hpfTex, targTex, stargTex, pLeadTex, target, mult, o, gParty.Party[i + 1], i);
+                        gUI.render_alliance_member(hpbTex, hpfTex, pLeadTex, o, gParty.Party[i + 1], i);
                     end
                     imgui.EndGroup();
                     if(imgui.IsItemClicked())then
@@ -493,15 +588,13 @@ party.render_alliance_panel = function()
                     end
                     local yOff = (mult * GlamourUI.settings.Party.aPanel.hpBarDim.g + 40);
                     if(i % 2 == 0)then
-                        imgui.SetWindowFontScale(0.3 * GlamourUI.settings.Party.aPanel.font_scale);
                         local o = 50 * GlamourUI.settings.Party.aPanel.gui_scale;
                         imgui.SetCursorPosY(yOff);
-                        gUI.RenderAllianceMember(hpbTex, hpfTex, targTex, stargTex, pLeadTex, target, mult, o, gParty.Party[i + 1], i);
+                        gUI.render_alliance_member(hpbTex, hpfTex, pLeadTex, o, gParty.Party[i + 1], i);
                     else
-                        imgui.SetWindowFontScale(0.3 * GlamourUI.settings.Party.aPanel.font_scale);
                         local o = (100  + GlamourUI.settings.Party.aPanel.hpBarDim.l) * GlamourUI.settings.Party.aPanel.gui_scale;
                         imgui.SetCursorPosY(yOff);
-                        gUI.RenderAllianceMember(hpbTex, hpfTex, targTex, stargTex, pLeadTex, target, mult, o, gParty.Party[i + 1], i);
+                        gUI.render_alliance_member(hpbTex, hpfTex, pLeadTex, o, gParty.Party[i + 1], i);
                     end
                     imgui.EndGroup();
                     if(imgui.IsItemClicked())then
@@ -515,19 +608,26 @@ party.render_alliance_panel = function()
             local pos = {imgui.GetWindowPos()};
             abgpos.x = pos[1] - 25;
             abgpos.y = pos[2] - 25;
+            gResources.pop_font(fontPushed);
             imgui.End();
         end
+        panelStyle.pop_panel_background(apBgPops);
     end
 end
 
 party.render_player_stats = function()
     imgui.SetNextWindowSize({ -1, -1, }, ImGuiCond_Always);
     imgui.SetNextWindowPos({GlamourUI.settings.PlayerStats.x, GlamourUI.settings.PlayerStats.y}, ImGuiCond_Once);
-    local player = AshitaCore:GetMemoryManager():GetPlayer();
+    local memoryManager = MemoryManager or AshitaCore:GetMemoryManager();
+    local player = memoryManager:GetPlayer();
+    local playerMember = party.Party[1];
+    if(playerMember == nil)then
+        return;
+    end
     local curEXP = player:GetExpCurrent();
     local maxEXP = player:GetExpNeeded();
     local curLP = player:GetLimitPoints();
-    local job = AshitaCore:GetResourceManager():GetString("jobs.names_abbr", party.Party[1].Job) .. tostring(party.Party[1].Level) .. '/' .. AshitaCore:GetResourceManager():GetString("jobs.names_abbr", party.Party[1].SJob) .. tostring(party.Party[1].SJLevel);
+    local job = playerMember.JobDisplay;
     local expModeStr = gParty.EXPMode .. ' / hr';
 
     if(maxEXP ~= nil)then
@@ -535,8 +635,9 @@ party.render_player_stats = function()
     end
 
     if(GlamourUI.settings.PlayerStats.enabled == true)then
-        if (imgui.Begin('PlayerStats##GlamPStats' .. gParty.Party[1].Name, gParty.pstatsis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
-            imgui.SetWindowFontScale(GlamourUI.settings.PlayerStats.font_scale * 0.5);
+        local psBgPops = panelStyle.push_panel_background(GlamourUI.settings.PlayerStats);
+        if (imgui.Begin('PlayerStats##GlamPStats' .. get_window_suffix(), gParty.pstatsis_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
+            local mainFontPushed = gResources.push_font_scale(GlamourUI.settings.PlayerStats.font_scale * 0.5);
             if(GlamourUI.settings.PlayerStats.themed == true) then
 
                 local hpbTex = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'hpBar.png');
@@ -549,13 +650,14 @@ party.render_player_stats = function()
                 local efTex = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'expFill.png');
 
 
-                gUI.RenderPlayerStats(hpbTex, hpfTex, gParty.Party[1].HP, gParty.Party[1].HPP, GlamourUI.settings.PlayerStats.gui_scale * 0);
+                gUI.render_player_stats(hpbTex, hpfTex, playerMember.HP, playerMember.HPP, GlamourUI.settings.PlayerStats.gui_scale * 0);
                 imgui.SameLine();
-                gUI.RenderPlayerStats(mpbTex, mpfTex, gParty.Party[1].MP, gParty.Party[1].MPP, GlamourUI.settings.PlayerStats.gui_scale * 250);
+                gUI.render_player_stats(mpbTex, mpfTex, playerMember.MP, playerMember.MPP, GlamourUI.settings.PlayerStats.gui_scale * 250);
                 imgui.SameLine();
-                gUI.RenderPlayerStats(tpbTex, tpfTex, gParty.Party[1].TP, nil, GlamourUI.settings.PlayerStats.gui_scale * 500);
+                gUI.render_player_stats(tpbTex, tpfTex, playerMember.TP, nil, GlamourUI.settings.PlayerStats.gui_scale * 500);
 
-                imgui.SetWindowFontScale(GlamourUI.settings.PlayerStats.font_scale * 0.3);
+                gResources.pop_font(mainFontPushed);
+                local detailFontPushed = gResources.push_font_scale(GlamourUI.settings.PlayerStats.font_scale * 0.3);
                 --EXP Bar
                 imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * 50);
                 imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.gui_scale * (GlamourUI.settings.PlayerStats.BarDim.g + 30));
@@ -601,13 +703,13 @@ party.render_player_stats = function()
                 imgui.Text(job);
                 if(party.EXPMode == 'LP')then
                     local merits = tostring(player:GetMeritPoints()) .. '/' .. tostring(player:GetMeritPointsMax());
-                    local cp = player:GetCapacityPoints(gParty.Party[1].Job);
-                    local jp = player:GetJobPoints(gParty.Party[1].Job);
+                    local cp = player:GetCapacityPoints(playerMember.Job);
+                    local jp = player:GetJobPoints(playerMember.Job);
                     imgui.SameLine();
                     imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * (imgui.GetWindowWidth() * 0.66));
                     imgui.Text('Merits:  ' .. merits);
-                    if(gParty.Party[1].Level == 99 or cp > 0 or jp > 0)then
-                        if(not gParty.Party[1].Mastered)then
+                    if(playerMember.Level == 99 or cp > 0 or jp > 0)then
+                        if(not playerMember.Mastered)then
                             imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * 50);
                             imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.gui_scale * (GlamourUI.settings.PlayerStats.BarDim.g + 50));
                             imgui.Image(ebTex, {expBarLen, 5});
@@ -627,15 +729,15 @@ party.render_player_stats = function()
                             imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * (imgui.GetWindowWidth() - CPphOffset - 50));
                             imgui.Text(tostring(CPperHourStr) .. ' CP/Hr');
                         else
-                            local ExemP = gParty.Party[1].ExemP;
-                            local MLTNL = gParty.Party[1].MLTNL;
+                            local ExemP = playerMember.ExemP;
+                            local MLTNL = playerMember.MLTNL;
                             imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * 50);
                             imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.gui_scale * (GlamourUI.settings.PlayerStats.BarDim.g + 50));
                             imgui.Image(ebTex, {expBarLen, 5});
                             imgui.SetCursorPosX(GlamourUI.settings.PlayerStats.gui_scale * 50);
                             imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.gui_scale * (GlamourUI.settings.PlayerStats.BarDim.g + 50));
                             imgui.Image(efTex, {expBarLen * (ExemP / MLTNL), 5}, {0,0}, {ExemP / MLTNL, 1});
-                            local JPStr = ('ExemP:  ' .. tostring(ExemP) .. ' / ' .. tostring(MLTNL) .. ' | Master Level:  ' .. tostring(gParty.Party[1].ML));
+                            local JPStr = ('ExemP:  ' .. tostring(ExemP) .. ' / ' .. tostring(MLTNL) .. ' | Master Level:  ' .. tostring(playerMember.ML));
                             local JPStrOffset = GlamourUI.settings.PlayerStats.gui_scale * (imgui.GetWindowWidth() - imgui.CalcTextSize(JPStr)) * 0.5;
                             imgui.SetCursorPosX(JPStrOffset);
                             imgui.Text(JPStr);
@@ -650,14 +752,15 @@ party.render_player_stats = function()
                         end
                     end
                 end
+                gResources.pop_font(detailFontPushed);
 
             else
 
-                gUI.renderPlayerNoTheme(0, { 1.0, 0.25, 0.25, 1.0 }, gParty.Party[1].HP, gParty.Party[1].HPP);
+                gUI.render_player_no_theme(0, { 1.0, 0.25, 0.25, 1.0 }, playerMember.HP, playerMember.HPP);
                 imgui.SameLine();
-                gUI.renderPlayerNoTheme(250, { 0.0, 0.5, 0.0, 1.0 }, gParty.Party[1].MP, gParty.Party[1].MPP);
+                gUI.render_player_no_theme(250, { 0.0, 0.5, 0.0, 1.0 }, playerMember.MP, playerMember.MPP);
                 imgui.SameLine();
-                gUI.renderPlayerNoTheme(500, { 0.0, 0.45, 1.0, 1.0}, gParty.Party[1].TP, nil);
+                gUI.render_player_no_theme(500, { 0.0, 0.45, 1.0, 1.0}, playerMember.TP, nil);
 
                 --EXP Bar
                 imgui.SetCursorPosX(50);
@@ -673,13 +776,20 @@ party.render_player_stats = function()
                 imgui.SetCursorPosX(stroffset);
                 imgui.SetCursorPosY(GlamourUI.settings.PlayerStats.BarDim.g + 30);
                 imgui.Text(job);
+                gResources.pop_font(mainFontPushed);
             end
+
+            local pos = { imgui.GetWindowPos() };
+            GlamourUI.settings.PlayerStats.x = pos[1];
+            GlamourUI.settings.PlayerStats.y = pos[2];
+
             imgui.End();
         end
+        panelStyle.pop_panel_background(psBgPops);
     end
 end
 
-party.PlayerSkills = function()
+party.player_skills = function()
     local player = AshitaCore:GetMemoryManager():GetPlayer();
     local combat = {}
     local craft = {}
@@ -770,7 +880,7 @@ party.PlayerSkills = function()
     return combat, craft;
 end
 
-party.GetCraftRank = function(skill)
+party.get_craft_rank = function(skill)
     local ranks = {
         'Amateur', 'Recruit', 'Initiate', 'Novice', 'Apprentice', 'Journeyman', 'Craftsman', 'Artisan', 'Adept', 'Veteran', 'Expert'
     }

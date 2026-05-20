@@ -10,6 +10,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 ]]--
 
 local imgui = require('imgui');
+local panelStyle = require('panelStyle');
 local env = require('scaling');
 local chat = require('chat');
 require('common');
@@ -21,6 +22,7 @@ inventory.timestamps = {}
 inventory.settings = {}
 
 inventory.treasurePool = T{}
+inventory._treasurePoolFingerprint = nil;
 
 inventory.render_inv_panel = function()
     local player = AshitaCore:GetMemoryManager():GetPlayer();
@@ -51,8 +53,9 @@ inventory.render_inv_panel = function()
             imgui.SetNextWindowBgAlpha(1);
             imgui.SetNextWindowSize(size, ImGuiCond_Always);
             imgui.SetNextWindowPos(menu);
+            local invBgPops = panelStyle.push_panel_background(GlamourUI.settings.Inv);
             if(imgui.Begin("InventoryPanel##GlamInv", GlamourUI.settings.Inv.enabled, bit.bor(ImGuiWindowFlags_NoDecoration)))then
-                imgui.SetWindowFontScale((GlamourUI.settings.Inv.font_scale * 0.5) * GlamourUI.settings.Inv.font_scale);
+                local fontPushed = gResources.push_font_scale((GlamourUI.settings.Inv.font_scale * 0.5) * GlamourUI.settings.Inv.font_scale);
 
                 --Inventory Counts
                 imgui.SetCursorPosX(15 * scaleX);
@@ -96,8 +99,10 @@ inventory.render_inv_panel = function()
                 imgui.SetCursorPosX(85 * scaleX);
                 imgui.SetCursorPosY(147 * scaleY);
                 imgui.Image(gilTex, {15 * scaleX, 15 * scaleY});
+                gResources.pop_font(fontPushed);
                 imgui.End();
             end
+            panelStyle.pop_panel_background(invBgPops);
         end
     end
 end
@@ -116,7 +121,23 @@ inventory.getTreasurePool = function()
     local player = AshitaCore:GetMemoryManager():GetParty():GetMemberName(0)
     local now = os.time()
 
-    inventory.treasurePool = {}
+    -- Fast path: detect no change in pool state, skip rebuild.
+    local fpParts = {};
+    local any = false;
+    for i = 0,9 do
+        local treasureDrop = inv:GetTreasurePoolItem(i)
+        if treasureDrop ~= nil and treasureDrop.ItemId > 0 then
+            any = true;
+            fpParts[#fpParts + 1] = string.format('%d:%d:%d:%d:%d', i, treasureDrop.ItemId or 0, treasureDrop.DropTime or 0, treasureDrop.Lot or 0, treasureDrop.WinningLot or 0);
+        end
+    end
+    local fp = any and table.concat(fpParts, '|') or '';
+    if (fp == (inventory._treasurePoolFingerprint or '')) then
+        return;
+    end
+    inventory._treasurePoolFingerprint = fp;
+
+    inventory.treasurePool = T{}
 
     for i = 0,9 do
         local treasureDrop = inv:GetTreasurePoolItem(i)
@@ -128,11 +149,11 @@ inventory.getTreasurePool = function()
             end
 
             local drop = {}
-            drop.id = itemInfo.Id;
-            drop.icon = gResources.load_item_icon_from_resource(itemInfo);
+            drop.id = treasureDrop.ItemId;
+            drop.icon = gResources.get_item_icon(treasureDrop.ItemId, itemInfo);
             drop.slot = i;
             drop.name = itemInfo.Name[1];
-            drop.time = string.format('%4i', inventory.timestamps[treasureDrop.DropTime] - now);
+            drop.expiresAt = inventory.timestamps[treasureDrop.DropTime];
             drop.winner = {}
             drop.winner.exists = treasureDrop.WinningLot > 0;
             drop.winner.name = treasureDrop.WinningEntityName;
@@ -149,11 +170,126 @@ inventory.getTreasurePool = function()
 end
 
 inventory.TPoolLot = function(slot)
-    AshitaCore:GetPacketManager():AddOutgoingPacket(gPacket.MakeTreasureLot:make(slot));
+        AshitaCore:GetPacketManager():AddOutgoingPacket(gPacket.MakeTreasureLot:make(slot));
 end
 
 inventory.TPoolPass = function(slot)
     AshitaCore:GetPacketManager():AddOutgoingPacket(gPacket.MakeTreasurePass:make(slot));
+end
+
+local ITEM_FLAG_RARE = 0x8000;
+
+local LOT_VISIBLE_CONTAINERS = { 0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+
+local function pool_item_display_name(drop, itemRes)
+    if (drop ~= nil and drop.name ~= nil and drop.name ~= '') then
+        return tostring(drop.name);
+    end
+    if (itemRes ~= nil and itemRes.Name ~= nil and itemRes.Name[1] ~= nil) then
+        return tostring(itemRes.Name[1]);
+    end
+    if (drop ~= nil and drop.id ~= nil) then
+        return ('Item #%u'):fmt(tonumber(drop.id) or 0);
+    end
+    return 'Item';
+end
+
+local function container_contains_item_id(inv, containerId, itemId)
+    local maxIdx = inv:GetContainerCountMax(containerId);
+    if (maxIdx == nil or maxIdx <= 0) then
+        return false;
+    end
+    for idx = 0, maxIdx - 1 do
+        local it = inv:GetContainerItem(containerId, idx);
+        if (it ~= nil and it.Id == itemId and (it.Count or 0) > 0) then
+            return true;
+        end
+    end
+    return false;
+end
+
+local function equipment_contains_item_id(inv, itemId)
+    for slot = 0, 15 do
+        local eitem = inv:GetEquippedItem(slot);
+        if (eitem ~= nil and eitem.Index ~= nil and eitem.Index ~= 0) then
+            local cont = bit.band(eitem.Index, 0xFF00) / 256;
+            local index = bit.band(eitem.Index, 0xFF);
+            local it = inv:GetContainerItem(cont, index);
+            if (it ~= nil and it.Id == itemId and (it.Count or 0) > 0) then
+                return true;
+            end
+        end
+    end
+    return false;
+end
+
+local function player_owns_item_id(inv, itemId)
+    for i = 1, #LOT_VISIBLE_CONTAINERS do
+        if (container_contains_item_id(inv, LOT_VISIBLE_CONTAINERS[i], itemId) == true) then
+            return true;
+        end
+    end
+    return equipment_contains_item_id(inv, itemId);
+end
+
+---@param drop table
+---@return boolean ok
+---@return string|nil reason
+inventory.canLot = function(drop)
+    if (drop == nil or drop.id == nil or tonumber(drop.id) == nil or tonumber(drop.id) <= 0) then
+        return false, 'Unable to cast lot for item.  Reason:  Invalid item.';
+    end
+
+    local inv = AshitaCore:GetMemoryManager():GetInventory();
+    local res = AshitaCore:GetResourceManager();
+    local itemRes = res:GetItemById(drop.id);
+    if (itemRes == nil) then
+        return false, ('Unable to cast lot for %s.  Reason:  Unknown item.'):fmt(pool_item_display_name(drop, nil));
+    end
+
+    local name = pool_item_display_name(drop, itemRes);
+
+    local bagCount = inv:GetContainerCount(0);
+    local bagMax = inv:GetContainerCountMax(0);
+    if (bagMax ~= nil and bagMax > 0 and bagCount ~= nil and bagCount >= bagMax) then
+        return false, ('Unable to cast lot for %s.  Reason:  Inventory is full.'):fmt(name);
+    end
+
+    local flags = tonumber(itemRes.Flags) or 0;
+    if (bit.band(flags, ITEM_FLAG_RARE) ~= 0) then
+        if (player_owns_item_id(inv, drop.id) == true) then
+            return false, ('Unable to cast lot for %s.  Reason:  You already possess this rare item.'):fmt(name);
+        end
+    end
+
+    return true;
+end
+
+inventory.tryLotDrop = function(drop)
+    local ok, reason = inventory.canLot(drop);
+    if (not ok) then
+        print(chat.error(reason));
+        return false;
+    end
+    inventory.TPoolLot(drop.slot);
+    return true;
+end
+
+inventory.tryLotSlot = function(slotNum)
+    local n = tonumber(slotNum);
+    if (n == nil) then
+        print(chat.error('Unable to cast lot.  Reason:  Invalid slot.'));
+        return false;
+    end
+    inventory.getTreasurePool();
+    for i = 1, #inventory.treasurePool do
+        local drop = inventory.treasurePool[i];
+        if (drop.slot == n) then
+            return inventory.tryLotDrop(drop);
+        end
+    end
+    print(chat.error(('Unable to cast lot.  Reason:  No item in treasure pool slot %s.'):fmt(tostring(slotNum))));
+    return false;
 end
 
 return inventory;

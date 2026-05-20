@@ -1,31 +1,38 @@
-require ('common');
-local ffi = require ('ffi');
+require('common');
 local imgui = require('imgui');
 local chat = require('chat');
 
-
 local stptPointer = ashita.memory.find('FFXIMain.dll', 0, '891D????????74??4874??88', 0x02, 0x00);
 
+local target = {};
 
+local get_memory_manager = function()
+    return MemoryManager or AshitaCore:GetMemoryManager();
+end
 
-local function GetSubTargetIndex()
-    local targetMgr = AshitaCore:GetMemoryManager():GetTarget();
-    if (targetMgr:GetIsSubTargetActive() == 1) then
-        return targetMgr:GetTargetIndex(0);
+local get_target_manager = function()
+    return get_memory_manager():GetTarget();
+end
+
+local get_sub_target_index = function()
+    local targetManager = get_target_manager();
+    if(targetManager:GetIsSubTargetActive() == 1)then
+        return targetManager:GetTargetIndex(0);
     end
+
     return 0;
 end
 
---Returns if entity is claimed, and if so, if it's by the player's party/alliance or not.
-local function getClaimed(e)
-    local claimStatus = AshitaCore:GetMemoryManager():GetEntity():GetClaimStatus(e);
-    if (claimStatus == 0) then
+local get_claim_status = function(entityIndex)
+    local memoryManager = get_memory_manager();
+    local claimStatus = memoryManager:GetEntity():GetClaimStatus(entityIndex);
+    if(claimStatus == 0)then
         return 'unclaimed';
     end
 
-    local party = AshitaCore:GetMemoryManager():GetParty();
-    for i = 1,18 do
-        if (party:GetMemberIsActive(i) == 1) and (party:GetMemberServerId(i) == claimStatus) then
+    local partyManager = memoryManager:GetParty();
+    for i = 1,18,1 do
+        if(partyManager:GetMemberIsActive(i) == 1 and partyManager:GetMemberServerId(i) == claimStatus)then
             return 'party';
         end
     end
@@ -33,54 +40,54 @@ local function getClaimed(e)
     return 'other';
 end
 
---Target Bar Nameplate Status
-getNameStatus = function()
-    local target = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(0)
-    local spawnFlags = AshitaCore:GetMemoryManager():GetEntity():GetSpawnFlags(target);
-    local t = {
+local get_name_status = function()
+    local memoryManager = get_memory_manager();
+    local targetIndex = memoryManager:GetTarget():GetTargetIndex(0);
+    local spawnFlags = memoryManager:GetEntity():GetSpawnFlags(targetIndex);
+    local nameStatus = {
         type = '',
         status = '',
-    }
+    };
+
     if(bit.band(spawnFlags, 0x02) == 0x02)then
-        t.type = 'npc';
+        nameStatus.type = 'npc';
     elseif(bit.band(spawnFlags, 0x10) == 0x10)then
-        t.type = 'mob';
-        if(getClaimed(target) == 'party')then
-            t.status = 'partyClaimed';
-        elseif(getClaimed(target) == 'other')then
-            t.status = 'otherClaimed';
+        nameStatus.type = 'mob';
+
+        local claimStatus = get_claim_status(targetIndex);
+        if(claimStatus == 'party')then
+            nameStatus.status = 'partyClaimed';
+        elseif(claimStatus == 'other')then
+            nameStatus.status = 'otherClaimed';
         else
-            t.status = 'unclaimed';
+            nameStatus.status = 'unclaimed';
         end
-    elseif(bit.band(spawnFlags, 0x01) == 0x01 or bit.band(spawnFlags, 0x0d) == 0x0d)then
-        t.type = 'player'
+    elseif(bit.band(spawnFlags, 0x01) == 0x01 or bit.band(spawnFlags, 0x0D) == 0x0D)then
+        nameStatus.type = 'player';
     end
-    return t;
+
+    return nameStatus;
 end
 
+target.ftTable = {};
+target.is_open = false;
+target.ft_is_open = false;
 
-
-local target = {}
-
-target.ftTable = {}
-
---Returns true if targetlocked
-target.IsTargetLocked = function()
-    return (bit.band(AshitaCore:GetMemoryManager():GetTarget():GetLockedOnFlags(), 1) == 1);
+target.is_target_locked = function()
+    return (bit.band(get_target_manager():GetLockedOnFlags(), 1) == 1);
 end
 
---Returns the Entity of the sub-target.
-target.getSubTargetEntity = function()
-    local subTargetIndex = GetSubTargetIndex();
-    if subTargetIndex ~= 0 then
+target.get_sub_target_entity = function()
+    local subTargetIndex = get_sub_target_index();
+    if(subTargetIndex ~= 0)then
         return GetEntity(subTargetIndex);
     end
+
     return nil;
 end
 
---Returns the Color of Target Bar Nameplate
-target.GetNameplateColor = function()
-    local nameStatus = getNameStatus(AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(0));
+target.push_nameplate_color = function()
+    local nameStatus = get_name_status();
 
     if(nameStatus.type == 'mob')then
         if(nameStatus.status == 'partyClaimed')then
@@ -89,7 +96,7 @@ target.GetNameplateColor = function()
         elseif(nameStatus.status == 'otherClaimed')then
             imgui.PushStyleColor(ImGuiCol_Text, {1.0, 0.2, 0.8, 1.0});
             return;
-        elseif(nameStatus.status == 'cfh') then
+        elseif(nameStatus.status == 'cfh')then
             imgui.PushStyleColor(ImGuiCol_Text, {1.0, 0.7, 0.3, 1.0});
             return;
         elseif(nameStatus.status == 'unclaimed')then
@@ -97,6 +104,7 @@ target.GetNameplateColor = function()
             return;
         end
     end
+
     if(nameStatus.type == 'npc')then
         imgui.PushStyleColor(ImGuiCol_Text, {0.2, 0.8, 0.2, 1.0});
         return;
@@ -106,46 +114,56 @@ target.GetNameplateColor = function()
         imgui.PushStyleColor(ImGuiCol_Text, {0.8, 0.8, 1.0, 1.0});
         return;
     end
-    if(nameStatus.type == 'player') then
+
+    if(nameStatus.type == 'player')then
         if(nameStatus.status == 'anon')then
             imgui.PushStyleColor(ImGuiCol_Text, {0.24, 0.56, 0.73, 1.0});
             return;
-        else
-            imgui.PushStyleColor(ImGuiCol_Text, {1.0, 1.0, 1.0, 1.0});
-            return;
         end
+
+        imgui.PushStyleColor(ImGuiCol_Text, {1.0, 1.0, 1.0, 1.0});
     end
 end
 
-target.AddFocusTarget = function()
-    local targ = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(AshitaCore:GetMemoryManager():GetTarget():GetIsSubTargetActive());
+target.get_name_status = function()
+    return get_name_status();
+end
 
-    local targetEntity = GetEntity(targ);
+target.add_focus_target = function()
+    local targetManager = get_target_manager();
+    local targetIndex = targetManager:GetTargetIndex(targetManager:GetIsSubTargetActive());
+    local targetEntity = GetEntity(targetIndex);
     if(targetEntity == nil)then
         print(chat.header('No Target Selected to Add to Focus List'));
         return;
     end
+
     table.insert(gTarget.ftTable, targetEntity);
 end
 
-target.RemoveFocusTarget = function(t)
-    gTarget.ftTable = gHelper.ArrayRemove(gTarget.ftTable, t);
+target.add_focus_target_by_index = function(entityIndex)
+    local idx = tonumber(entityIndex) or 0;
+    if (idx == 0) then
+        return;
+    end
+    local ent = GetEntity(idx);
+    if (ent == nil) then
+        return;
+    end
+    table.insert(gTarget.ftTable, ent);
 end
 
-target.ClearFocusTarget = function()
-    gTarget.ftTable = nil
-    gTarget.ftTable = {}
+target.remove_focus_target = function(targetIndex)
+    gTarget.ftTable = gHelper.ArrayRemove(gTarget.ftTable, targetIndex);
 end
 
-target.is_open = false;
+target.clear_focus_target = function()
+    gTarget.ftTable = {};
+end
 
-target.ft_is_open = false;
-
---Paryt-List Cursor outside of normal target indicator
-target.GetSelectedAllianceMember = function()
+target.get_selected_alliance_member = function()
     local structPointer = ashita.memory.read_uint32(stptPointer);
     return ashita.memory.read_uint32(structPointer + 0x00), ashita.memory.read_uint32(structPointer + 0x04) > 0;
 end
-
 
 return target;
