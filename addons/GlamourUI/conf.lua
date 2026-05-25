@@ -130,6 +130,14 @@ local render_dimension_controls = nil;
 local render_chat_color_swatch = nil;
 local render_chat_code_color_swatch = nil;
 
+local function ensure_chat_purpose_color(chatSettings, purpose)
+    local colors = chatSettings.purposeColors;
+    if (colors[purpose] == nil) then
+        colors[purpose] = { 1.0, 1.0, 1.0, 1.0 };
+    end
+    return colors[purpose];
+end
+
 local function tab_button(label, id, isSelected)
     if (isSelected) then
         imgui.PushStyleColor(ImGuiCol_Button, { 0.20, 0.55, 0.95, 1.0 });
@@ -279,6 +287,38 @@ local function render_recast_contents()
     );
 end
 
+local function render_pstats_bar_dim_controls(title, dimTable, idSuffix)
+    imgui.Text(title);
+    local barLength = { dimTable.l };
+    local barGirth = { dimTable.g };
+
+    imgui.PushItemWidth(math.max(80, conf_content_avail_x() - conf_slider_arrow_pair_reserve));
+    imgui.SliderInt(('Length##GlamPlayerStats%sLen'):fmt(idSuffix), barLength, 0, 700);
+    imgui.PopItemWidth();
+    dimTable.l = barLength[1];
+    imgui.SameLine(0, 6);
+    if(imgui.ArrowButton(('lleft##GlamPlayerStats%sLen'):fmt(idSuffix), ImGuiDir_Left))then
+        dimTable.l = dimTable.l - 1;
+    end
+    imgui.SameLine(0, 2);
+    if(imgui.ArrowButton(('lright##GlamPlayerStats%sLen'):fmt(idSuffix), ImGuiDir_Right))then
+        dimTable.l = dimTable.l + 1;
+    end
+
+    imgui.PushItemWidth(math.max(80, conf_content_avail_x() - conf_slider_arrow_pair_reserve));
+    imgui.SliderInt(('Girth##GlamPlayerStats%sGir'):fmt(idSuffix), barGirth, 0, 100);
+    imgui.PopItemWidth();
+    dimTable.g = barGirth[1];
+    imgui.SameLine(0, 6);
+    if(imgui.ArrowButton(('gleft##GlamPlayerStats%sGir'):fmt(idSuffix), ImGuiDir_Up))then
+        dimTable.g = dimTable.g - 1;
+    end
+    imgui.SameLine(0, 2);
+    if(imgui.ArrowButton(('gright##GlamPlayerStats%sGir'):fmt(idSuffix), ImGuiDir_Down))then
+        dimTable.g = dimTable.g + 1;
+    end
+end
+
 local function render_player_stats_contents()
     GlamourUI.settings.PlayerStats.themed = select(1, render_toggle('Themed##GlamPlayerStats', GlamourUI.settings.PlayerStats.themed));
 
@@ -289,35 +329,16 @@ local function render_player_stats_contents()
     GlamourUI.settings.PlayerStats.gui_scale = render_float_setting('GuiScale##GlamPlayerStats', GlamourUI.settings.PlayerStats.gui_scale, 0.1, 5.0, '%.1f');
     GlamourUI.settings.PlayerStats.font_scale = render_float_setting('FontScale##GlamPlayerStats', GlamourUI.settings.PlayerStats.font_scale, 0.1, 5.0, '%.1f');
 
-    local barLength = {GlamourUI.settings.PlayerStats.BarDim.l};
-    local barGirth = {GlamourUI.settings.PlayerStats.BarDim.g};
-
-    imgui.Text('Bar Dimensions');
-    imgui.PushItemWidth(math.max(80, conf_content_avail_x() - conf_slider_arrow_pair_reserve));
-    imgui.SliderInt('Length##GlamPlayerStatsBar', barLength, 0, 700);
-    imgui.PopItemWidth();
-    GlamourUI.settings.PlayerStats.BarDim.l = barLength[1];
-    imgui.SameLine(0, 6);
-    if(imgui.ArrowButton('lleft##GlamPlayerStatsBar', ImGuiDir_Left))then
-        GlamourUI.settings.PlayerStats.BarDim.l = GlamourUI.settings.PlayerStats.BarDim.l - 1;
+    if(GlamourUI.settings.PlayerStats.expBarDim == nil)then
+        GlamourUI.settings.PlayerStats.expBarDim = { l = 600, g = 14 };
     end
-    imgui.SameLine(0, 2);
-    if(imgui.ArrowButton('lright##GlamPlayerStatsBar', ImGuiDir_Right))then
-        GlamourUI.settings.PlayerStats.BarDim.l = GlamourUI.settings.PlayerStats.BarDim.l + 1;
+    if(type(GlamourUI.settings.PlayerStats.barPadding) ~= 'number')then
+        GlamourUI.settings.PlayerStats.barPadding = 50;
     end
 
-    imgui.PushItemWidth(math.max(80, conf_content_avail_x() - conf_slider_arrow_pair_reserve));
-    imgui.SliderInt('Girth##GlamPlayerStatsBar', barGirth, 0, 100);
-    imgui.PopItemWidth();
-    GlamourUI.settings.PlayerStats.BarDim.g = barGirth[1];
-    imgui.SameLine(0, 6);
-    if(imgui.ArrowButton('gleft##GlamPlayerStatsBar', ImGuiDir_Up))then
-        GlamourUI.settings.PlayerStats.BarDim.g = GlamourUI.settings.PlayerStats.BarDim.g - 1;
-    end
-    imgui.SameLine(0, 2);
-    if(imgui.ArrowButton('gright##GlamPlayerStatsBar', ImGuiDir_Down))then
-        GlamourUI.settings.PlayerStats.BarDim.g = GlamourUI.settings.PlayerStats.BarDim.g + 1;
-    end
+    render_pstats_bar_dim_controls('HP / MP / TP Bar Dimensions', GlamourUI.settings.PlayerStats.BarDim, 'Stat');
+    GlamourUI.settings.PlayerStats.barPadding = render_float_setting('Bar Padding##GlamPlayerStatsPad', GlamourUI.settings.PlayerStats.barPadding, 0, 200, '%.0f');
+    render_pstats_bar_dim_controls('EXP / CP Bar Dimensions', GlamourUI.settings.PlayerStats.expBarDim, 'Exp');
 
     imgui.Separator();
     render_panel_background_controls('PlayerStatsPB', GlamourUI.settings.PlayerStats);
@@ -353,8 +374,7 @@ local function render_chat_logs_contents()
     imgui.Text('Purpose Colors');
     for i = 1, #GlamourUI.chatPurposeOrder do
         local purpose = GlamourUI.chatPurposeOrder[i];
-        local color = chatSettings.purposeColors[purpose] or { 1.0, 1.0, 1.0, 1.0 };
-        render_chat_color_swatch(purpose, color);
+        render_chat_color_swatch(purpose, ensure_chat_purpose_color(chatSettings, purpose));
     end
 
     imgui.Separator();
@@ -816,6 +836,9 @@ render_chat_color_swatch = function(purpose, color)
 
     if (imgui.BeginPopup(('ColorPicker##' .. purpose))) then
         imgui.ColorPicker3(('##CP' .. purpose), color);
+        if (gChat ~= nil and gChat.invalidate_draw_cache ~= nil) then
+            gChat.invalidate_draw_cache();
+        end
         imgui.EndPopup();
     end
 end
@@ -882,8 +905,7 @@ local render_chat_logs_tab = function()
     imgui.Text('Purpose Colors');
     for i = 1, #GlamourUI.chatPurposeOrder do
         local purpose = GlamourUI.chatPurposeOrder[i];
-        local color = chatSettings.purposeColors[purpose] or { 1.0, 1.0, 1.0, 1.0 };
-        render_chat_color_swatch(purpose, color);
+        render_chat_color_swatch(purpose, ensure_chat_purpose_color(chatSettings, purpose));
     end
 
     imgui.Separator();
@@ -973,35 +995,16 @@ local render_player_stats_tab = function()
     GlamourUI.settings.PlayerStats.gui_scale = render_float_setting('GuiScale##GlamPlayerStats', GlamourUI.settings.PlayerStats.gui_scale, 0.1, 5.0, '%.1f');
     GlamourUI.settings.PlayerStats.font_scale = render_float_setting('FontScale##GlamPlayerStats', GlamourUI.settings.PlayerStats.font_scale, 0.1, 5.0, '%.1f');
 
-    local barLength = {GlamourUI.settings.PlayerStats.BarDim.l};
-    local barGirth = {GlamourUI.settings.PlayerStats.BarDim.g};
-
-    imgui.Text('Bar Dimensions');
-    imgui.PushItemWidth(math.max(80, conf_content_avail_x() - conf_slider_arrow_pair_reserve));
-    imgui.SliderInt('Length##GlamPlayerStatsBarTab', barLength, 0, 700);
-    imgui.PopItemWidth();
-    GlamourUI.settings.PlayerStats.BarDim.l = barLength[1];
-    imgui.SameLine(0, 6);
-    if(imgui.ArrowButton('lleft##GlamPlayerStatsBarTab', ImGuiDir_Left))then
-        GlamourUI.settings.PlayerStats.BarDim.l = GlamourUI.settings.PlayerStats.BarDim.l - 1;
+    if(GlamourUI.settings.PlayerStats.expBarDim == nil)then
+        GlamourUI.settings.PlayerStats.expBarDim = { l = 600, g = 14 };
     end
-    imgui.SameLine(0, 2);
-    if(imgui.ArrowButton('lright##GlamPlayerStatsBarTab', ImGuiDir_Right))then
-        GlamourUI.settings.PlayerStats.BarDim.l = GlamourUI.settings.PlayerStats.BarDim.l + 1;
+    if(type(GlamourUI.settings.PlayerStats.barPadding) ~= 'number')then
+        GlamourUI.settings.PlayerStats.barPadding = 50;
     end
 
-    imgui.PushItemWidth(math.max(80, conf_content_avail_x() - conf_slider_arrow_pair_reserve));
-    imgui.SliderInt('Girth##GlamPlayerStatsBarTab', barGirth, 0, 100);
-    imgui.PopItemWidth();
-    GlamourUI.settings.PlayerStats.BarDim.g = barGirth[1];
-    imgui.SameLine(0, 6);
-    if(imgui.ArrowButton('gleft##GlamPlayerStatsBarTab', ImGuiDir_Up))then
-        GlamourUI.settings.PlayerStats.BarDim.g = GlamourUI.settings.PlayerStats.BarDim.g - 1;
-    end
-    imgui.SameLine(0, 2);
-    if(imgui.ArrowButton('gright##GlamPlayerStatsBarTab', ImGuiDir_Down))then
-        GlamourUI.settings.PlayerStats.BarDim.g = GlamourUI.settings.PlayerStats.BarDim.g + 1;
-    end
+    render_pstats_bar_dim_controls('HP / MP / TP Bar Dimensions', GlamourUI.settings.PlayerStats.BarDim, 'StatTab');
+    GlamourUI.settings.PlayerStats.barPadding = render_float_setting('Bar Padding##GlamPlayerStatsPadTab', GlamourUI.settings.PlayerStats.barPadding, 0, 200, '%.0f');
+    render_pstats_bar_dim_controls('EXP / CP Bar Dimensions', GlamourUI.settings.PlayerStats.expBarDim, 'ExpTab');
 
     imgui.Separator();
     render_panel_background_controls('PlayerStatsPB', GlamourUI.settings.PlayerStats);

@@ -360,6 +360,32 @@ local function apply_native_chatline_override(force)
     nativeConfig.set(15, 0);
 end
 
+-- CP932 / Shift-JIS maps wire byte 0x5C to U+00A5 (yen). FFXI uses 0x5C as ASCII backslash.
+local SJIS_YEN_UTF8 = '\xc2\xa5';
+local SJIS_WIDE_YEN = 0x00A5;
+local ASCII_BACKSLASH = '\\';
+-- Fullwidth reverse solidus: CJK fonts render this as "\\", not "¥".
+local DISPLAY_BACKSLASH = '\xef\xbc\xbc';
+
+local function normalize_sjis_yen_to_backslash(s)
+    if (s == nil or s == '') then
+        return s;
+    end
+    return tostring(s):gsub(SJIS_YEN_UTF8, ASCII_BACKSLASH);
+end
+
+local function normalize_backslash_for_display(s)
+    if (s == nil or s == '') then
+        return s;
+    end
+
+    s = normalize_sjis_yen_to_backslash(s);
+    if (GlamourUI ~= nil and GlamourUI.backslashGlyphMerged == true) then
+        return s;
+    end
+    return s:gsub(ASCII_BACKSLASH, DISPLAY_BACKSLASH);
+end
+
 local function normalize_ffxi_star_glyph(s)
     if (s == nil or s == '') then
         return s;
@@ -386,6 +412,7 @@ local function normalize_utf8_arrow_glyphs(s)
     s = s
         :gsub('â†', '←')
         :gsub('\226\134\144', '←');
+    s = normalize_sjis_yen_to_backslash(s);
     return normalize_ffxi_star_glyph(s);
 end
 
@@ -413,6 +440,7 @@ local function post_decode_utf8_normalize(result)
     result = result
         :gsub('([%w])・([%w])', '%1 %2')
         :gsub('([%w])･([%w])', '%1 %2');
+    result = normalize_sjis_yen_to_backslash(result);
     return normalize_utf8_arrow_glyphs(result);
 end
 
@@ -431,6 +459,12 @@ local function shift_jis_wire_to_utf8(str)
     local wideBuffer = ffi.new('uint16_t[?]', wideLen + 1);
     if (kernel32.MultiByteToWideChar(CP_SHIFT_JIS, 0, str, #str, wideBuffer, wideLen) <= 0) then
         return str;
+    end
+
+    for j = 0, wideLen - 1 do
+        if (wideBuffer[j] == SJIS_WIDE_YEN) then
+            wideBuffer[j] = 0x005C;
+        end
     end
 
     local utf8Len = kernel32.WideCharToMultiByte(CP_UTF8, 0, wideBuffer, wideLen, nil, 0, nil, nil);
@@ -1636,12 +1670,24 @@ chatlog.get_purpose_color = function(purpose)
     return get_purpose_color(purpose);
 end
 
+chatlog.invalidate_draw_cache = function()
+    invalidate_chat_draw_token_cache();
+end
+
 chatlog.sjis_to_utf8 = function(str)
     return sjis_to_utf8(str);
 end
 
 chatlog.clean_str = function(str)
     return clean_str(str);
+end
+
+chatlog.normalize_sjis_yen_to_backslash = function(str)
+    return normalize_sjis_yen_to_backslash(str);
+end
+
+chatlog.normalize_backslash_for_display = function(str)
+    return normalize_backslash_for_display(str);
 end
 
 chatlog.get_code_color = function(code, defaultColor)

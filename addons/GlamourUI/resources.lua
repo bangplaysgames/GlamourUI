@@ -432,44 +432,69 @@ resources.get_player_buff_timer_seconds_split = function()
     return buffSecs, debuffSecs;
 end
 
-local function merge_gob_star_glyph(fontSize)
-    if (ImFontConfig == nil or ImFontGlyphRangesBuilder == nil) then
-        return false;
-    end
-
-    local mergeCandidates = {
+local function get_glyph_merge_font_candidates()
+    local candidates = {
         'C:\\Windows\\Fonts\\seguisym.ttf',
         'C:\\Windows\\Fonts\\arial.ttf',
         'C:\\Windows\\Fonts\\DejaVuSans.ttf',
+        '/System/Library/Fonts/Supplemental/Arial.ttf',
+        '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
+        '/Library/Fonts/Arial.ttf',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        '/usr/share/fonts/TTF/DejaVuSans.ttf',
     };
+    return candidates;
+end
 
-    local mergePath = nil;
-    for i = 1, #mergeCandidates do
-        if (ashita.fs.exists(mergeCandidates[i])) then
-            mergePath = mergeCandidates[i];
-            break;
-        end
-    end
-
-    if (mergePath == nil) then
+local function merge_font_glyphs(fontSize, codepoints)
+    if (ImFontConfig == nil or codepoints == nil or #codepoints == 0) then
         return false;
     end
 
-    local ok = pcall(function()
-        local ranges = ffi.new('uint16_t[3]', 0x2605, 0x2606, 0);
-        local cfg = ImFontConfig();
-        cfg.MergeMode = true;
-        cfg.PixelSnapH = true;
-        imgui.AddFontFromFileTTF(mergePath, fontSize, cfg, ranges);
-    end);
+    local mergeCandidates = get_glyph_merge_font_candidates();
+    local ok = false;
 
-    return ok == true;
+    for c = 1, #mergeCandidates do
+        local mergePath = mergeCandidates[c];
+        if (ashita.fs.exists(mergePath)) then
+            local mergeOk = pcall(function()
+                local rangeCount = (#codepoints * 2) + 1;
+                local ranges = ffi.new('uint16_t[?]', rangeCount);
+                for i = 1, #codepoints do
+                    local cp = codepoints[i];
+                    ranges[(i - 1) * 2] = cp;
+                    ranges[(i - 1) * 2 + 1] = cp;
+                end
+                ranges[rangeCount - 1] = 0;
+                local cfg = ImFontConfig();
+                cfg.MergeMode = true;
+                cfg.PixelSnapH = true;
+                imgui.AddFontFromFileTTF(mergePath, fontSize, cfg, ranges);
+            end);
+            if (mergeOk == true) then
+                ok = true;
+                break;
+            end
+        end
+    end
+
+    return ok;
+end
+
+local function merge_gob_star_glyph(fontSize)
+    return merge_font_glyphs(fontSize, { 0x2605, 0x2606 });
+end
+
+local function merge_backslash_glyph(fontSize)
+    -- Many JP/CJK fonts draw U+005C as yen; merge an ASCII backslash glyph.
+    return merge_font_glyphs(fontSize, { 0x005C });
 end
 
 resources.loadFont = function(f)
     local fontSize = resources.fontBaseSize;
     GlamourUI.font = imgui.AddFontFromFileTTF(('%s\\config\\addons\\%s\\Fonts\\%s'):fmt(AshitaCore:GetInstallPath(), addon.name, f), fontSize);
     GlamourUI.starGlyphMerged = merge_gob_star_glyph(fontSize);
+    GlamourUI.backslashGlyphMerged = merge_backslash_glyph(fontSize);
 end
 
 resources.push_font_scale = function(scale)

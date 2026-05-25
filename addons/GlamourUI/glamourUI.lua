@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '2.0.0';
+addon.version = '2.0.1';
 
 local settings = require('settings');
 require('common');
@@ -540,6 +540,27 @@ local function render_packet_debug_window()
     imgui.End();
 end
 
+local chatCombatPurposeOrder = T{
+    'Add Buff',
+    'Add Debuff',
+    'Lose Effect',
+    'Lose Debuff',
+    'Damage Dealt',
+    'Damage Taken',
+    'Mob Ready',
+    'Evade',
+    'Miss',
+    'HP Recovered',
+    'Spell Cast',
+    'Spell Complete',
+    'Kill',
+    'Spoils',
+    'Interrupted',
+    'After Battle',
+    'Ability Not Ready',
+    'Remove Debuff',
+};
+
 local chatPurposeOrder = T{
     'Say',
     'Emote',
@@ -560,6 +581,46 @@ local chatPurposeOrder = T{
     'Echo',
     'Command Error',
     'None',
+};
+
+for i = 1, #chatCombatPurposeOrder do
+    chatPurposeOrder[#chatPurposeOrder + 1] = chatCombatPurposeOrder[i];
+end
+
+local function argb_to_rgba01(argb)
+    argb = tonumber(argb) or 0xFFFFFFFF;
+    return {
+        bit.band(bit.rshift(argb, 16), 0xFF) / 255.0,
+        bit.band(bit.rshift(argb, 8), 0xFF) / 255.0,
+        bit.band(argb, 0xFF) / 255.0,
+        bit.band(bit.rshift(argb, 24), 0xFF) / 255.0,
+    };
+end
+
+-- FFXI retail battle-log channel colors (ARGB from native chat mode palette).
+local COMBAT_COLOR = argb_to_rgba01(0xFFDCF1FC);
+local COMBAT_SPELL_COLOR = argb_to_rgba01(0xFFDDC9FF);
+local COMBAT_SYSTEM_COLOR = argb_to_rgba01(0xFFFFF3DA);
+
+local defaultChatCombatPurposeColors = T{
+    ['Add Buff'] = COMBAT_SPELL_COLOR,
+    ['Add Debuff'] = COMBAT_SPELL_COLOR,
+    ['Lose Effect'] = COMBAT_SPELL_COLOR,
+    ['Lose Debuff'] = COMBAT_SPELL_COLOR,
+    ['Damage Dealt'] = COMBAT_COLOR,
+    ['Damage Taken'] = COMBAT_COLOR,
+    ['Mob Ready'] = COMBAT_COLOR,
+    ['Evade'] = COMBAT_COLOR,
+    ['Miss'] = COMBAT_COLOR,
+    ['HP Recovered'] = COMBAT_SPELL_COLOR,
+    ['Spell Cast'] = COMBAT_SPELL_COLOR,
+    ['Spell Complete'] = COMBAT_SPELL_COLOR,
+    ['Kill'] = COMBAT_COLOR,
+    ['Spoils'] = COMBAT_SYSTEM_COLOR,
+    ['Interrupted'] = COMBAT_COLOR,
+    ['After Battle'] = COMBAT_SYSTEM_COLOR,
+    ['Ability Not Ready'] = COMBAT_COLOR,
+    ['Remove Debuff'] = COMBAT_SPELL_COLOR,
 };
 
 local knownChatColorCodes = T{
@@ -606,6 +667,11 @@ local defaultChatPurposeColors = T{
     ['None'] = {0.65, 0.65, 0.65, 1.0 },
 };
 
+for i = 1, #chatCombatPurposeOrder do
+    local purpose = chatCombatPurposeOrder[i];
+    defaultChatPurposeColors[purpose] = defaultChatCombatPurposeColors[purpose];
+end
+
 local function build_chat_window_defaults(enabled, combatEnabled)
     local window = T{
         enabled = enabled,
@@ -624,14 +690,8 @@ local function build_chat_window_defaults(enabled, combatEnabled)
         window['Add Effect'] = true;
         window['Special'] = true;
         window['None'] = true;
-        local nativeCombatModes = {
-            'Add Buff', 'Add Debuff', 'Lose Effect', 'Lose Debuff',
-            'Damage Dealt', 'Damage Taken', 'Mob Ready', 'Evade', 'Miss',
-            'HP Recovered', 'Spell Cast', 'Spell Complete', 'Kill', 'Spoils',
-            'Interrupted', 'After Battle', 'Ability Not Ready', 'Remove Debuff',
-        };
-        for i = 1, #nativeCombatModes do
-            window[nativeCombatModes[i]] = true;
+        for i = 1, #chatCombatPurposeOrder do
+            window[chatCombatPurposeOrder[i]] = true;
         end
     else
         window['Say'] = true;
@@ -789,32 +849,21 @@ local function normalize_chat_settings(chatSettings)
 
     for i = 1, #chatPurposeOrder do
         local purpose = chatPurposeOrder[i];
+        local defaultColor = defaultChatPurposeColors[purpose];
         if (settingsTable.purposeColors[purpose] == nil) then
-            settingsTable.purposeColors[purpose] = defaultChatPurposeColors[purpose] or { 1.0, 1.0, 1.0, 1.0 };
+            if (defaultColor ~= nil) then
+                settingsTable.purposeColors[purpose] = {
+                    defaultColor[1], defaultColor[2], defaultColor[3], defaultColor[4],
+                };
+            else
+                settingsTable.purposeColors[purpose] = { 1.0, 1.0, 1.0, 1.0 };
+            end
         end
         if (settingsTable.window1[purpose] == nil) then
             settingsTable.window1[purpose] = defaults.window1[purpose] == true;
         end
         if (settingsTable.window2[purpose] == nil) then
             settingsTable.window2[purpose] = defaults.window2[purpose] == true;
-        end
-    end
-
-    do
-        local legacyCombatPurposes = {
-            'Add Buff', 'Add Debuff', 'Lose Effect', 'Lose Debuff',
-            'Damage Dealt', 'Damage Taken', 'Mob Ready', 'Evade', 'Miss',
-            'HP Recovered', 'Spell Cast', 'Spell Complete', 'Kill', 'Spoils',
-            'Interrupted', 'After Battle', 'Ability Not Ready', 'Remove Debuff',
-        };
-        for i = 1, #legacyCombatPurposes do
-            local purpose = legacyCombatPurposes[i];
-            if (settingsTable.window1[purpose] == nil) then
-                settingsTable.window1[purpose] = defaults.window1[purpose] == true;
-            end
-            if (settingsTable.window2[purpose] == nil) then
-                settingsTable.window2[purpose] = defaults.window2[purpose] == true;
-            end
         end
     end
 
@@ -826,6 +875,27 @@ local function normalize_chat_settings(chatSettings)
     end
 
     return settingsTable;
+end
+
+local function normalize_player_stats_settings(pstats)
+    if(pstats == nil)then
+        return;
+    end
+    if(type(pstats.barPadding) ~= 'number')then
+        pstats.barPadding = 50;
+    end
+    if(type(pstats.rowGap) ~= 'number')then
+        pstats.rowGap = 8;
+    end
+    if(pstats.expBarDim == nil)then
+        pstats.expBarDim = T{ l = 600, g = 14 };
+    end
+    if(type(pstats.expBarDim.l) ~= 'number')then
+        pstats.expBarDim.l = 600;
+    end
+    if(type(pstats.expBarDim.g) ~= 'number')then
+        pstats.expBarDim.g = 14;
+    end
 end
 
 local function normalize_party_p_list_settings()
@@ -862,6 +932,7 @@ local function normalize_all_panel_style(dst)
         ps.normalize_settings(dst.Chat.window1);
         ps.normalize_settings(dst.Chat.window2);
     end
+    normalize_player_stats_settings(dst.PlayerStats);
 end
 
 local function refreshManagers()
@@ -1140,6 +1211,12 @@ local default_settings = T{
             l = 200,
             g = 16
         },
+        barPadding = 50,
+        expBarDim = T{
+            l = 600,
+            g = 14
+        },
+        rowGap = 8,
     },
     rcPanel = T{
         enabled = true,
@@ -1198,6 +1275,7 @@ GlamourUI = T{
     settings = settings.load(default_settings),
     font = nil,
     starGlyphMerged = false,
+    backslashGlyphMerged = false,
     debug = false,
     chatLogFocus = false,
     chatExpandOpen = false,
@@ -1230,6 +1308,7 @@ GlamourUI.settings.Chat = normalize_chat_settings(GlamourUI.settings.Chat);
 normalize_party_p_list_settings();
 normalize_all_panel_style(GlamourUI.settings);
 GlamourUI.chatPurposeOrder = chatPurposeOrder;
+GlamourUI.chatCombatPurposeOrder = chatCombatPurposeOrder;
 GlamourUI.knownChatColorCodes = knownChatColorCodes;
 
 MemoryManager = nil;
