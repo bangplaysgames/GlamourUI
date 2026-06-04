@@ -55,7 +55,9 @@ inventory.render_inv_panel = function()
             imgui.SetNextWindowPos(menu);
             local invBgPops = panelStyle.push_panel_background(GlamourUI.settings.Inv);
             if(imgui.Begin("InventoryPanel##GlamInv", GlamourUI.settings.Inv.enabled, bit.bor(ImGuiWindowFlags_NoDecoration)))then
-                local fontPushed = gResources.push_font_scale((GlamourUI.settings.Inv.font_scale * 0.5) * GlamourUI.settings.Inv.font_scale);
+                local invSettings = GlamourUI.settings.Inv;
+                local invFontScale = tonumber(invSettings.font_scale) or 1;
+                local fontPushed = gResources.push_font_scale(invFontScale * 0.5, invSettings);
 
                 --Inventory Counts
                 imgui.SetCursorPosX(15 * scaleX);
@@ -170,7 +172,7 @@ inventory.getTreasurePool = function()
 end
 
 inventory.TPoolLot = function(slot)
-        AshitaCore:GetPacketManager():AddOutgoingPacket(gPacket.MakeTreasureLot:make(slot));
+    AshitaCore:GetPacketManager():AddOutgoingPacket(gPacket.MakeTreasureLot:make(slot));
 end
 
 inventory.TPoolPass = function(slot)

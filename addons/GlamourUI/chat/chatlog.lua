@@ -34,6 +34,7 @@ local chatlog = T{
     recentMessage = '',
     recentNormMessage = '',
     recentNormPurpose = '',
+    recentNpcDialogKeys = T{},
     debug = T{
         enabled = false,
         dirReady = false,
@@ -52,6 +53,15 @@ local chatlog = T{
         globalAddress = 0,
         objectAddress = 0,
         modeOffset = 0x1A,
+    },
+    fsPreParser = T{
+        ready = false,
+        source = 'uninitialized',
+        ptrAddress = 0,
+        objectAddress = 0,
+        resolvedHeaderOffset = 0x08,
+        offsetDefaultHeader = 0x08,
+        offsetCurrentIndex = 0x0108,
     },
     persist = T{
         loaded = false,
@@ -248,6 +258,40 @@ local function recent_packet_dup_hit(keys)
 end
 
 --CatseyeXI FoV/GoV progress strings
+local function message_is_experience_line(text)
+    local s = tostring(text or ''):lower();
+    if (s == '') then
+        return false;
+    end
+    if (s:find('experience point', 1, true)) then
+        return true;
+    end
+    if (s:find('exp chain', 1, true) or s:find('limit chain', 1, true) or s:find('capacity chain', 1, true)) then
+        return true;
+    end
+    if (s:find('capacity point', 1, true) or s:find('limit point', 1, true)) then
+        return true;
+    end
+    if (s:find('no experience points', 1, true) or s:find('too far from the battle to gain experience', 1, true)) then
+        return true;
+    end
+    return false;
+end
+
+local function tag_experience_chat_entry(entry)
+    if (entry == nil or not message_is_experience_line(entry.message)) then
+        return;
+    end
+    entry.experienceLine = true;
+    entry.channel = 'combat';
+    if (entry.purpose == nil or entry.purpose == '' or entry.purpose == 'NPC') then
+        entry.purpose = 'None';
+    end
+    if (entry.sender == nil or entry.sender == '') then
+        entry.sender = 'System';
+    end
+end
+
 local function message_is_catseye_gov_progress(text)
     local lt = tostring(text or ''):lower();
     if (lt:find('defeat mobs', 1, true)) then
@@ -272,6 +316,69 @@ end
 
 local function should_suppress_packet_echo_dup_always(message)
     return recent_packet_dup_hit(packet_echo_dup_match_keys(message));
+end
+
+local NPC_DIALOG_DEDUPE_SEC = 3.0;
+
+local function npc_dialog_dedupe_keys(sender, message)
+    local norm = normalize_for_dedupe(message);
+    if (norm == nil or norm == '') then
+        return {};
+    end
+    local keys = {
+        'NPC||' .. norm,
+    };
+    local senderNorm = normalize_for_dedupe(tostring(sender or ''));
+    if (senderNorm ~= nil and senderNorm ~= '') then
+        keys[#keys + 1] = ('NPC|%s|%s'):fmt(senderNorm, norm);
+    end
+    return keys;
+end
+
+local function prune_npc_dialog_keys(now)
+    now = tonumber(now) or os.clock();
+    local keys = chatlog.recentNpcDialogKeys;
+    if (keys == nil) then
+        return;
+    end
+    for k, t in pairs(keys) do
+        if ((now - (tonumber(t) or 0)) > NPC_DIALOG_DEDUPE_SEC) then
+            keys[k] = nil;
+        end
+    end
+end
+
+local function npc_dialog_is_duplicate(sender, message, now)
+    now = tonumber(now) or os.clock();
+    prune_npc_dialog_keys(now);
+    local keys = npc_dialog_dedupe_keys(sender, message);
+    local seen = chatlog.recentNpcDialogKeys or T{};
+    for i = 1, #keys do
+        local key = keys[i];
+        if (key ~= nil and key ~= '' and seen[key] ~= nil) then
+            return true;
+        end
+    end
+    return false;
+end
+
+local function npc_dialog_mark_seen(sender, message, now)
+    now = tonumber(now) or os.clock();
+    if (chatlog.recentNpcDialogKeys == nil) then
+        chatlog.recentNpcDialogKeys = T{};
+    end
+    local keys = npc_dialog_dedupe_keys(sender, message);
+    for i = 1, #keys do
+        local key = keys[i];
+        if (key ~= nil and key ~= '') then
+            chatlog.recentNpcDialogKeys[key] = now;
+        end
+    end
+    prune_npc_dialog_keys(now);
+end
+
+local function should_suppress_npc_dialog_dup(sender, message)
+    return npc_dialog_is_duplicate(sender, message, os.clock());
 end
 local get_purpose_color = nil;
 
@@ -360,6 +467,32 @@ local function apply_native_chatline_override(force)
     nativeConfig.set(15, 0);
 end
 
+-- CP932 / Shift-JIS maps wire byte 0x5C to U+00A5 (yen). FFXI uses 0x5C as ASCII backslash.
+local SJIS_YEN_UTF8 = '\xc2\xa5';
+local SJIS_WIDE_YEN = 0x00A5;
+local ASCII_BACKSLASH = '\\';
+-- Fullwidth reverse solidus: CJK fonts render this as "\\", not "¥".
+local DISPLAY_BACKSLASH = '\xef\xbc\xbc';
+
+local function normalize_sjis_yen_to_backslash(s)
+    if (s == nil or s == '') then
+        return s;
+    end
+    return tostring(s):gsub(SJIS_YEN_UTF8, ASCII_BACKSLASH);
+end
+
+local function normalize_backslash_for_display(s)
+    if (s == nil or s == '') then
+        return s;
+    end
+
+    s = normalize_sjis_yen_to_backslash(s);
+    if (GlamourUI ~= nil and GlamourUI.backslashGlyphMerged == true) then
+        return s;
+    end
+    return s:gsub(ASCII_BACKSLASH, DISPLAY_BACKSLASH);
+end
+
 local function normalize_ffxi_star_glyph(s)
     if (s == nil or s == '') then
         return s;
@@ -386,6 +519,7 @@ local function normalize_utf8_arrow_glyphs(s)
     s = s
         :gsub('â†', '←')
         :gsub('\226\134\144', '←');
+    s = normalize_sjis_yen_to_backslash(s);
     return normalize_ffxi_star_glyph(s);
 end
 
@@ -413,6 +547,7 @@ local function post_decode_utf8_normalize(result)
     result = result
         :gsub('([%w])・([%w])', '%1 %2')
         :gsub('([%w])･([%w])', '%1 %2');
+    result = normalize_sjis_yen_to_backslash(result);
     return normalize_utf8_arrow_glyphs(result);
 end
 
@@ -431,6 +566,12 @@ local function shift_jis_wire_to_utf8(str)
     local wideBuffer = ffi.new('uint16_t[?]', wideLen + 1);
     if (kernel32.MultiByteToWideChar(CP_SHIFT_JIS, 0, str, #str, wideBuffer, wideLen) <= 0) then
         return str;
+    end
+
+    for j = 0, wideLen - 1 do
+        if (wideBuffer[j] == SJIS_WIDE_YEN) then
+            wideBuffer[j] = 0x005C;
+        end
     end
 
     local utf8Len = kernel32.WideCharToMultiByte(CP_UTF8, 0, wideBuffer, wideLen, nil, 0, nil, nil);
@@ -608,6 +749,9 @@ local function should_suppress_system_mode_combat_text_in_echo(entry)
     if (entry.injected) then
         return false;
     end
+    if (entry.experienceLine == true or message_is_experience_line(entry.message)) then
+        return false;
+    end
     if (entry.channel ~= 'system' or entry.sender ~= 'System' or entry.purpose ~= 'System') then
         return false;
     end
@@ -648,11 +792,20 @@ local function looks_like_retail_battle_message_echo(msg)
     if (msg:find(' casts ', 1, true) and msg:find('resists', 1, true)) then
         return true;
     end
+    if (msg:find('anticipates the attack', 1, true)) then
+        return true;
+    end
+    if (msg:find('dodges the attack', 1, true)) then
+        return true;
+    end
     return false;
 end
 
 local function should_suppress_retail_battle_message_echo(entry)
     if (entry.injected == true) then
+        return false;
+    end
+    if (entry.experienceLine == true or message_is_experience_line(entry.message)) then
         return false;
     end
     if (entry.sender ~= 'System') then
@@ -677,6 +830,15 @@ local function message_looks_like_retail_miss_battle_sentence(msg)
         return true;
     end
     if (msg:find(' misses ', 1, true) or msg:find(' missed ', 1, true)) then
+        return true;
+    end
+    if (msg:find('anticipates the attack', 1, true)) then
+        return true;
+    end
+    if (msg:find('dodges the attack', 1, true)) then
+        return true;
+    end
+    if (msg:find('blocks ', 1, true) and msg:find("'s attack", 1, true)) then
         return true;
     end
     return false;
@@ -750,12 +912,41 @@ normalize_for_dedupe = function(str)
     return str;
 end
 
+local FS_PRE_PARSER_SIG = '8B0D????????5685C975??8B4424105EF7D8C383';
+local FS_PRE_PARSER_PTR_OFFSET = 2;
+
+-- FS_CMD_INDEX from g_fsPreParser TOKEN_TBL (screenshot / client RE).
+local FS_CMD_INDEX_TO_PURPOSE = {
+    [0] = 'Say',
+    [1] = 'Shout',
+    [2] = 'Tell',
+    [3] = 'Party',
+    [4] = 'LS[1]',
+    [5] = 'Emote',
+    [6] = 'Emote',
+    [9] = 'Unity',
+    [10] = 'LS[2]',
+    [11] = 'Assist[J]',
+    [12] = 'Assist[E]',
+};
+
+local function purpose_from_fs_cmd_index(index)
+    index = tonumber(index);
+    if (index == nil or index < 0 or index == 0xFF) then
+        return nil;
+    end
+    return FS_CMD_INDEX_TO_PURPOSE[index];
+end
+
 local function initialize_fs_text_input_display()
     if (chatlog.fsTextInputDisplay.ready) then
         return (chatlog.fsTextInputDisplay.globalAddress or 0) ~= 0;
     end
 
     local globalAddress = ashita.memory.find('FFXiMain.dll', 0, '8B0D????????E8????????84C074??6683451AF06A00', 2, 0);
+    if (globalAddress == nil or globalAddress == 0) then
+        globalAddress = ashita.memory.find(0, 0, '8B0D????????E8????????84C074??6683451AF06A00', 2, 0);
+    end
     if (globalAddress == nil or globalAddress == 0) then
         chatlog.fsTextInputDisplay.source = 'unresolved';
         chatlog.fsTextInputDisplay.ready = true;
@@ -767,6 +958,238 @@ local function initialize_fs_text_input_display()
     chatlog.fsTextInputDisplay.ready = true;
     chatlog.fsTextInputDisplay.globalAddress = globalAddress;
     return true;
+end
+
+local FS_CMD_NAME_TO_PURPOSE = {
+    ['say'] = 'Say',
+    ['s'] = 'Say',
+    ['shout'] = 'Shout',
+    ['sh'] = 'Shout',
+    ['tell'] = 'Tell',
+    ['t'] = 'Tell',
+    ['party'] = 'Party',
+    ['p'] = 'Party',
+    ['linkshell'] = 'LS[1]',
+    ['l'] = 'LS[1]',
+    ['linkshell2'] = 'LS[2]',
+    ['l2'] = 'LS[2]',
+    ['emote'] = 'Emote',
+    ['em'] = 'Emote',
+    ['message'] = 'Emote',
+    ['me'] = 'Emote',
+    ['unity'] = 'Unity',
+    ['u'] = 'Unity',
+    ['assistj'] = 'Assist[J]',
+    ['aj'] = 'Assist[J]',
+    ['assiste'] = 'Assist[E]',
+    ['ae'] = 'Assist[E]',
+};
+
+local function initialize_fs_pre_parser()
+    if (chatlog.fsPreParser.ready and (chatlog.fsPreParser.ptrAddress or 0) ~= 0) then
+        return true;
+    end
+
+    chatlog.fsPreParser.ready = false;
+    chatlog.fsPreParser.ptrAddress = 0;
+    chatlog.fsPreParser.objectAddress = 0;
+
+    local ptrAddress = ashita.memory.find('FFXiMain.dll', 0, FS_PRE_PARSER_SIG, FS_PRE_PARSER_PTR_OFFSET, 0);
+    if (ptrAddress == nil or ptrAddress == 0) then
+        ptrAddress = ashita.memory.find(0, 0, FS_PRE_PARSER_SIG, FS_PRE_PARSER_PTR_OFFSET, 0);
+    end
+    if (ptrAddress == nil or ptrAddress == 0) then
+        ptrAddress = ashita.memory.find('FFXiMain.dll', 0, FS_PRE_PARSER_SIG, 0, 0);
+    end
+
+    chatlog.fsPreParser.ready = true;
+    if (ptrAddress == nil or ptrAddress == 0) then
+        local fallback = ashita.memory.find('FFXiMain.dll', 0, '8B0D????????E8????????84C074??6683451AF06A00', 2, 0);
+        if (fallback == nil or fallback == 0) then
+            fallback = ashita.memory.find(0, 0, '8B0D????????E8????????84C074??6683451AF06A00', 2, 0);
+        end
+        if (fallback ~= nil and fallback ~= 0) then
+            chatlog.fsPreParser.source = 'signature_textinput_fallback';
+            chatlog.fsPreParser.ptrAddress = fallback;
+            return true;
+        end
+        chatlog.fsPreParser.source = 'unresolved';
+        return false;
+    end
+
+    chatlog.fsPreParser.source = 'signature';
+    chatlog.fsPreParser.ptrAddress = ptrAddress;
+    return true;
+end
+
+local function normalize_fs_header_string(header)
+    if (header == nil or header == '') then
+        return nil;
+    end
+    header = tostring(header):gsub('%z.*$', ''):gsub('%s+$', '');
+    if (header == '') then
+        return nil;
+    end
+    return header;
+end
+
+local function purpose_from_header_text(header)
+    header = normalize_fs_header_string(header);
+    if (header == nil) then
+        return nil;
+    end
+
+    local cmd = header:match('^/?%s*([^%s]+)');
+    if (cmd ~= nil and cmd ~= '') then
+        return FS_CMD_NAME_TO_PURPOSE[cmd:lower()];
+    end
+
+    return nil;
+end
+
+local function read_fs_default_header_at(obj, headerOffset)
+    obj = tonumber(obj) or 0;
+    headerOffset = tonumber(headerOffset) or 0x08;
+    if (obj == 0) then
+        return nil;
+    end
+
+    local header = ashita.memory.read_string(obj + headerOffset, 128);
+    header = normalize_fs_header_string(header);
+    if (header == nil) then
+        return nil;
+    end
+    if (purpose_from_header_text(header) == nil) then
+        return nil;
+    end
+    return header;
+end
+
+local function scan_fs_header_in_object(obj)
+    obj = tonumber(obj) or 0;
+    if (obj == 0) then
+        return nil, nil;
+    end
+
+    local preferred = { 0x08, 0x00, 0x10, 0x18, 0x20, 0x28 };
+    for i = 1, #preferred do
+        local header = read_fs_default_header_at(obj, preferred[i]);
+        if (header ~= nil) then
+            return header, preferred[i];
+        end
+    end
+
+    for off = 0, 0x180 do
+        if (ashita.memory.read_uint8(obj + off) == 0x2F) then
+            local header = read_fs_default_header_at(obj, off);
+            if (header ~= nil) then
+                return header, off;
+            end
+        end
+    end
+
+    return nil, nil;
+end
+
+local function collect_fs_object_candidates(ptrAddress)
+    local candidates = {};
+    local seen = {};
+    local function add_candidate(addr)
+        addr = tonumber(addr) or 0;
+        if (addr ~= 0 and seen[addr] == nil) then
+            seen[addr] = true;
+            candidates[#candidates + 1] = addr;
+        end
+    end
+
+    ptrAddress = tonumber(ptrAddress) or 0;
+    if (ptrAddress == 0) then
+        return candidates;
+    end
+
+    local p1 = ashita.memory.read_uint32(ptrAddress) or 0;
+    add_candidate(p1);
+    add_candidate(ptrAddress);
+    if (p1 ~= 0) then
+        add_candidate(ashita.memory.read_uint32(p1) or 0);
+    end
+
+    return candidates;
+end
+
+local function resolve_fs_pre_parser_object(ptrAddress)
+    ptrAddress = tonumber(ptrAddress) or 0;
+    if (ptrAddress == 0) then
+        return 0, nil, nil;
+    end
+
+    local candidates = collect_fs_object_candidates(ptrAddress);
+    for i = 1, #candidates do
+        local base = candidates[i];
+        local header, off = scan_fs_header_in_object(base);
+        if (header ~= nil) then
+            chatlog.fsPreParser.objectAddress = base;
+            chatlog.fsPreParser.resolvedHeaderOffset = off;
+            return base, off, header;
+        end
+    end
+
+    local fallbackObj = candidates[1] or 0;
+    if (fallbackObj ~= 0) then
+        chatlog.fsPreParser.objectAddress = fallbackObj;
+        chatlog.fsPreParser.resolvedHeaderOffset = 0x08;
+    end
+    return fallbackObj, 0x08, nil;
+end
+
+local function read_fs_pre_parser_object()
+    chatlog.fsPreParser.objectAddress = 0;
+    chatlog.fsPreParser.resolvedHeaderOffset = nil;
+
+    if (not initialize_fs_pre_parser()) then
+        return 0;
+    end
+
+    local ptrAddress = chatlog.fsPreParser.ptrAddress or 0;
+    if (ptrAddress == 0) then
+        return 0;
+    end
+
+    local obj = resolve_fs_pre_parser_object(ptrAddress);
+    return obj;
+end
+
+local function read_fs_default_header(obj)
+    obj = tonumber(obj) or read_fs_pre_parser_object();
+    if (obj == 0) then
+        return nil;
+    end
+
+    local header, off = scan_fs_header_in_object(obj);
+    if (header ~= nil) then
+        chatlog.fsPreParser.resolvedHeaderOffset = off;
+        return header;
+    end
+
+    local fallbackOff = tonumber(chatlog.fsPreParser.resolvedHeaderOffset)
+        or tonumber(chatlog.fsPreParser.offsetDefaultHeader)
+        or 0x08;
+    return read_fs_default_header_at(obj, fallbackOff);
+end
+
+local function read_fs_cmd_index(obj)
+    obj = tonumber(obj) or 0;
+    if (obj == 0) then
+        return nil;
+    end
+
+    local idxOff = tonumber(chatlog.fsPreParser.offsetCurrentIndex) or 0x0108;
+    local idx = ashita.memory.read_uint32(obj + idxOff);
+    if (purpose_from_fs_cmd_index(idx) ~= nil) then
+        return idx;
+    end
+
+    return nil;
 end
 
 local function get_native_input_mode_word()
@@ -844,10 +1267,149 @@ local function parse_input_prefix(inputText)
             return { purpose = 'Tell', label = ('Reply ' .. arrow .. ' ' .. target), tellTarget = target };
         end
         return { purpose = 'Tell', label = 'Reply' };
+    elseif (cmd == 'me' or cmd == 'message') then
+        return { purpose = 'Emote', label = 'Me' };
+    elseif (cmd == 'unity' or cmd == 'u') then
+        return { purpose = 'Unity', label = 'Unity' };
+    elseif (cmd == 'assistj' or cmd == 'aj') then
+        return { purpose = 'Assist[J]', label = 'Assist[J]' };
+    elseif (cmd == 'assiste' or cmd == 'ae') then
+        return { purpose = 'Assist[E]', label = 'Assist[E]' };
     end
 
     return { purpose = 'Command Error', label = 'Command Input' };
 end
+
+local function purpose_from_default_header(header)
+    header = normalize_fs_header_string(header);
+    if (header == nil) then
+        return nil;
+    end
+    local parsed = parse_input_prefix(header);
+    if (parsed ~= nil and parsed.purpose ~= nil and parsed.purpose ~= 'Command Error') then
+        return parsed.purpose;
+    end
+    return nil;
+end
+
+local function purpose_from_chat_manager_buffers()
+    local cm = AshitaCore:GetChatManager();
+    if (cm == nil) then
+        return nil;
+    end
+
+    local purpose;
+    if (cm.GetInputTextParsed ~= nil) then
+        purpose = purpose_from_header_text(cm:GetInputTextParsed());
+        if (purpose ~= nil) then
+            return purpose;
+        end
+    end
+    if (cm.GetInputTextDisplay ~= nil) then
+        purpose = purpose_from_header_text(cm:GetInputTextDisplay());
+        if (purpose ~= nil) then
+            return purpose;
+        end
+    end
+    if (cm.GetInputTextRaw ~= nil) then
+        purpose = purpose_from_header_text(cm:GetInputTextRaw());
+        if (purpose ~= nil) then
+            return purpose;
+        end
+    end
+    return nil;
+end
+
+--- Default chat mode when input has no leading /command (from g_fsPreParser).
+--- @return string|nil purpose
+--- @return number|nil cmdIndex FS_CMD_INDEX
+--- @return string|nil defaultHeader m_defaultHeader
+local function get_native_default_chat_mode()
+    local obj = read_fs_pre_parser_object();
+    local header = (obj ~= 0) and read_fs_default_header(obj) or nil;
+    local cmdIndex = (obj ~= 0) and read_fs_cmd_index(obj) or nil;
+
+    local purpose = purpose_from_header_text(header);
+    if (purpose == nil) then
+        purpose = purpose_from_fs_cmd_index(cmdIndex);
+    end
+    if (purpose ~= nil) then
+        return purpose, cmdIndex, header;
+    end
+
+    purpose = purpose_from_chat_manager_buffers();
+    if (purpose ~= nil) then
+        return purpose, cmdIndex, header;
+    end
+
+    if (initialize_fs_text_input_display()) then
+        local ga = chatlog.fsTextInputDisplay.globalAddress or 0;
+        if (ga ~= 0) then
+            local legacyObj = ashita.memory.read_uint32(ga) or 0;
+            if (legacyObj ~= 0) then
+                local legacyHeader = scan_fs_header_in_object(legacyObj);
+                purpose = purpose_from_header_text(legacyHeader);
+                local legacyIdx = ashita.memory.read_uint32(legacyObj + 0x0108);
+                if (purpose == nil) then
+                    purpose = purpose_from_fs_cmd_index(legacyIdx);
+                end
+                if (purpose ~= nil) then
+                    return purpose, legacyIdx, legacyHeader;
+                end
+            end
+        end
+    end
+
+    local modeWord = get_native_input_mode_word();
+    if (modeWord ~= nil) then
+        local legacyPurpose = setmode(modeWord);
+        if (legacyPurpose ~= nil and legacyPurpose ~= 'None') then
+            return legacyPurpose, cmdIndex, header;
+        end
+    end
+
+    return nil, nil, header;
+end
+
+function chatlog.debug_dump_native_chat_mode()
+    local lines = {};
+    local function add(fmt, ...)
+        lines[#lines + 1] = fmt and fmt:fmt(...) or '';
+    end
+
+    add('fsPreParser.source=%s ptr=0x%X ready=%s',
+        tostring(chatlog.fsPreParser.source),
+        tonumber(chatlog.fsPreParser.ptrAddress) or 0,
+        tostring(chatlog.fsPreParser.ready));
+
+    local obj = read_fs_pre_parser_object();
+    add('fsPreParser.object=0x%X headerOff=0x%X',
+        tonumber(obj) or 0,
+        tonumber(chatlog.fsPreParser.resolvedHeaderOffset) or -1);
+
+    local header = (obj ~= 0) and read_fs_default_header(obj) or nil;
+    local idx = (obj ~= 0) and read_fs_cmd_index(obj) or nil;
+    add('header=%s cmdIndex=%s headerPurpose=%s indexPurpose=%s',
+        tostring(header),
+        tostring(idx),
+        tostring(purpose_from_header_text(header)),
+        tostring(purpose_from_fs_cmd_index(idx)));
+
+    local p, i, h = get_native_default_chat_mode();
+    add('resolved purpose=%s index=%s header=%s', tostring(p), tostring(i), tostring(h));
+
+    local cm = AshitaCore:GetChatManager();
+    if (cm ~= nil) then
+        add('parsed=%s display=%s raw=%s',
+            tostring(cm.GetInputTextParsed ~= nil and cm:GetInputTextParsed() or ''),
+            tostring(cm.GetInputTextDisplay ~= nil and cm:GetInputTextDisplay() or ''),
+            tostring(cm.GetInputTextRaw ~= nil and cm:GetInputTextRaw() or ''));
+    end
+
+    return lines;
+end
+
+chatlog.get_native_default_chat_mode = get_native_default_chat_mode;
 
 chatlog.get_input_display_state = function(inputText)
     local parsed = parse_input_prefix(inputText);
@@ -855,13 +1417,16 @@ chatlog.get_input_display_state = function(inputText)
         return parsed;
     end
 
-    local nativeMode = get_native_input_mode_word();
-    local purpose = (nativeMode ~= nil) and (setmode(nativeMode) or nil) or nil;
+    local nativePurpose, _cmdIndex, defaultHeader = get_native_default_chat_mode();
+    local purpose = nativePurpose;
     if (purpose == nil or purpose == 'None') then
         purpose = chatlog.lastInputPurpose or 'Say';
+    elseif (isChatMode[purpose] == true) then
+        chatlog.lastInputPurpose = purpose;
     end
 
-    local label = purpose;
+    local headerParsed = (defaultHeader ~= nil) and parse_input_prefix(defaultHeader) or nil;
+    local label = (headerParsed ~= nil and headerParsed.label ~= nil) and headerParsed.label or purpose;
     if (purpose == 'LS[1]') then
         local name = (chatlog.get_linkshell_name ~= nil) and chatlog.get_linkshell_name(1) or nil;
         label = (name ~= nil and name ~= '') and ('[' .. name .. ']') or 'Linkshell 1';
@@ -1419,6 +1984,10 @@ local function append_entry(entry)
         entry.date = os.date('%Y-%m-%d');
     end
     entry.message = normalize_utf8_arrow_glyphs(tostring(entry.message or ''));
+    tag_experience_chat_entry(entry);
+    if (entry.experienceLine == true) then
+        purpose = tostring(entry.purpose or 'None');
+    end
 
     if (purpose == 'Miss' and entry.message:find('Venture mobs must be', 1, true)) then
         entry.purpose = 'System';
@@ -1471,6 +2040,15 @@ local function append_entry(entry)
 
     local normMsg = normalize_for_dedupe(entry.message);
 
+    if (purpose == 'NPC' and entry.experienceLine ~= true and normMsg ~= '' and not skipDedupe) then
+        if (npc_dialog_is_duplicate(entry.sender, entry.message, now)) then
+            if (fromTextIn) then
+                debug_log_text_in_not_shown(entry, 'npc_dialog_dedupe');
+            end
+            return false, false;
+        end
+    end
+
     if (not skipDedupe and not glam_no_chat_suppression()) then
         if (normMsg ~= ''
             and normMsg == chatlog.recentNormMessage
@@ -1518,6 +2096,9 @@ local function append_entry(entry)
 
 
     entry._clock = now;
+    if (purpose == 'NPC' and normMsg ~= '' and not skipDedupe) then
+        npc_dialog_mark_seen(entry.sender, entry.message, now);
+    end
     table.insert(chatlog.entries, entry);
     append_entry_to_window_lists(entry);
 
@@ -1636,12 +2217,24 @@ chatlog.get_purpose_color = function(purpose)
     return get_purpose_color(purpose);
 end
 
+chatlog.invalidate_draw_cache = function()
+    invalidate_chat_draw_token_cache();
+end
+
 chatlog.sjis_to_utf8 = function(str)
     return sjis_to_utf8(str);
 end
 
 chatlog.clean_str = function(str)
     return clean_str(str);
+end
+
+chatlog.normalize_sjis_yen_to_backslash = function(str)
+    return normalize_sjis_yen_to_backslash(str);
+end
+
+chatlog.normalize_backslash_for_display = function(str)
+    return normalize_backslash_for_display(str);
 end
 
 chatlog.get_code_color = function(code, defaultColor)
@@ -2242,10 +2835,43 @@ local function handle_kill_message_packet_0x2d(e)
             return nil;
         end
 
-        local item1 = item_name_from_id(p1) or '';
-        local item2 = item_name_from_id(p2) or '';
-        out = out:gsub('%$%(%s*item2%s*%)', item2);
-        out = out:gsub('%$%(%s*item%s*%)', item1);
+        local function spell_name_from_id(id)
+            id = math.floor(tonumber(id) or 0);
+            if (id <= 0) then
+                return nil;
+            end
+            local rm2 = AshitaCore and AshitaCore:GetResourceManager() or nil;
+            if (rm2 == nil) then
+                return nil;
+            end
+            for _, tbl in ipairs(T{ 'spells.names', 'spells.names_short', 'spells' }) do
+                local hit = try_get_string_resource(rm2, tbl, id);
+                if (hit ~= nil and hit ~= '') then
+                    return hit:gsub('^Trust:%s*', '');
+                end
+            end
+            return nil;
+        end
+
+        local item1 = item_name_from_id(p1) or spell_name_from_id(p1) or '';
+        local item2 = item_name_from_id(p2) or spell_name_from_id(p2) or '';
+        if (item1 == '' and GetEntity ~= nil) then
+            for _, idx in ipairs(T{ actIndexTar, actIndexCas }) do
+                idx = tonumber(idx) or 0;
+                if (idx > 0) then
+                    local ent = GetEntity(idx);
+                    if (ent ~= nil and ent.Name ~= nil) then
+                        local nm = tostring(ent.Name):gsub('%z.*', '');
+                        if (nm ~= '' and nm ~= 'nil') then
+                            item1 = nm;
+                            break;
+                        end
+                    end
+                end
+            end
+        end
+        out = out:gsub('%${item2}', item2);
+        out = out:gsub('%${item}', item1);
 
         if (selfEnt ~= nil and selfEnt.Name ~= nil and (playerSid == selfSid or targetSid == selfSid)) then
             local nm = tostring(selfEnt.Name):gsub('%z.*', '');
@@ -2341,6 +2967,42 @@ chatlog.handle_packet_in = function(e)
     if (e.id == 0x2D) then
         handle_kill_message_packet_0x2d(e);
         return;
+    end
+
+    if (e.id == 0x29) then
+        local mob_check = require('mob_check');
+        local parsed = mob_check.parse_0x29(e);
+        if (parsed ~= nil and mob_check.should_block_native(parsed.messageId, parsed.checkType)) then
+            local entity = GetEntity(parsed.targetIndex);
+            local bodyColor = get_purpose_color('Check');
+            local plain, raw, segments = mob_check.build_chat_display(
+                entity,
+                parsed.messageId,
+                parsed.level,
+                parsed.checkType,
+                parsed.targetIndex,
+                bodyColor
+            );
+            if (plain ~= nil and plain ~= '') then
+                local committed, shown = append_entry(T{
+                    time = os.date('[%H:%M:%S]'),
+                    sender = 'System',
+                    zone = nil,
+                    purpose = 'Check',
+                    channel = 'check',
+                    modeID = '29',
+                    modeBaseID = '29',
+                    rawMessage = raw,
+                    message = clean_str(plain),
+                    segments = segments,
+                    injected = false,
+                });
+                if (committed and shown) then
+                    record_packet_chat_line(plain, true);
+                end
+            end
+            return;
+        end
     end
 
     if (e.id == 0x28 or e.id == 0x29) then
@@ -2490,6 +3152,7 @@ chatlog.handle_packet_in = function(e)
         };
         reclassify_routed_miss_battle_line(entry);
         reclassify_addon_bracket_system_line(entry);
+        tag_experience_chat_entry(entry);
         if (should_suppress_retail_battle_message_echo(entry)) then
             return;
         end
@@ -2664,6 +3327,13 @@ chatlog.handle_text_in = function(e)
 
     reclassify_routed_miss_battle_line(entry);
     reclassify_addon_bracket_system_line(entry);
+    tag_experience_chat_entry(entry);
+
+    if (entry.purpose == 'NPC' and entry.experienceLine ~= true
+        and should_suppress_npc_dialog_dup(entry.sender, entry.message)) then
+        drop_text_in('npc_dialog_dup');
+        return;
+    end
 
     if (should_suppress_battle_log_text_in_echo(entry, e.mode)) then
         drop_text_in('battle_log_echo');

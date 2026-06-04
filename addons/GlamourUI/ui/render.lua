@@ -7,6 +7,10 @@ local compat = require('compat');
 local enemy_debuff_tracker = require('enemy_debuff_tracker');
 local target_mob_action = require('target_mob_action');
 local chatPartyNames = require('chatPartyNames');
+local glamMinimap = require('minimap');
+local entity_ids = require('entity_ids');
+local minimap_zone_show = require('minimap_zone_show');
+local fullscreen_map = require('fullscreen_map');
 
 local function can_cancel_status(statusId)
     if (statusId == nil or statusId < 1 or statusId > 0x3FF or statusId == 255) then
@@ -213,7 +217,7 @@ local function imgui_calc_text_width(str)
     return tonumber(w) or 0;
 end
 
-local function draw_party_buff_icon_grid(statusIds, iconSize, maxColumns, maxRows, theme, anchorXGui, startYGui, guiScale, buffGuiScale, timerSecsList, memberIndex, timerBelowIcon)
+local function draw_party_buff_icon_grid(statusIds, iconSize, maxColumns, maxRows, theme, anchorXGui, startYGui, guiScale, buffGuiScale, timerSecsList, memberIndex, timerBelowIcon, timerFontScale)
     if (timerBelowIcon == nil) then
         timerBelowIcon = false;
     end
@@ -226,7 +230,10 @@ local function draw_party_buff_icon_grid(statusIds, iconSize, maxColumns, maxRow
     local gapY = math.max(6, math.floor(9 * buffGuiScale));
     local timerUnderGap = math.max(1, math.floor(2 * buffGuiScale));
 
-    local fontTimer = math.max(0.14, (GlamourUI.settings.Party.pList.font_scale * 0.34) * guiScale * buffGuiScale);
+    if (timerFontScale == nil) then
+        timerFontScale = GlamourUI.settings.Party.pList.font_scale;
+    end
+    local fontTimer = math.max(0.14, (timerFontScale * 0.34) * guiScale * buffGuiScale);
 
     local plist = GlamourUI.settings.Party.pList;
     local nav = GlamourUI ~= nil and GlamourUI.PartyList ~= nil and GlamourUI.PartyList.BuffNav or nil;
@@ -235,7 +242,7 @@ local function draw_party_buff_icon_grid(statusIds, iconSize, maxColumns, maxRow
 
     local rowStride = iconSize + gapY;
     if (timerBelowIcon == true and timerSecsList ~= nil) then
-        local pushedStride = gResources.push_font_scale(fontTimer);
+        local pushedStride = gResources.push_font_scale(fontTimer, GlamourUI.settings.Party.pList);
         local lh = imgui.GetTextLineHeight();
         gResources.pop_font(pushedStride);
         local lineH = 12;
@@ -335,7 +342,7 @@ local function draw_party_buff_icon_grid(statusIds, iconSize, maxColumns, maxRow
             if (timerSecsList ~= nil) then
                 local txt = format_buff_duration_remaining(timerSecsList[idx]);
                 if (txt ~= nil and txt ~= '') then
-                    local pushedTimer = gResources.push_font_scale(fontTimer);
+                    local pushedTimer = gResources.push_font_scale(fontTimer, GlamourUI.settings.Party.pList);
                     local tw = imgui_calc_text_width(txt);
                     local th = imgui_calc_text_height();
                     local lh = imgui.GetTextLineHeight();
@@ -573,7 +580,7 @@ local draw_target_subtarget = function(subTarget, hpBarTexture, hpFillTexture, y
         return;
     end
 
-    local fontPushed = gResources.push_font_scale(0.4 * GlamourUI.settings.TargetBar.gui_scale);
+    local fontPushed = gResources.push_font_scale(0.4 * GlamourUI.settings.TargetBar.gui_scale, GlamourUI.settings.TargetBar);
     imgui.SetCursorPosX(30 * GlamourUI.settings.TargetBar.gui_scale);
     imgui.Text('Sub Target:   ');
     imgui.SameLine();
@@ -605,15 +612,26 @@ local get_focus_target_distance_text = function(targetEntity)
     return tostring(math.floor(math.sqrt(targetEntity.Distance) * 100) / 100);
 end
 
-local draw_environment_weather = function(weatherInfo)
+local function env_icon_size(envSettings)
+    local env = envSettings or (GlamourUI.settings and GlamourUI.settings.Env);
+    if (env == nil) then
+        return 15;
+    end
+    local guiScale = tonumber(env.gui_scale) or 1;
+    local fontScale = tonumber(env.font_scale) or 1;
+    return math.max(8, 25 * guiScale * fontScale * 0.6);
+end
+
+local draw_environment_weather = function(weatherInfo, iconSize)
+    iconSize = tonumber(iconSize) or env_icon_size(GlamourUI.settings and GlamourUI.settings.Env);
     if(weatherInfo.Count == 0)then
         imgui.Text(weatherInfo.Type);
     elseif(weatherInfo.Count == 1)then
-        imgui.Image(weatherInfo.Type, {25 * GlamourUI.settings.Env.gui_scale, 25 * GlamourUI.settings.Env.gui_scale});
+        imgui.Image(weatherInfo.Type, { iconSize, iconSize });
     elseif(weatherInfo.Count == 2)then
-        imgui.Image(weatherInfo.Type, {25 * GlamourUI.settings.Env.gui_scale, 25 * GlamourUI.settings.Env.gui_scale});
+        imgui.Image(weatherInfo.Type, { iconSize, iconSize });
         imgui.SameLine();
-        imgui.Image(weatherInfo.Type, {25 * GlamourUI.settings.Env.gui_scale, 25 * GlamourUI.settings.Env.gui_scale});
+        imgui.Image(weatherInfo.Type, { iconSize, iconSize });
     end
 end
 
@@ -661,6 +679,20 @@ end
 local autoTranslateParenColor = {0.2, 1.0, 0.2, 1.0};
 local autoTranslateCloseParenColor = {1.0, 0.2, 0.2, 1.0};
 local autoTranslateTextColor = {1.0, 0.45, 0.65, 1.0};
+
+local function normalize_display_text(text)
+    if (text == nil or text == '') then
+        return text;
+    end
+    text = tostring(text);
+    if (gChat ~= nil and gChat.normalize_backslash_for_display ~= nil) then
+        return gChat.normalize_backslash_for_display(text);
+    end
+    if (gChat ~= nil and gChat.normalize_sjis_yen_to_backslash ~= nil) then
+        text = gChat.normalize_sjis_yen_to_backslash(text);
+    end
+    return text;
+end
 
 local at_item_cache = {};
 local JOB_ABBR = {
@@ -768,6 +800,94 @@ local function make_auto_translate_item_segment(tokenText, itemId)
     };
 end
 
+local function make_chat_item_link_segment(tokenText, itemId, color)
+    return {
+        text = tokenText,
+        atomic = true,
+        parts = {
+            { text = tokenText, color = color, draw = 'chat_item_link', itemId = itemId },
+        },
+    };
+end
+
+local chat_item_hover_id = 0;
+local chat_item_hover_regions = {};
+
+local function point_in_item_rect(mx, my, rmin, rmax)
+    local x1 = tonumber(rmin[1]) or tonumber(rmin.x);
+    local y1 = tonumber(rmin[2]) or tonumber(rmin.y);
+    local x2 = tonumber(rmax[1]) or tonumber(rmax.x);
+    local y2 = tonumber(rmax[2]) or tonumber(rmax.y);
+    if (x1 == nil or y1 == nil or x2 == nil or y2 == nil) then
+        return false;
+    end
+    return mx >= x1 and mx <= x2 and my >= y1 and my <= y2;
+end
+
+local function register_chat_item_hover_region(itemId)
+    itemId = tonumber(itemId) or 0;
+    if (itemId <= 0 or imgui.GetItemRectMin == nil or imgui.GetItemRectMax == nil) then
+        return;
+    end
+    local rmin = { imgui.GetItemRectMin() };
+    local rmax = { imgui.GetItemRectMax() };
+    chat_item_hover_regions[#chat_item_hover_regions + 1] = {
+        itemId = itemId,
+        min = rmin,
+        max = rmax,
+    };
+end
+
+local function draw_chat_item_hovered_text(p, partText)
+    partText = normalize_display_text(partText);
+    if (partText == nil or partText == '') then
+        return;
+    end
+
+    local itemId = tonumber(p.itemId) or 0;
+    chat_item_hover_id = chat_item_hover_id + 1;
+    imgui.PushID((itemId * 100000) + chat_item_hover_id);
+    imgui.TextColored(p.color or { 1.0, 1.0, 1.0, 1.0 }, partText);
+    register_chat_item_hover_region(itemId);
+
+    local hovered = false;
+    if (imgui.IsItemHovered ~= nil) then
+        hovered = imgui.IsItemHovered();
+    end
+    if (hovered and itemId > 0) then
+        show_at_item_tooltip(itemId);
+    end
+    imgui.PopID();
+end
+
+local function poll_chat_item_hover_regions()
+    if (#chat_item_hover_regions == 0 or imgui.GetMousePos == nil) then
+        return;
+    end
+
+    local mx, my = imgui.GetMousePos();
+    if (type(mx) == 'table') then
+        my = tonumber(mx[2]) or tonumber(mx.y);
+        mx = tonumber(mx[1]) or tonumber(mx.x);
+    end
+    if (mx == nil or my == nil) then
+        return;
+    end
+
+    for ri = 1, #chat_item_hover_regions do
+        local region = chat_item_hover_regions[ri];
+        if (region ~= nil and point_in_item_rect(mx, my, region.min, region.max)) then
+            show_at_item_tooltip(region.itemId);
+            return;
+        end
+    end
+end
+
+local function begin_chat_item_hover_pass()
+    chat_item_hover_id = 0;
+    chat_item_hover_regions = {};
+end
+
 local function build_message_segments(message, defaultColor)
     local segments = {};
     local startIndex = 1;
@@ -816,19 +936,26 @@ local function build_raw_message_segments(rawMessage, defaultColor)
 
     local segments = {};
     local buffer = {};
+    local bufferStart = nil;
     local currentColor = defaultColor;
 
-    local function flush_buffer()
+    local function flush_buffer(endIndex)
         if (#buffer == 0) then
             return;
         end
 
         local decoded = gChat.clean_str(table.concat(buffer));
         if (#decoded > 0) then
-            table.insert(segments, { text = decoded, color = currentColor });
+            table.insert(segments, {
+                rawStart = bufferStart,
+                rawEnd = endIndex,
+                text = decoded,
+                color = currentColor,
+            });
         end
 
         buffer = {};
+        bufferStart = nil;
     end
 
     local i = 1;
@@ -838,14 +965,17 @@ local function build_raw_message_segments(rawMessage, defaultColor)
         if (b == 0x1F and (i + 1) <= #rawMessage) then
             local modePrefix = rawMessage:byte(i + 1);
             if (modePrefix == 0x7F or modePrefix == 0x79 or modePrefix == 0x83) then
-                flush_buffer();
+                flush_buffer(i - 1);
                 i = i + 2;
             else
+                if (bufferStart == nil) then
+                    bufferStart = i;
+                end
                 buffer[#buffer + 1] = rawMessage:sub(i, i);
                 i = i + 1;
             end
         elseif (b == 0x1E and (i + 1) <= #rawMessage) then
-            flush_buffer();
+            flush_buffer(i - 1);
             local code = rawMessage:byte(i + 1);
             if (code == 0x01) then
                 currentColor = defaultColor;
@@ -854,7 +984,7 @@ local function build_raw_message_segments(rawMessage, defaultColor)
             end
             i = i + 2;
         elseif (b == 0xFD) then
-            flush_buffer();
+            flush_buffer(i - 1);
 
             if ((i + 5) <= #rawMessage and rawMessage:byte(i + 5) == 0xFD) then
                 local b1 = rawMessage:byte(i + 1);
@@ -867,17 +997,38 @@ local function build_raw_message_segments(rawMessage, defaultColor)
                     local info = get_at_item_info(itemId);
                     local tokenText = (info ~= nil and info.name) or tostring(itemId);
                     local tokenSegment = make_auto_translate_item_segment(tokenText, itemId);
+                    tokenSegment.rawStart = i;
+                    tokenSegment.rawEnd = i + 5;
                     tokenSegment.color = currentColor;
                     table.insert(segments, tokenSegment);
                     i = i + 6;
                 elseif (b1 == 0x02 and b2 == 0x02) then
-                    local cleanedToken = gChat.clean_str(rawMessage:sub(i, i + 5));
-                    if (#cleanedToken > 1 and cleanedToken:sub(1, 1) == '{' and cleanedToken:sub(-1) == '}') then
-                        local tokenSegment = make_auto_translate_segment(cleanedToken:sub(2, -2));
+                    local hi = rawMessage:byte(i + 3);
+                    local lo = rawMessage:byte(i + 4);
+                    local itemId = (hi * 256) + lo;
+                    local info = get_at_item_info(itemId);
+                    if (info ~= nil) then
+                        local tokenSegment = make_chat_item_link_segment(info.name, itemId, currentColor);
+                        tokenSegment.rawStart = i;
+                        tokenSegment.rawEnd = i + 5;
                         tokenSegment.color = currentColor;
                         table.insert(segments, tokenSegment);
-                    elseif (#cleanedToken > 0) then
-                        table.insert(segments, { text = cleanedToken, color = currentColor });
+                    else
+                        local cleanedToken = gChat.clean_str(rawMessage:sub(i, i + 5));
+                        if (#cleanedToken > 1 and cleanedToken:sub(1, 1) == '{' and cleanedToken:sub(-1) == '}') then
+                            local tokenSegment = make_auto_translate_segment(cleanedToken:sub(2, -2));
+                            tokenSegment.rawStart = i;
+                            tokenSegment.rawEnd = i + 5;
+                            tokenSegment.color = currentColor;
+                            table.insert(segments, tokenSegment);
+                        elseif (#cleanedToken > 0) then
+                            table.insert(segments, {
+                                rawStart = i,
+                                rawEnd = i + 5,
+                                text = cleanedToken,
+                                color = currentColor,
+                            });
+                        end
                     end
                     i = i + 6;
                 else
@@ -887,25 +1038,41 @@ local function build_raw_message_segments(rawMessage, defaultColor)
                 i = i + 1;
             end
         elseif (b == 0x7F and (i + 1) <= #rawMessage) then
-            flush_buffer();
+            flush_buffer(i - 1);
             i = i + 2;
         else
             local charLen = 1;
             if ((b >= 0x81 and b <= 0x9F) or (b >= 0xE0 and b <= 0xFC)) and (i + 1) <= #rawMessage then
                 charLen = 2;
             end
+            if (bufferStart == nil) then
+                bufferStart = i;
+            end
             buffer[#buffer + 1] = rawMessage:sub(i, i + charLen - 1);
             i = i + charLen;
         end
     end
 
-    flush_buffer();
+    flush_buffer(#rawMessage);
 
     if (#segments == 0) then
         return nil;
     end
 
     return segments;
+end
+
+local function normalize_raw_caret_index(rawMessage, caretRaw)
+    local len = #(rawMessage or '');
+    caretRaw = math.floor(tonumber(caretRaw) or 0);
+    -- IChatManager::GetInputTextRawCaretPosition is 0-based (0 = start, len = end).
+    caretRaw = caretRaw + 1;
+    if (caretRaw < 1) then
+        caretRaw = 1;
+    elseif (caretRaw > len + 1) then
+        caretRaw = len + 1;
+    end
+    return caretRaw;
 end
 
 local FFXI_STAR_CHAR = '★';
@@ -922,11 +1089,30 @@ local function ffxi_star_display_char()
     return FFXI_STAR_FALLBACK;
 end
 
+local function input_segment_to_token(seg, defaultColor)
+    if (seg == nil) then
+        return nil;
+    end
+    if (seg.atomic == true and seg.parts ~= nil) then
+        return {
+            text = normalize_display_text(seg.text),
+            color = seg.color or defaultColor,
+            atomic = true,
+            parts = seg.parts,
+        };
+    end
+    return {
+        text = normalize_display_text(seg.text),
+        color = seg.color or defaultColor,
+    };
+end
+
 local function normalize_star_markers_in_text(text)
     if (text == nil or text == '') then
         return text;
     end
-    return tostring(text)
+    text = normalize_display_text(text);
+    return text
         :gsub(FFXI_STAR_ALT_UTF8, FFXI_STAR_CHAR)
         :gsub(string.char(0x81, 0x9A), FFXI_STAR_CHAR);
 end
@@ -1008,6 +1194,48 @@ local function imgui_calc_line_height()
     return 14;
 end
 
+local function draw_check_outlined_text(part)
+    local partText = normalize_display_text(part.text or '');
+    if (partText == '') then
+        return;
+    end
+    local tw = imgui_calc_text_width(partText);
+    local lh = imgui_calc_line_height();
+    local tl = { imgui.GetCursorScreenPos() };
+    local dl = imgui.GetWindowDrawList();
+    local fillCol = imgui.GetColorU32(part.color or { 0.18, 0.18, 0.18, 1.0 });
+    local glowBase = part.glowColor or part.outlineColor or { 1.0, 1.0, 1.0, 1.0 };
+    if (dl.AddText ~= nil) then
+        local glowLayers = {
+            { radius = 3, alpha = 0.07 },
+            { radius = 2, alpha = 0.12 },
+            { radius = 1, alpha = 0.20 },
+        };
+        for li = 1, #glowLayers do
+            local layer = glowLayers[li];
+            local r = layer.radius;
+            local glowCol = imgui.GetColorU32({
+                glowBase[1] or 1.0,
+                glowBase[2] or 1.0,
+                glowBase[3] or 1.0,
+                layer.alpha,
+            });
+            for ox = -r, r do
+                for oy = -r, r do
+                    if (ox ~= 0 or oy ~= 0) then
+                        dl:AddText({ tl[1] + ox, tl[2] + oy }, glowCol, partText);
+                    end
+                end
+            end
+        end
+        dl:AddText(tl, fillCol, partText);
+    else
+        imgui.TextColored(part.color or { 0.18, 0.18, 0.18, 1.0 }, partText);
+        tw = imgui_calc_text_width(partText);
+    end
+    imgui.Dummy({ tw, lh });
+end
+
 local function ffxi_star_part_is_star(p)
     if (p == nil) then
         return false;
@@ -1073,13 +1301,22 @@ local function raw_message_has_color_codes(rawMessage)
     if (rawMessage == nil or #rawMessage == 0) then
         return false;
     end
-    return rawMessage:find(string.char(0x1E), 1, true) ~= nil;
+    if (rawMessage:find(string.char(0x1E), 1, true) ~= nil) then
+        return true;
+    end
+    if (rawMessage:find(string.char(0xFD), 1, true) ~= nil) then
+        return true;
+    end
+    if (rawMessage:find(string.char(0x1F), 1, true) ~= nil) then
+        return true;
+    end
+    return false;
 end
 
 local function get_chat_draw_tokens(entry, message, rawMessage, defaultColor, prebuiltSegments)
     local segTag = (prebuiltSegments ~= nil) and ('s' .. tostring(#prebuiltSegments)) or 'n';
     local partyStamp = chatPartyNames.is_enabled() and tostring(chatPartyNames.get_roster_cache_stamp()) or 'off';
-    local cacheKey = segTag .. '|v12|' .. partyStamp .. '|' .. tostring(message or '') .. '|' .. tostring(rawMessage ~= nil and #rawMessage or 0);
+    local cacheKey = segTag .. '|v14|' .. partyStamp .. '|' .. tostring(message or '') .. '|' .. tostring(rawMessage ~= nil and #rawMessage or 0);
 
     if (entry ~= nil and entry._chatTokenCacheKey == cacheKey and entry._chatDrawTokens ~= nil) then
         return entry._chatDrawTokens;
@@ -1110,7 +1347,7 @@ local function get_chat_draw_tokens(entry, message, rawMessage, defaultColor, pr
 
         if (segments[i].atomic == true) then
             table.insert(tokens, {
-                text = text,
+                text = normalize_display_text(text),
                 color = color,
                 newline = false,
                 atomic = true,
@@ -1142,6 +1379,241 @@ local function get_chat_draw_tokens(entry, message, rawMessage, defaultColor, pr
     end
 
     return tokens;
+end
+
+local function calc_chat_token_width(token)
+    if (token.atomic == true and token.parts ~= nil) then
+        local tokenWidth = 0;
+        for pi = 1, #token.parts do
+            local p = token.parts[pi];
+            if (p ~= nil and p.draw == 'bust_x') then
+                local lh = imgui_calc_line_height();
+                local scale = tonumber(p.size_scale) or 1.15;
+                local em = tonumber(p.width_em) or 1.2;
+                tokenWidth = tokenWidth + (lh * scale * em);
+            elseif (p ~= nil and p.draw == 'roll_badge') then
+                local lh = imgui_calc_line_height();
+                local scale = tonumber(p.size_scale) or 1.10;
+                local em = tonumber(p.width_em) or 1.35;
+                tokenWidth = tokenWidth + (lh * scale * em);
+            elseif (ffxi_star_part_is_star(p)) then
+                tokenWidth = tokenWidth + ffxi_star_scaled_text_width(p.text);
+            else
+                tokenWidth = tokenWidth + imgui_calc_text_width(p.text);
+            end
+        end
+        return tokenWidth;
+    end
+    return imgui_calc_text_width(token.text);
+end
+
+local function draw_chat_token_part(p)
+    if (p ~= nil and p.draw == 'bust_x') then
+        local lh = imgui_calc_line_height();
+        local scale = tonumber(p.size_scale) or 1.15;
+        local size = lh * scale;
+        local width = size * (tonumber(p.width_em) or 1.2);
+        local tl = { imgui.GetCursorScreenPos() };
+        local br = { tl[1] + width, tl[2] + size };
+        local dl = imgui.GetWindowDrawList();
+        local col = imgui.GetColorU32(p.color or { 0.95, 0.20, 0.20, 1.0 });
+        local pad = math.max(1.0, size * 0.12);
+        dl:AddLine({ tl[1] + pad, tl[2] + pad }, { br[1] - pad, br[2] - pad }, col, math.max(1.0, size * 0.12));
+        dl:AddLine({ tl[1] + pad, br[2] - pad }, { br[1] - pad, tl[2] + pad }, col, math.max(1.0, size * 0.12));
+        imgui.Dummy({ width, size });
+    elseif (p ~= nil and p.draw == 'roll_badge') then
+        local lh = imgui_calc_line_height();
+        local scale = tonumber(p.size_scale) or 1.10;
+        local size = lh * scale;
+        local width = size * (tonumber(p.width_em) or 1.35);
+        local tl = { imgui.GetCursorScreenPos() };
+        local br = { tl[1] + width, tl[2] + size };
+        local dl = imgui.GetWindowDrawList();
+
+        local borderCol = imgui.GetColorU32(p.color or { 1.0, 1.0, 1.0, 1.0 });
+        local fillCol = imgui.GetColorU32({ 0.05, 0.05, 0.05, 0.65 });
+
+        local cx = (tl[1] + br[1]) * 0.5;
+        local cy = (tl[2] + br[2]) * 0.5;
+        local r = math.min(width, size) * 0.48;
+        local thick = math.max(1.0, size * 0.08);
+
+        if (dl.AddCircleFilled ~= nil and dl.AddCircle ~= nil) then
+            dl:AddCircleFilled({ cx, cy }, r, fillCol, 24);
+            dl:AddCircle({ cx, cy }, r, borderCol, 24, thick);
+        else
+            dl:AddRectFilled(tl, br, fillCol, r, 0);
+            dl:AddRect(tl, br, borderCol, r, 0, thick);
+        end
+
+        local rollText = tostring(p.roll or '');
+        local tw, th = imgui.CalcTextSize(rollText);
+        if (type(tw) == 'table') then
+            th = tonumber(tw[2]) or tonumber(tw.y) or (size * 0.6);
+            tw = tonumber(tw[1]) or tonumber(tw.x) or (width * 0.6);
+        end
+        local tx = cx - (tonumber(tw) or 0) * 0.5;
+        local ty = cy - (tonumber(th) or 0) * 0.5;
+
+        local textCol = imgui.GetColorU32({ 1.0, 1.0, 1.0, 1.0 });
+        if (dl.AddText ~= nil) then
+            textShadow.draw_list_add_text_shadowed(imgui, dl, { tx, ty }, textCol, rollText);
+        end
+
+        imgui.Dummy({ width, size });
+    elseif (ffxi_star_part_is_star(p)) then
+        draw_ffxi_star_text(p.color, p.text);
+    elseif (p ~= nil and p.draw == 'check_outlined') then
+        draw_check_outlined_text(p);
+    else
+        local partText = normalize_display_text(p.text);
+        if (p ~= nil and (p.draw == 'autotranslate_item' or p.draw == 'chat_item_link') and p.itemId ~= nil) then
+            draw_chat_item_hovered_text(p, partText);
+        else
+            imgui.TextColored(p.color, partText);
+        end
+    end
+end
+
+local function draw_chat_token(token, firstOnLine)
+    if (not firstOnLine) then
+        imgui.SameLine(0, 0);
+    end
+
+    if (token.atomic == true and token.parts ~= nil) then
+        for partIndex = 1, #token.parts do
+            if (partIndex > 1) then
+                imgui.SameLine(0, 0);
+            end
+            draw_chat_token_part(token.parts[partIndex]);
+        end
+    elseif (token.text == FFXI_STAR_CHAR or token.text == FFXI_STAR_FALLBACK) then
+        draw_ffxi_star_text(token.color, token.text);
+    else
+        imgui.TextColored(token.color, token.text);
+    end
+
+    return calc_chat_token_width(token);
+end
+
+local function draw_dl_colored_text(dl, x, y, color, text)
+    text = normalize_display_text(text);
+    if (text == nil or text == '') then
+        return 0;
+    end
+    local col = imgui.GetColorU32(color or { 1.0, 1.0, 1.0, 1.0 });
+    if (textShadow ~= nil and textShadow.draw_list_add_text_shadowed ~= nil) then
+        textShadow.draw_list_add_text_shadowed(imgui, dl, { x, y }, col, text);
+    elseif (dl.AddText ~= nil) then
+        dl:AddText({ x, y }, col, text);
+    end
+    return imgui_calc_text_width(text);
+end
+
+local function draw_dl_atomic_token(dl, x, y, token)
+    if (token == nil or token.parts == nil) then
+        return 0;
+    end
+    local w = 0;
+    for pi = 1, #token.parts do
+        local p = token.parts[pi];
+        if (p ~= nil) then
+            w = w + draw_dl_colored_text(dl, x + w, y, p.color, p.text);
+        end
+    end
+    return w;
+end
+
+local function draw_input_text_line(rawMessage, caretRaw, defaultColor)
+    local dl = imgui.GetWindowDrawList();
+    if (dl == nil) then
+        return;
+    end
+
+    local caretByte = normalize_raw_caret_index(rawMessage, caretRaw);
+    local segments = build_raw_message_segments(rawMessage, defaultColor);
+    if (segments == nil and rawMessage ~= nil and #rawMessage > 0) then
+        segments = {
+            {
+                rawStart = 1,
+                rawEnd = #rawMessage,
+                text = gChat.clean_str(rawMessage),
+                color = defaultColor,
+            },
+        };
+    end
+    if (segments == nil) then
+        segments = {};
+    end
+
+    local origin = { imgui.GetCursorScreenPos() };
+    local x = origin[1];
+    local y = origin[2];
+    local lh = imgui_calc_line_height();
+    local caretW = math.max(2.0, lh * 0.08);
+    local caretShown = false;
+
+    local function show_caret()
+        if (caretShown) then
+            return;
+        end
+        local blinkOn = (math.floor(os.clock() * 2.0) % 2) == 0;
+        if (blinkOn and dl.AddRectFilled ~= nil) then
+            local col = imgui.GetColorU32(defaultColor or { 1.0, 1.0, 1.0, 1.0 });
+            dl:AddRectFilled({ x, y }, { x + caretW, y + lh }, col);
+        end
+        x = x + caretW;
+        caretShown = true;
+    end
+
+    for si = 1, #segments do
+        local seg = segments[si];
+        local rawStart = tonumber(seg.rawStart) or 1;
+        local rawEnd = tonumber(seg.rawEnd) or rawStart;
+
+        if (not caretShown and caretByte <= rawStart) then
+            show_caret();
+        end
+
+        if (seg.atomic == true and seg.parts ~= nil) then
+            local token = input_segment_to_token(seg, defaultColor);
+            if (token ~= nil) then
+                x = x + draw_dl_atomic_token(dl, x, y, token);
+                if (not caretShown and caretByte > rawStart and caretByte <= rawEnd + 1) then
+                    show_caret();
+                end
+            end
+        elseif (caretByte > rawStart and caretByte <= rawEnd + 1) then
+            local beforeRaw = '';
+            local afterRaw = '';
+            if (caretByte > rawStart) then
+                beforeRaw = rawMessage:sub(rawStart, caretByte - 1);
+            end
+            if (caretByte <= rawEnd) then
+                afterRaw = rawMessage:sub(caretByte, rawEnd);
+            end
+            local beforeText = (beforeRaw ~= '') and gChat.clean_str(beforeRaw) or '';
+            local afterText = (afterRaw ~= '') and gChat.clean_str(afterRaw) or '';
+            if (beforeText ~= '') then
+                x = x + draw_dl_colored_text(dl, x, y, seg.color or defaultColor, beforeText);
+            end
+            show_caret();
+            if (afterText ~= '') then
+                x = x + draw_dl_colored_text(dl, x, y, seg.color or defaultColor, afterText);
+            end
+        else
+            local text = seg.text or '';
+            if (text ~= '') then
+                x = x + draw_dl_colored_text(dl, x, y, seg.color or defaultColor, text);
+            end
+        end
+    end
+
+    if (not caretShown) then
+        show_caret();
+    end
+
+    imgui.Dummy({ math.max(caretW, x - origin[1]), lh });
 end
 
 local function draw_chat_message(entry, message, rawMessage, defaultColor, prebuiltSegments)
@@ -1181,29 +1653,7 @@ local function draw_chat_message(entry, message, rawMessage, defaultColor, prebu
         if (token.newline) then
             advance_line();
         else
-            local tokenWidth = 0;
-            if (token.atomic == true and token.parts ~= nil) then
-                for pi = 1, #token.parts do
-                    local p = token.parts[pi];
-                    if (p ~= nil and p.draw == 'bust_x') then
-                        local lh = imgui_calc_line_height();
-                        local scale = tonumber(p.size_scale) or 1.15;
-                        local em = tonumber(p.width_em) or 1.2;
-                        tokenWidth = tokenWidth + (lh * scale * em);
-                    elseif (p ~= nil and p.draw == 'roll_badge') then
-                        local lh = imgui_calc_line_height();
-                        local scale = tonumber(p.size_scale) or 1.10;
-                        local em = tonumber(p.width_em) or 1.35;
-                        tokenWidth = tokenWidth + (lh * scale * em);
-                    elseif (ffxi_star_part_is_star(p)) then
-                        tokenWidth = tokenWidth + ffxi_star_scaled_text_width(p.text);
-                    else
-                        tokenWidth = tokenWidth + imgui_calc_text_width(p.text);
-                    end
-                end
-            else
-                tokenWidth = imgui_calc_text_width(token.text);
-            end
+            local tokenWidth = calc_chat_token_width(token);
 
             local trimmed = token.text:gsub('%s+$', '');
             local isWhitespaceOnly = (trimmed == '');
@@ -1212,87 +1662,7 @@ local function draw_chat_message(entry, message, rawMessage, defaultColor, prebu
                 advance_line();
             end
 
-            if (not firstOnLine) then
-                imgui.SameLine(0, 0);
-            end
-
-            if (token.atomic == true and token.parts ~= nil) then
-                for partIndex = 1, #token.parts do
-                    if (partIndex > 1) then
-                        imgui.SameLine(0, 0);
-                    end
-                    local p = token.parts[partIndex];
-                    if (p ~= nil and p.draw == 'bust_x') then
-                        local lh = imgui_calc_line_height();
-                        local scale = tonumber(p.size_scale) or 1.15;
-                        local size = lh * scale;
-                        local width = size * (tonumber(p.width_em) or 1.2);
-                        local tl = { imgui.GetCursorScreenPos() };
-                        local br = { tl[1] + width, tl[2] + size };
-                        local dl = imgui.GetWindowDrawList();
-                        local col = imgui.GetColorU32(p.color or { 0.95, 0.20, 0.20, 1.0 });
-                        local pad = math.max(1.0, size * 0.12);
-                        dl:AddLine({ tl[1] + pad, tl[2] + pad }, { br[1] - pad, br[2] - pad }, col, math.max(1.0, size * 0.12));
-                        dl:AddLine({ tl[1] + pad, br[2] - pad }, { br[1] - pad, tl[2] + pad }, col, math.max(1.0, size * 0.12));
-                        imgui.Dummy({ width, size });
-                    elseif (p ~= nil and p.draw == 'roll_badge') then
-                        local lh = imgui_calc_line_height();
-                        local scale = tonumber(p.size_scale) or 1.10;
-                        local size = lh * scale;
-                        local width = size * (tonumber(p.width_em) or 1.35);
-                        local tl = { imgui.GetCursorScreenPos() };
-                        local br = { tl[1] + width, tl[2] + size };
-                        local dl = imgui.GetWindowDrawList();
-
-                        local borderCol = imgui.GetColorU32(p.color or { 1.0, 1.0, 1.0, 1.0 });
-                        local fillCol = imgui.GetColorU32({ 0.05, 0.05, 0.05, 0.65 });
-
-                        local cx = (tl[1] + br[1]) * 0.5;
-                        local cy = (tl[2] + br[2]) * 0.5;
-                        local r = math.min(width, size) * 0.48;
-                        local thick = math.max(1.0, size * 0.08);
-
-                        if (dl.AddCircleFilled ~= nil and dl.AddCircle ~= nil) then
-                            dl:AddCircleFilled({ cx, cy }, r, fillCol, 24);
-                            dl:AddCircle({ cx, cy }, r, borderCol, 24, thick);
-                        else
-                            dl:AddRectFilled(tl, br, fillCol, r, 0);
-                            dl:AddRect(tl, br, borderCol, r, 0, thick);
-                        end
-
-                        local rollText = tostring(p.roll or '');
-                        local tw, th = imgui.CalcTextSize(rollText);
-                        if (type(tw) == 'table') then
-                            th = tonumber(tw[2]) or tonumber(tw.y) or (size * 0.6);
-                            tw = tonumber(tw[1]) or tonumber(tw.x) or (width * 0.6);
-                        end
-                        local tx = cx - (tonumber(tw) or 0) * 0.5;
-                        local ty = cy - (tonumber(th) or 0) * 0.5;
-
-                        local textCol = imgui.GetColorU32({ 1.0, 1.0, 1.0, 1.0 });
-                        if (dl.AddText ~= nil) then
-                            textShadow.draw_list_add_text_shadowed(imgui, dl, { tx, ty }, textCol, rollText);
-                        end
-
-                        imgui.Dummy({ width, size });
-                    elseif (ffxi_star_part_is_star(p)) then
-                        draw_ffxi_star_text(p.color, p.text);
-                    else
-                        if (p ~= nil and p.draw == 'autotranslate_item') then
-                            imgui.TextColored(p.color, p.text);
-                            if (imgui.IsItemHovered ~= nil and imgui.IsItemHovered()) then
-                                show_at_item_tooltip(p.itemId);
-                            end
-                        else
-                            imgui.TextColored(p.color, p.text);
-                        end
-                    end
-                end
-            elseif (token.text == FFXI_STAR_CHAR or token.text == FFXI_STAR_FALLBACK) then
-                draw_ffxi_star_text(token.color, token.text);
-            else
-                imgui.TextColored(token.color, token.text);
-            end
+            draw_chat_token(token, firstOnLine);
 
             lineWidth = lineWidth + tokenWidth;
             firstOnLine = false;
@@ -1317,9 +1687,16 @@ local function draw_inline_name_segments(nameSegments, fallbackColor)
     end
 end
 
+local function should_show_purpose_tag(entry, purpose)
+    if (entry ~= nil and entry.channel == 'combat') then
+        return false;
+    end
+    return purpose ~= 'None';
+end
+
 local function draw_sender_label(entry, purposeColor)
     local sender = entry.sender;
-    if (sender == nil or sender == '' or sender == 'System' or sender == 'Battle') then
+    if (sender == nil or sender == '' or sender == 'System' or sender == 'Battle' or sender == 'Check') then
         return false;
     end
     local nameSegs = chatPartyNames.is_enabled() and chatPartyNames.get_party_member_name_segments(sender) or nil;
@@ -1373,7 +1750,7 @@ local render_chat_entry = function(entry)
         return;
     end
 
-    if (purpose ~= 'None') then
+    if (should_show_purpose_tag(entry, purpose)) then
         local tag = entry.purposeLabel or ('[' .. purpose .. ']');
         imgui.TextColored(purposeColor, tag);
         imgui.SameLine();
@@ -1384,7 +1761,7 @@ local render_chat_entry = function(entry)
     draw_chat_message(entry, entry.message, entry.rawMessage, purposeColor, entry.segments);
 end
 
-local function render_chat_entries_loop(chatList)
+local function render_chat_entries_loop(chatList, stickToBottom)
     local mc = #chatList;
     if (mc <= 0) then
         return;
@@ -1392,16 +1769,41 @@ local function render_chat_entries_loop(chatList)
 
     for i = 1, mc do
         render_chat_entry(chatList[i]);
+        if (stickToBottom == true) then
+            local sm = imgui.GetScrollMaxY();
+            if (sm >= 0) then
+                imgui.SetScrollY(sm);
+            end
+        end
     end
 end
 
-local function render_chat_entry_list(chatList)
-    render_chat_entries_loop(chatList);
+local function render_chat_entry_list(chatList, stickToBottom)
+    begin_chat_item_hover_pass();
+    render_chat_entries_loop(chatList, stickToBottom);
 
     local sm = imgui.GetScrollMaxY();
-    local sy = imgui.GetScrollY();
-    if (sm >= 0 and sy > sm + 0.5) then
+    if (sm < 0) then
+        return;
+    end
+
+    if (stickToBottom == true) then
         imgui.SetScrollY(sm);
+        poll_chat_item_hover_regions();
+        return;
+    end
+
+    poll_chat_item_hover_regions();
+
+    local sy = imgui.GetScrollY();
+    if (sy > sm + 0.5) then
+        imgui.SetScrollY(sm);
+    elseif (sy >= sm - 2) then
+        if (imgui.SetScrollHereY ~= nil) then
+            imgui.SetScrollHereY(1.0);
+        else
+            imgui.SetScrollY(sm);
+        end
     end
 end
 
@@ -1592,6 +1994,150 @@ local function poll_expand_arrow_scroll_keys()
     end
 end
 
+local function chat_input_is_open()
+    local cm = AshitaCore:GetChatManager();
+    if (cm == nil or cm.IsInputOpen == nil) then
+        return false;
+    end
+    local status = cm:IsInputOpen();
+    if (status == nil or status == false) then
+        return false;
+    end
+    return tonumber(status) ~= 0;
+end
+
+local CHAT_INPUT_MAX_CHARS = 120;
+
+local function imgui_content_avail_width()
+    local avail = imgui.GetContentRegionAvail();
+    if (type(avail) == 'number') then
+        return math.max(0, avail);
+    end
+    if (type(avail) == 'table') then
+        return math.max(0, tonumber(avail[1]) or tonumber(avail.x) or 0);
+    end
+    return 0;
+end
+
+local function get_chat_input_max_chars(cm)
+    if (cm ~= nil and cm.GetInputTextParsedLengthMax ~= nil) then
+        local maxLen = tonumber(cm:GetInputTextParsedLengthMax());
+        if (maxLen ~= nil and maxLen > 0) then
+            return math.floor(maxLen);
+        end
+    end
+    return CHAT_INPUT_MAX_CHARS;
+end
+
+local function get_chat_input_char_count(cm, inputText)
+    if (cm ~= nil and cm.GetInputTextRawLength ~= nil) then
+        local rawLen = tonumber(cm:GetInputTextRawLength());
+        if (rawLen ~= nil) then
+            return math.max(0, math.floor(rawLen));
+        end
+    end
+    return #(inputText or '');
+end
+
+local function calc_chat_input_bar_height(chatSettings)
+    local padY = tonumber(chatSettings.inputPanelPaddingY) or 4;
+    local sepH = 2;
+    if (imgui.GetStyle ~= nil) then
+        local style = imgui.GetStyle();
+        if (style ~= nil and style.ItemSpacing ~= nil) then
+            local sp = style.ItemSpacing;
+            local spY = tonumber(sp[2]) or tonumber(sp.y) or 0;
+            sepH = math.max(sepH, (tonumber(style.SeparatorTextBorderSize) or 0) + spY * 0.5);
+        end
+    end
+    local lh = imgui_calc_line_height();
+    local counterH = lh;
+    return sepH + counterH + padY + lh + padY + 2;
+end
+
+local function render_chat_input_bar_content(chatSettings)
+    local cm = AshitaCore:GetChatManager();
+    if (cm == nil) then
+        return;
+    end
+
+    local inputStyle = {
+        panelBackgroundEnabled = chatSettings.inputPanelBackgroundEnabled,
+        panelBackground = chatSettings.inputPanelBackground,
+        panelRounding = chatSettings.inputPanelRounding,
+        panelPaddingX = chatSettings.inputPanelPaddingX,
+        panelPaddingY = chatSettings.inputPanelPaddingY,
+        panelBorderSize = chatSettings.inputPanelBorderSize,
+    };
+    local inputBgPops = panelStyle.push_panel_background(inputStyle);
+
+    local inputText = cm:GetInputTextRaw();
+    local st = (gChat.get_input_display_state ~= nil) and gChat.get_input_display_state(inputText)
+        or { purpose = 'Say', label = 'Input' };
+    local purpose = st.purpose or 'Say';
+    local label = st.label or 'Input';
+    local purposeColor = gChat.get_purpose_color(purpose) or { 1.0, 1.0, 1.0, 1.0 };
+
+    imgui.Separator();
+
+    local maxChars = get_chat_input_max_chars(cm);
+    local charCount = get_chat_input_char_count(cm, inputText);
+    local counterText = ('%d/%d'):fmt(charCount, maxChars);
+    local counterW = select(1, imgui.CalcTextSize(counterText)) or 0;
+    local counterX = imgui.GetCursorPosX() + math.max(0, imgui_content_avail_width() - counterW);
+    imgui.SetCursorPosX(counterX);
+    if (charCount >= maxChars) then
+        imgui.TextColored({ 1.0, 0.45, 0.45, 1.0 }, counterText);
+    elseif (imgui.TextDisabled ~= nil) then
+        imgui.TextDisabled(counterText);
+    else
+        imgui.TextColored({ 0.55, 0.55, 0.55, 1.0 }, counterText);
+    end
+
+    if (imgui.BeginGroup ~= nil) then
+        imgui.BeginGroup();
+    end
+    imgui.TextColored(purposeColor, (label .. ':'));
+    if (imgui.SameLine ~= nil) then
+        imgui.SameLine(0, 6);
+    end
+    local caretRaw = 0;
+    if (cm.GetInputTextRawCaretPosition ~= nil) then
+        caretRaw = cm:GetInputTextRawCaretPosition() or 0;
+    else
+        caretRaw = #(inputText or '') + 1;
+    end
+    draw_input_text_line(inputText or '', caretRaw, purposeColor);
+    if (imgui.EndGroup ~= nil) then
+        imgui.EndGroup();
+    end
+
+    local padY = tonumber(chatSettings.inputPanelPaddingY) or 4;
+    imgui.Dummy({ 0, padY });
+
+    panelStyle.pop_panel_background(inputBgPops);
+end
+
+local function push_chat_input_font(chatSettings)
+    local fontScale = (chatSettings.inputFontScale or 1.0);
+    return gResources.push_font_scale(fontScale * 0.5, chatSettings);
+end
+
+local function measure_chat_input_bar_height(chatSettings)
+    local fontPushed = push_chat_input_font(chatSettings);
+    local barH = calc_chat_input_bar_height(chatSettings);
+    gResources.pop_font(fontPushed);
+    return barH;
+end
+
+local function render_chat_input_bar(chatSettings)
+    textShadow.suppress_begin();
+    local fontPushed = push_chat_input_font(chatSettings);
+    render_chat_input_bar_content(chatSettings);
+    gResources.pop_font(fontPushed);
+    textShadow.suppress_end();
+end
+
 local function render_expanded_chat_panel()
     if (GlamourUI == nil or GlamourUI.chatExpandOpen ~= true) then
         return;
@@ -1605,7 +2151,7 @@ local function render_expanded_chat_panel()
     local w = w1.width or 760;
     local vh = get_client_window_height();
 
-    local fontPushed = gResources.push_font_scale((w1.font_scale or 1.0) * 0.5);
+    local fontPushed = gResources.push_font_scale((w1.font_scale or 1.0) * 0.5, w1);
     local chatWinBgPops = panelStyle.push_panel_background(w1);
     textShadow.suppress_begin();
 
@@ -1644,11 +2190,23 @@ local function render_expanded_chat_panel()
         if (tab < 1) then tab = 1; end
         if (tab > 8) then tab = 8; end
 
+        local chatSettings = GlamourUI.settings.Chat;
+        local showInputBar = chat_input_is_open();
+        local inputBarH = 0;
+        if (showInputBar and chatSettings ~= nil) then
+            inputBarH = measure_chat_input_bar_height(chatSettings);
+        end
+
+        local scrollH = -1;
+        if (showInputBar and inputBarH > 0) then
+            scrollH = -inputBarH;
+        end
+
         imgui.BeginChild(
             ('GlamChatExpandScroll##%d'):fmt(tab),
-            { -1, -1 },
+            { -1, scrollH },
             0,
-            bit.bor(ImGuiWindowFlags_NoScrollbar, ImGuiWindowFlags_NoScrollWithMouse)
+            ImGuiWindowFlags_NoScrollbar
         );
 
         do
@@ -1661,7 +2219,8 @@ local function render_expanded_chat_panel()
 
         local chatList = get_expand_chat_list(tab);
 
-        render_chat_entries_loop(chatList);
+        begin_chat_item_hover_pass();
+        render_chat_entries_loop(chatList, false);
 
         if (GlamourUI.chatExpandSnapBottomPending == true) then
             GlamourUI.expandScrollOp = nil;
@@ -1691,7 +2250,14 @@ local function render_expanded_chat_panel()
             end
         end
 
+        poll_chat_item_hover_regions();
+
         imgui.EndChild();
+
+        if (showInputBar and chatSettings ~= nil) then
+            render_chat_input_bar(chatSettings);
+        end
+
         imgui.End();
     end
 
@@ -1708,26 +2274,41 @@ local render_chat_window = function(title, settingsTable, windowIndex)
     local winIdx = tonumber(windowIndex) or 1;
 
     local fontScale = settingsTable.font_scale or 1.0;
-    local fontPushed = gResources.push_font_scale(fontScale * 0.5);
+    local fontPushed = gResources.push_font_scale(fontScale * 0.5, settingsTable);
     local chatWinBgPops = panelStyle.push_panel_background(settingsTable);
     textShadow.suppress_begin();
 
     imgui.SetNextWindowSize({ settingsTable.width or 760, settingsTable.height or 260 }, ImGuiCond_Once);
     imgui.SetNextWindowPos({ settingsTable.x or 10, settingsTable.y or 10 }, ImGuiCond_Once);
     if (imgui.Begin(title, true, bit.bor(ImGuiWindowFlags_NoTitleBar, ImGuiWindowFlags_NoScrollbar))) then
+        local chatSettings = GlamourUI.settings.Chat;
+        local showInputBar = (winIdx == 1 and chat_input_is_open());
+        local inputBarH = 0;
+        if (showInputBar and chatSettings ~= nil) then
+            inputBarH = measure_chat_input_bar_height(chatSettings);
+        end
+
+        local scrollH = -1;
+        if (showInputBar and inputBarH > 0) then
+            scrollH = -inputBarH;
+        end
+
         imgui.BeginChild(
             ('GlamChatScroll##%d'):fmt(winIdx),
-            { -1, -1 },
+            { -1, scrollH },
             0,
-            bit.bor(ImGuiWindowFlags_NoScrollbar, ImGuiWindowFlags_NoScrollWithMouse)
+            ImGuiWindowFlags_NoScrollbar
         );
 
         local chatList = gChat.get_window_entries(winIdx);
 
-        render_chat_entry_list(chatList);
-        imgui.SetScrollY(imgui.GetScrollMaxY());
+        render_chat_entry_list(chatList, true);
 
         imgui.EndChild();
+
+        if (showInputBar and chatSettings ~= nil) then
+            render_chat_input_bar(chatSettings);
+        end
 
         if (winIdx == 1 and GlamourUI ~= nil and GlamourUI.chatLogFocus == true) then
             local wp = { imgui.GetWindowPos() };
@@ -1759,6 +2340,22 @@ local render_chat_window = function(title, settingsTable, windowIndex)
     textShadow.suppress_end();
     panelStyle.pop_panel_background(chatWinBgPops);
     gResources.pop_font(fontPushed);
+end
+
+local function party_list_job_distance_x(jobText, distanceText, guiScale)
+    guiScale = guiScale or 1.0;
+    local gap = 8 * guiScale;
+    local rightPad = 4 * guiScale;
+    local jobX = (gParty.layout.NamePosition.x + 150) * guiScale;
+    local barRight = (30 + gParty.layout.HPBarPosition.x + gParty.layout.hpBarDim.l) * guiScale;
+    local jobW = select(1, imgui.CalcTextSize(tostring(jobText or ''))) or 0;
+    local distW = select(1, imgui.CalcTextSize(tostring(distanceText or ''))) or 0;
+    local distX = barRight - distW - rightPad;
+    local minDistX = jobX + jobW + gap;
+    if (distX < minDistX) then
+        distX = minDistX;
+    end
+    return jobX, distX;
 end
 
 render.build_member_render_context = function(memberIndex, member, partyManager, memoryManager)
@@ -1803,7 +2400,7 @@ render.render_player_themed = function(elementIndex, hpBarTexture, hpFillTexture
     local subTarget = renderContext.subTarget;
     local distance = renderContext.distance;
 
-    local fontPushed = gResources.push_font_scale((GlamourUI.settings.Party.pList.font_scale * 0.5) * GlamourUI.settings.Party.pList.gui_scale);
+    local fontPushed = gResources.push_font_scale((GlamourUI.settings.Party.pList.font_scale * 0.5) * GlamourUI.settings.Party.pList.gui_scale, GlamourUI.settings.Party.pList);
     local finish_render = function()
         gResources.pop_font(fontPushed);
         return;
@@ -1825,19 +2422,21 @@ render.render_player_themed = function(elementIndex, hpBarTexture, hpFillTexture
             imgui.PushStyleColor(ImGuiCol_Text, get_member_text_color(member));
             imgui.Text(member.Name);
             imgui.PopStyleColor();
-            imgui.SameLine();
-            imgui.SetCursorPosX((gParty.layout.NamePosition.x + 150) * GlamourUI.settings.Party.pList.gui_scale);
-            imgui.SetCursorPosY((yOffset + gParty.layout.NamePosition.y) * GlamourUI.settings.Party.pList.gui_scale);
+            local plistScale = GlamourUI.settings.Party.pList.gui_scale;
+            local nameRowY = (yOffset + gParty.layout.NamePosition.y) * plistScale;
+            local jobX, distX = party_list_job_distance_x(member.JobDisplay, tostring(distance), plistScale);
+            imgui.SetCursorPosX(jobX);
+            imgui.SetCursorPosY(nameRowY);
             imgui.Text(member.JobDisplay);
             if(memberIndex ~= 0) then
-                imgui.SameLine();
-                local strOffset = imgui.CalcTextSize(tostring(distance));
-                imgui.SetCursorPosX((gParty.layout.hpBarDim.l - strOffset) * GlamourUI.settings.Party.pList.gui_scale);
+                imgui.SetCursorPosX(distX);
+                imgui.SetCursorPosY(nameRowY);
                 imgui.Text(tostring(distance));
             end
             if(member.LevelSync == true)then
+                imgui.SetCursorPosY(nameRowY);
                 imgui.SameLine();
-                imgui.Image(levelSyncTexture, {10 * GlamourUI.settings.Party.pList.gui_scale, 10 * GlamourUI.settings.Party.pList.gui_scale});
+                imgui.Image(levelSyncTexture, {10 * plistScale, 10 * plistScale});
             end
 
             return finish_render();
@@ -1986,7 +2585,7 @@ render.render_pet_themed = function(elementIndex, hpBarTexture, hpFillTexture, m
     local petMpPercent = playerManager:GetPetMPPercent();
     local petTp = playerManager:GetPetTP();
 
-    local fontPushed = gResources.push_font_scale((GlamourUI.settings.Party.pList.font_scale * 0.5) * GlamourUI.settings.Party.pList.gui_scale);
+    local fontPushed = gResources.push_font_scale((GlamourUI.settings.Party.pList.font_scale * 0.5) * GlamourUI.settings.Party.pList.gui_scale, GlamourUI.settings.Party.pList);
     local function finish_render()
         gResources.pop_font(fontPushed);
         return;
@@ -2086,103 +2685,485 @@ render.render_pet_themed = function(elementIndex, hpBarTexture, hpFillTexture, m
     return finish_render();
 end
 
-render.render_alliance_member = function(hpBarTexture, hpFillTexture, partyLeadTexture, xOffset, member, memberIndex)
+-- Alliance panel layout (base units; multiplied by gui_scale unless noted).
+local APANEL_LEFT_COL = 50;
+local APANEL_COL_GAP = 50;
+local APANEL_NAME_X = 45;
+local APANEL_BAR_X = 35;
+local APANEL_ROW_PAD = 16;
+local APANEL_SECTION_GAP = 8;
+local APANEL_ROW_BAR_MULT = 2;
+local APANEL_RIGHT_PAD = 55;
+local APANEL_TP_X = 55;
+local APANEL_MP_PAD = 15;
+local APANEL_LEAD_ICON = 10;
+
+render.get_apanel_layout = function(aPanel)
+    local guiScale = aPanel.gui_scale or 1.0;
+    local fontScale = aPanel.font_scale or 1.0;
+    local barLen = aPanel.hpBarDim.l;
+    local barHeight = aPanel.hpBarDim.g;
+    local barWidth = barLen * guiScale;
+    local barHeightScaled = barHeight * guiScale;
+    local col1X = APANEL_LEFT_COL * guiScale;
+    local col2X = (APANEL_LEFT_COL + barLen + APANEL_COL_GAP) * guiScale;
+    local rowStride = (APANEL_ROW_BAR_MULT * barHeight + 4) * guiScale;
+    local rowTopPad = APANEL_ROW_PAD * guiScale;
+    local sectionGap = APANEL_SECTION_GAP * guiScale;
+    local sectionHeight = rowTopPad + (3 * rowStride);
+    local panelWidth = col2X + barWidth + (APANEL_RIGHT_PAD * guiScale);
+
+    return {
+        guiScale = guiScale,
+        fontScale = fontScale,
+        barWidth = barWidth,
+        barHeight = barHeightScaled,
+        colX = { col1X, col2X },
+        rowStride = rowStride,
+        rowTopPad = rowTopPad,
+        sectionGap = sectionGap,
+        sectionHeight = sectionHeight,
+        panelWidth = panelWidth,
+        nameX = APANEL_NAME_X * guiScale,
+        barX = APANEL_BAR_X * guiScale,
+        tpX = APANEL_TP_X * guiScale,
+        mpPad = APANEL_MP_PAD * guiScale,
+        detailFontScale = 0.25 * fontScale * guiScale,
+        leadIcon = APANEL_LEAD_ICON * guiScale,
+    };
+end
+
+render.render_alliance_member = function(hpBarTexture, hpFillTexture, partyLeadTexture, layout, member, memberIndex, column)
     local memoryManager = MemoryManager or AshitaCore:GetMemoryManager();
     local playerZoneId = memoryManager:GetParty():GetMemberZone(0);
-    local hpOffset =  GlamourUI.settings.Party.aPanel.hpBarDim.l - imgui.CalcTextSize(tostring(member.HP));
+    local aPanel = GlamourUI.settings.Party.aPanel;
+    local colX = layout.colX[(column or 0) + 1];
+    local setColX = function(offset)
+        imgui.SetCursorPos({ colX + offset, imgui.GetCursorPosY() });
+    end;
+    local growMemberBounds = function()
+        local extentX = colX + layout.barWidth + (APANEL_RIGHT_PAD * layout.guiScale);
+        local extentY = imgui.GetCursorPosY() + layout.barHeight + (4 * layout.guiScale);
+        imgui.SetCursorPos({ extentX, extentY });
+        imgui.Dummy({ 1, 1 });
+    end;
+
+    if(member == nil or member.Name == nil)then
+        growMemberBounds();
+        return;
+    end
+
+    local hpTextOffset = (layout.barWidth - select(1, imgui.CalcTextSize(tostring(member.HP)))) * 0.5;
     local menu = gHelper.getMenu();
-    if(GlamourUI.settings.Party.aPanel.themed == true)then
-        if(member ~= nil)then
-            if(member.Name ~= nil)then
-                imgui.SetCursorPosX(xOffset + 45);
-                imgui.Text(tostring(member.Name));
+    if(aPanel.themed == true)then
+        setColX(layout.nameX);
+        imgui.Text(tostring(member.Name));
 
-                imgui.SetCursorPosX(xOffset + 35);
-                imgui.Image(hpBarTexture, {GlamourUI.settings.Party.aPanel.hpBarDim.l * GlamourUI.settings.Party.aPanel.gui_scale, GlamourUI.settings.Party.aPanel.hpBarDim.g * GlamourUI.settings.Party.aPanel.gui_scale});
-                imgui.SameLine();
-                imgui.SetCursorPosX(xOffset + 35);
-                if(member.ZoneId ~= playerZoneId)then
-                    imgui.SetCursorPosX(xOffset + 45)
-                    imgui.Text(tostring(member.Zone));
-                else
-                    imgui.Image(hpFillTexture, {(GlamourUI.settings.Party.aPanel.hpBarDim.l * GlamourUI.settings.Party.aPanel.gui_scale) * member.HPP, GlamourUI.settings.Party.aPanel.hpBarDim.g * GlamourUI.settings.Party.aPanel.gui_scale}, {0, 0}, { member.HPP, 1});
-                    imgui.SameLine();
-                    imgui.SetCursorPosX((xOffset + 35 + (hpOffset * 0.5)) * GlamourUI.settings.Party.aPanel.gui_scale);
-                    imgui.Text(tostring(member.HP));
+        setColX(layout.barX);
+        imgui.Image(hpBarTexture, { layout.barWidth, layout.barHeight });
+        if(member.ZoneId ~= playerZoneId)then
+            imgui.SameLine();
+            setColX(layout.nameX);
+            imgui.Text(tostring(member.Zone));
+        else
+            imgui.SameLine();
+            setColX(layout.barX);
+            imgui.Image(hpFillTexture, { layout.barWidth * member.HPP, layout.barHeight }, { 0, 0 }, { member.HPP, 1 });
+            imgui.SameLine();
+            setColX(layout.barX + hpTextOffset);
+            imgui.Text(tostring(member.HP));
 
-                    imgui.SameLine();
-                    local detailFontPushed = gResources.push_font_scale((0.25 * GlamourUI.settings.Party.aPanel.font_scale) * GlamourUI.settings.Party.aPanel.gui_scale);
-                    imgui.SetCursorPosX(xOffset + 55);
-                    imgui.PushStyleColor(ImGuiCol_Text, {0.4, 0.6, 1.0, 1.0});
-                    imgui.Text(tostring(member.TP))
-                    imgui.PopStyleColor();
+            imgui.SameLine();
+            local detailFontPushed = gResources.push_font_scale(layout.detailFontScale, GlamourUI.settings.Party.aPanel);
+            setColX(layout.tpX);
+            imgui.PushStyleColor(ImGuiCol_Text, { 0.4, 0.6, 1.0, 1.0 });
+            imgui.Text(tostring(member.TP));
+            imgui.PopStyleColor();
 
-                    local mpOffset = imgui.CalcTextSize(tostring(member.MP));
-                    imgui.SameLine();
-                    imgui.SetCursorPosX((xOffset + 15 + GlamourUI.settings.Party.aPanel.hpBarDim.l - mpOffset) * GlamourUI.settings.Party.aPanel.gui_scale);
-                    imgui.PushStyleColor(ImGuiCol_Text, {0.35, 1.0, 0.4, 1.0});
-                    imgui.Text(tostring(member.MP));
-                    imgui.PopStyleColor();
-                    gResources.pop_font(detailFontPushed);
+            local mpOffset = select(1, imgui.CalcTextSize(tostring(member.MP)));
+            imgui.SameLine();
+            setColX(layout.mpPad + layout.barWidth - mpOffset);
+            imgui.PushStyleColor(ImGuiCol_Text, { 0.35, 1.0, 0.4, 1.0 });
+            imgui.Text(tostring(member.MP));
+            imgui.PopStyleColor();
+            gResources.pop_font(detailFontPushed);
+        end
 
-                end
-
-                if(member.Id == gParty.Leader2 or member.Id == gParty.Leader3)then
-                    imgui.SameLine();
-                    imgui.SetCursorPosX(xOffset + 35);
-                    imgui.Image(partyLeadTexture, {10,10});
-                end
-                imgui.SameLine();
-                imgui.SetCursorPosX(xOffset + 45);
-            end
+        if(member.Id == gParty.Leader2 or member.Id == gParty.Leader3)then
+            imgui.SameLine();
+            setColX(layout.barX);
+            imgui.Image(partyLeadTexture, { layout.leadIcon, layout.leadIcon });
         end
     else
-        if(member ~= nil)then
-            if(member.Name ~= nil)then
-                imgui.SetCursorPosX(xOffset + 45);
-                imgui.Text(tostring(member.Name));
+        setColX(layout.nameX);
+        imgui.Text(tostring(member.Name));
 
-                if(menu == 'loot')then
-                    imgui.SameLine();
-                    imgui.Text('     ')
-                    imgui.SameLine();
-                    imgui.Text(tostring(gParty.get_lot(memberIndex)));
-                end
-
-                imgui.SetCursorPosX(xOffset + 35);
-                imgui.ProgressBar(member.HPP, {GlamourUI.settings.Party.aPanel.hpBarDim.l * GlamourUI.settings.Party.aPanel.gui_scale, GlamourUI.settings.Party.aPanel.hpBarDim.g * GlamourUI.settings.Party.aPanel.gui_scale}, tostring(member.HP));
-                imgui.SameLine();
-                imgui.SetCursorPosX(xOffset + 35);
-                if(member.ZoneId ~= playerZoneId)then
-                    imgui.SetCursorPosX(xOffset + 45)
-                    imgui.Text(tostring(member.Zone));
-                end
-                if(member.Id == gParty.Leader2 or member.Id == gParty.Leader3)then
-                    imgui.SameLine();
-                    imgui.SetCursorPosX(xOffset + 35);
-                    imgui.Image(partyLeadTexture, {10,10});
-                end
-                imgui.SameLine();
-                imgui.SetCursorPosX(xOffset + 45);
-            end
+        if(menu == 'loot')then
+            imgui.SameLine();
+            imgui.Text('     ');
+            imgui.SameLine();
+            imgui.Text(tostring(gParty.get_lot(memberIndex)));
         end
+
+        setColX(layout.barX);
+        imgui.ProgressBar(member.HPP, { layout.barWidth, layout.barHeight }, tostring(member.HP));
+        if(member.ZoneId ~= playerZoneId)then
+            imgui.SameLine();
+            setColX(layout.nameX);
+            imgui.Text(tostring(member.Zone));
+        end
+        if(member.Id == gParty.Leader2 or member.Id == gParty.Leader3)then
+            imgui.SameLine();
+            setColX(layout.barX);
+            imgui.Image(partyLeadTexture, { layout.leadIcon, layout.leadIcon });
+        end
+    end
+    growMemberBounds();
+end
+
+local function pstats_set_pos(x, y)
+    imgui.SetCursorPosY(y);
+    imgui.SetCursorPosX(x);
+    imgui.Dummy({ 1, 1 });
+end
+
+local function pstats_ensure_panel_width(layout, y, height)
+    imgui.SetCursorPosY(y);
+    imgui.SetCursorPosX(layout.panelWidth);
+    imgui.Dummy({ 1, height or 1 });
+end
+
+local function pstats_centered_x(layout, width)
+    return math.max(0, (layout.panelWidth - width) * 0.5);
+end
+
+local function pstats_text_width(text)
+    local width = select(1, imgui.CalcTextSize(text));
+    if(type(width) ~= 'number')then
+        return 0;
+    end
+    return width;
+end
+
+local function pstats_format_rate(rate)
+    if(rate >= 1000000)then
+        return tostring(math.floor((rate / 1000000) * 100) / 100) .. 'M';
+    end
+    return tostring(rate);
+end
+
+render.get_pstats_layout = function(pstats)
+    local guiScale = pstats.gui_scale or 1.0;
+    local fontScale = pstats.font_scale or 1.0;
+    local statBarLen = pstats.BarDim.l;
+    local statBarGirth = pstats.BarDim.g;
+    local statBarWidth = statBarLen * guiScale;
+    local statBarHeight = statBarGirth * guiScale;
+    local barPadding = (pstats.barPadding or 50) * guiScale;
+    local statGroupWidth = (3 * statBarWidth) + (2 * barPadding);
+    local expBarWidth = pstats.expBarDim.l * guiScale;
+    local expBarHeight = pstats.expBarDim.g * guiScale;
+    local rowGap = (pstats.rowGap or 8) * guiScale;
+    local panelWidth = math.max(statGroupWidth, expBarWidth);
+    local statGroupX = (panelWidth - statGroupWidth) * 0.5;
+    local expBarX = (panelWidth - expBarWidth) * 0.5;
+    local statBarsY = 0;
+    local expBarY = statBarHeight + rowGap;
+    local infoRowY = expBarY + expBarHeight + rowGap;
+    local baseLineHeight = select(2, imgui.CalcTextSize('Mg'));
+    if(type(baseLineHeight) ~= 'number' or baseLineHeight <= 0)then
+        baseLineHeight = 12;
+    end
+    -- The EXP/job line + merits line are drawn with `detailFontScale`, so measure spacing using that scale.
+    local detailFontScale = fontScale * 0.3 * guiScale;
+    local lineHeight = math.max(8 * guiScale, baseLineHeight * detailFontScale);
+    -- Keep merits tucked just below the EXP info row (no big extra gap).
+    local meritsGap = math.max(2 * guiScale, math.floor(rowGap * 0.25));
+    local meritsRowY = infoRowY + lineHeight + meritsGap;
+    local cpBarY = meritsRowY;
+    local cpInfoRowY = cpBarY + expBarHeight + rowGap;
+    local panelHeight = infoRowY + lineHeight + rowGap;
+
+    return {
+        guiScale = guiScale,
+        fontScale = fontScale,
+        panelWidth = panelWidth,
+        statBarWidth = statBarWidth,
+        statBarHeight = statBarHeight,
+        statGroupX = statGroupX,
+        statGroupWidth = statGroupWidth,
+        barPadding = barPadding,
+        statBarsY = statBarsY,
+        expBarX = expBarX,
+        expBarY = expBarY,
+        expBarWidth = expBarWidth,
+        expBarHeight = expBarHeight,
+        infoRowY = infoRowY,
+        meritsRowY = meritsRowY,
+        cpBarY = cpBarY,
+        cpInfoRowY = cpInfoRowY,
+        rowGap = rowGap,
+        lineHeight = lineHeight,
+        panelHeight = panelHeight,
+        mainFontScale = fontScale * 0.5 * guiScale,
+        detailFontScale = detailFontScale,
+        fontSettings = pstats,
+    };
+end
+
+local function pstats_draw_themed_stat_column(layout, barTexture, fillTexture, value, percentage)
+    local startX, startY = imgui.GetCursorPos();
+    imgui.Image(barTexture, { layout.statBarWidth, layout.statBarHeight });
+    imgui.SetCursorPosY(startY);
+    imgui.SetCursorPosX(startX);
+    if(percentage ~= nil)then
+        imgui.Image(fillTexture, { layout.statBarWidth * percentage, layout.statBarHeight }, { 0, 0 }, { percentage, 1 });
+    else
+        local tpFill = math.clamp(value / 1000, 0, 1);
+        imgui.Image(fillTexture, { layout.statBarWidth * tpFill, layout.statBarHeight }, { 0, 0 }, { tpFill, 1 });
+    end
+    local textWidth = pstats_text_width(tostring(value));
+    imgui.SetCursorPosY(startY);
+    imgui.SetCursorPosX(startX + ((layout.statBarWidth - textWidth) * 0.5));
+    imgui.Text(tostring(value));
+    imgui.SetCursorPosY(startY);
+    imgui.SetCursorPosX(startX + layout.statBarWidth);
+    imgui.Dummy({ 1, layout.statBarHeight });
+end
+
+local function pstats_draw_themed_stat_row(layout, barDefs)
+    pstats_set_pos(pstats_centered_x(layout, layout.statGroupWidth), layout.statBarsY);
+    for col = 1, #barDefs do
+        if(col > 1)then
+            imgui.SameLine(0, layout.barPadding);
+        end
+        local def = barDefs[col];
+        pstats_draw_themed_stat_column(layout, def[1], def[2], def[3], def[4]);
     end
 end
 
-render.render_player_stats = function(barTexture, fillTexture, value, percentage, xOffset)
-    imgui.SetCursorPosX((xOffset + 5) * GlamourUI.settings.PlayerStats.gui_scale);
-    imgui.Image(barTexture, {GlamourUI.settings.PlayerStats.BarDim.l * GlamourUI.settings.PlayerStats.gui_scale, GlamourUI.settings.PlayerStats.BarDim.g * GlamourUI.settings.PlayerStats.gui_scale});
-    imgui.SameLine();
-    imgui.SetCursorPosX((xOffset + 5) * GlamourUI.settings.PlayerStats.gui_scale);
+local function pstats_draw_plain_stat_column(layout, color, value, percentage)
+    local startX, startY = imgui.GetCursorPos();
+    imgui.PushStyleColor(ImGuiCol_PlotHistogram, color);
     if(percentage ~= nil)then
-        imgui.Image(fillTexture, {((percentage * GlamourUI.settings.PlayerStats.BarDim.l) * GlamourUI.settings.PlayerStats.gui_scale), GlamourUI.settings.PlayerStats.BarDim.g * GlamourUI.settings.PlayerStats.gui_scale}, { 0, 0 }, { percentage, 1 });
+        imgui.ProgressBar(percentage, { layout.statBarWidth, layout.statBarHeight }, tostring(value));
+        imgui.PopStyleColor();
     else
-        imgui.Image(fillTexture, {(math.clamp(value / 1000, 0, 1)) * GlamourUI.settings.PlayerStats.BarDim.l  * (GlamourUI.settings.PlayerStats.gui_scale), GlamourUI.settings.PlayerStats.BarDim.g * GlamourUI.settings.PlayerStats.gui_scale}, { 0, 0 }, { math.clamp((value / 1000), 0, 1), 1 });
+        imgui.ProgressBar(value / 1000, { layout.statBarWidth, layout.statBarHeight }, '');
+        imgui.PopStyleColor();
+        if(value > 1000)then
+            imgui.SetCursorPosY(startY);
+            imgui.SetCursorPosX(startX);
+            imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0 });
+            imgui.ProgressBar((value - 1000) / 1000, { layout.statBarWidth, layout.statBarHeight }, '');
+            imgui.PopStyleColor();
+        end
+        if(value > 2000)then
+            imgui.SetCursorPosY(startY);
+            imgui.SetCursorPosX(startX);
+            imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0 });
+            imgui.ProgressBar((value - 2000) / 1000, { layout.statBarWidth, layout.statBarHeight }, '');
+            imgui.PopStyleColor();
+        end
+        local textWidth = pstats_text_width(tostring(value));
+        imgui.SetCursorPosY(startY);
+        imgui.SetCursorPosX(startX + ((layout.statBarWidth - textWidth) * 0.5));
+        imgui.Text(tostring(value));
     end
-    local strLen = (imgui.CalcTextSize(tostring(value)) * GlamourUI.settings.PlayerStats.gui_scale);
-    imgui.SameLine();
-    imgui.SetCursorPosX((xOffset + ((GlamourUI.settings.PlayerStats.BarDim.l - strLen) * 0.5)) * GlamourUI.settings.PlayerStats.gui_scale);
-    imgui.Text(tostring(value));
+    imgui.SetCursorPosY(startY);
+    imgui.SetCursorPosX(startX + layout.statBarWidth);
+    imgui.Dummy({ 1, layout.statBarHeight });
+end
+
+local function pstats_draw_plain_stat_row(layout, barDefs)
+    pstats_set_pos(pstats_centered_x(layout, layout.statGroupWidth), layout.statBarsY);
+    for col = 1, #barDefs do
+        if(col > 1)then
+            imgui.SameLine(0, layout.barPadding);
+        end
+        local def = barDefs[col];
+        pstats_draw_plain_stat_column(layout, def[1], def[2], def[3]);
+    end
+end
+
+local function pstats_grow_bounds(layout, contentHeight)
+    imgui.SetCursorPosY(contentHeight + layout.rowGap);
+    imgui.SetCursorPosX(layout.panelWidth);
+    imgui.Dummy({ 1, 1 });
+end
+
+local function pstats_draw_left_text(text, y, layout)
+    imgui.SetCursorPosY(y);
+    imgui.SetCursorPosX(0);
+    imgui.Text(text);
+end
+
+local function pstats_draw_center_text(text, y, layout)
+    local textWidth = pstats_text_width(text);
+    imgui.SetCursorPosY(y);
+    imgui.SetCursorPosX(math.max(0, (layout.panelWidth - textWidth) * 0.5));
+    imgui.Text(text);
+end
+
+local function pstats_draw_right_text(text, y, layout)
+    local textWidth = pstats_text_width(text);
+    imgui.SetCursorPosY(y);
+    imgui.SetCursorPosX(math.max(0, layout.panelWidth - textWidth));
+    imgui.Text(text);
+end
+
+local function pstats_draw_three_column_row(layout, y, leftText, centerText, rightText, rightHoverText, onReset)
+    pstats_draw_left_text(leftText, y, layout);
+    if(centerText ~= nil and centerText ~= '')then
+        pstats_draw_center_text(centerText, y, layout);
+    end
+    if(onReset ~= nil and rightText ~= nil and rightText ~= '')then
+        local hoverWidth = pstats_text_width('     ');
+        imgui.SetCursorPosY(y);
+        imgui.SetCursorPosX(math.max(0, layout.panelWidth - hoverWidth));
+        imgui.Text('     ');
+        if(imgui.IsItemHovered())then
+            pstats_draw_right_text(rightHoverText or 'Reset?', y, layout);
+            if(imgui.IsItemClicked())then
+                onReset();
+            end
+        else
+            pstats_draw_right_text(rightText, y, layout);
+        end
+    elseif(rightText ~= nil and rightText ~= '')then
+        pstats_draw_right_text(rightText, y, layout);
+    end
+    pstats_ensure_panel_width(layout, y + layout.lineHeight, 1);
+end
+
+local function pstats_draw_themed_progress_bar(layout, y, width, height, bgTexture, fillTexture, fillRatio)
+    local x = pstats_centered_x(layout, width);
+    imgui.SetCursorPosY(y);
+    imgui.SetCursorPosX(x);
+    imgui.Image(bgTexture, { width, height });
+    imgui.SetCursorPosY(y);
+    imgui.SetCursorPosX(x);
+    imgui.Image(fillTexture, { width * fillRatio, height }, { 0, 0 }, { fillRatio, 1 });
+    pstats_ensure_panel_width(layout, y + height, 1);
+end
+
+local function pstats_draw_exp_info_row(layout, leftText, centerText, rightText, rightHoverText, onReset)
+    pstats_draw_three_column_row(layout, layout.infoRowY, leftText, centerText, rightText, rightHoverText, onReset);
+end
+
+render.render_player_stats_panel = function(player, playerMember)
+    local pstats = GlamourUI.settings.PlayerStats;
+    local layout = render.get_pstats_layout(pstats);
+    local curEXP = player:GetExpCurrent();
+    local maxEXP = player:GetExpNeeded();
+    local curLP = player:GetLimitPoints();
+    local job = playerMember.JobDisplay;
+    local expModeStr = gParty.EXPMode .. ' / hr';
+    local contentHeight = layout.infoRowY + layout.lineHeight;
+    local locked = player:GetIsExperiencePointsLocked();
+    local isLPMode = (gParty.EXPMode == 'LP') or (locked == true) or (tonumber(locked) ~= nil and tonumber(locked) ~= 0);
+
+    pstats_ensure_panel_width(layout, 0, 1);
+
+    if(pstats.themed == true)then
+        local hpbTex = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'hpBar.png');
+        local hpfTex = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'hpFill.png');
+        local mpbTex = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'mpBar.png');
+        local mpfTex = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'mpFill.png');
+        local tpbTex = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'tpBar.png');
+        local tpfTex = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'tpFill.png');
+        local ebTex = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'expBar.png');
+        local efTex = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'expFill.png');
+
+        local mainFontPushed = gResources.push_font_scale(layout.mainFontScale, layout.fontSettings);
+        pstats_draw_themed_stat_row(layout, {
+            { hpbTex, hpfTex, playerMember.HP, playerMember.HPP },
+            { mpbTex, mpfTex, playerMember.MP, playerMember.MPP },
+            { tpbTex, tpfTex, playerMember.TP, nil },
+        });
+        gResources.pop_font(mainFontPushed);
+
+        local detailFontPushed = gResources.push_font_scale(layout.detailFontScale, layout.fontSettings);
+        local expFillRatio = 0;
+        local expLeftText = '';
+        if(not isLPMode)then
+            expLeftText = tostring(curEXP) .. '/' .. tostring(maxEXP);
+            expFillRatio = (maxEXP ~= nil and maxEXP > 0) and (curEXP / maxEXP) or 0;
+        else
+            expLeftText = tostring(curLP) .. '/10000';
+            expFillRatio = curLP / 10000;
+        end
+        pstats_draw_themed_progress_bar(layout, layout.expBarY, layout.expBarWidth, layout.expBarHeight, ebTex, efTex, expFillRatio);
+
+        local expRateLabel = pstats_format_rate(gParty.EXPperHour) .. ' ' .. expModeStr;
+        pstats_draw_exp_info_row(layout, expLeftText, job, expRateLabel, 'Reset?', function()
+            gParty.EXPReset = true;
+        end);
+
+        if(isLPMode)then
+            local merits = tostring(player:GetMeritPoints()) .. ' / ' .. tostring(player:GetMeritPointsMax());
+            pstats_draw_center_text('Merits: ' .. merits, layout.meritsRowY, layout);
+            contentHeight = layout.meritsRowY + layout.lineHeight;
+
+            local cp = player:GetCapacityPoints(playerMember.Job);
+            local jp = player:GetJobPoints(playerMember.Job);
+            if(playerMember.Level == 99 or cp > 0 or jp > 0)then
+                layout.cpBarY = layout.meritsRowY + layout.lineHeight + layout.rowGap;
+                layout.cpInfoRowY = layout.cpBarY + layout.expBarHeight + layout.rowGap;
+                contentHeight = layout.cpInfoRowY + layout.lineHeight;
+
+                if(not playerMember.Mastered)then
+                    pstats_draw_themed_progress_bar(layout, layout.cpBarY, layout.expBarWidth, layout.expBarHeight, ebTex, efTex, cp / 30000);
+                    local cpLeftText = 'CP:  ' .. tostring(cp) .. ' / 30000 : (' .. tostring(jp) .. ' JP)';
+                    pstats_draw_three_column_row(layout, layout.cpInfoRowY, cpLeftText, '', pstats_format_rate(gParty.CPperHour) .. ' CP/Hr', nil, nil);
+                else
+                    local exemP = playerMember.ExemP;
+                    local mltnl = playerMember.MLTNL;
+                    local exemPRatio = (mltnl ~= nil and mltnl > 0) and (exemP / mltnl) or 0;
+                    pstats_draw_themed_progress_bar(layout, layout.cpBarY, layout.expBarWidth, layout.expBarHeight, ebTex, efTex, exemPRatio);
+                    local exemPLeftText = 'ExemP:  ' .. tostring(exemP) .. ' / ' .. tostring(mltnl) .. ' | Master Level:  ' .. tostring(playerMember.ML);
+                    pstats_draw_three_column_row(layout, layout.cpInfoRowY, exemPLeftText, '', pstats_format_rate(gParty.ExemPperHour) .. ' ExemP/Hr', nil, nil);
+                end
+            end
+        end
+        gResources.pop_font(detailFontPushed);
+    else
+        local mainFontPushed = gResources.push_font_scale(layout.mainFontScale, layout.fontSettings);
+        pstats_draw_plain_stat_row(layout, {
+            { { 1.0, 0.25, 0.25, 1.0 }, playerMember.HP, playerMember.HPP },
+            { { 0.0, 0.5, 0.0, 1.0 }, playerMember.MP, playerMember.MPP },
+            { { 0.0, 0.45, 1.0, 1.0 }, playerMember.TP, nil },
+        });
+
+        local detailFontPushed = gResources.push_font_scale(layout.detailFontScale, layout.fontSettings);
+        pstats_set_pos(pstats_centered_x(layout, layout.expBarWidth), layout.expBarY);
+        imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 1.0, 1.0, 0.25, 1.0 });
+        local expRatio = 0;
+        local expLeftText = '';
+        if (isLPMode) then
+            expLeftText = tostring(curLP) .. '/10000';
+            expRatio = curLP / 10000;
+        else
+            expLeftText = tostring(curEXP) .. '/' .. tostring(maxEXP);
+            expRatio = (maxEXP ~= nil and maxEXP > 0) and (curEXP / maxEXP) or 0;
+        end
+        imgui.ProgressBar(expRatio, { layout.expBarWidth, layout.expBarHeight }, '');
+        imgui.PopStyleColor();
+        pstats_ensure_panel_width(layout, layout.expBarY + layout.expBarHeight, 1);
+
+        pstats_draw_exp_info_row(layout, expLeftText, job, '', nil, nil);
+        contentHeight = layout.infoRowY + layout.lineHeight;
+
+        if (isLPMode) then
+            local merits = tostring(player:GetMeritPoints()) .. ' / ' .. tostring(player:GetMeritPointsMax());
+            pstats_draw_center_text('Merits: ' .. merits, layout.meritsRowY, layout);
+            contentHeight = layout.meritsRowY + layout.lineHeight;
+        end
+        gResources.pop_font(detailFontPushed);
+        gResources.pop_font(mainFontPushed);
+    end
+
+    pstats_grow_bounds(layout, contentHeight);
 end
 
 render.render_recast = function()
@@ -2202,7 +3183,7 @@ render.render_recast = function()
         if(progressList[1] ~= nil) then
             local rcBgPops = panelStyle.push_panel_background(GlamourUI.settings.rcPanel);
             if(imgui.Begin('Recast##GlamRCPanel' .. get_window_suffix(), gRecast.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
-                local fontPushed = gResources.push_font_scale((GlamourUI.settings.rcPanel.font_scale * 0.4) * GlamourUI.settings.rcPanel.gui_scale);
+                local fontPushed = gResources.push_font_scale((GlamourUI.settings.rcPanel.font_scale * 0.4) * GlamourUI.settings.rcPanel.gui_scale, GlamourUI.settings.rcPanel);
                 imgui.PushStyleColor(ImGuiCol_Text, { 1.0, 1.0, 1.0, 1.0 });
                 for i = 1,#timers,1 do
                     local timer = timers[i];
@@ -2250,7 +3231,7 @@ render.render_target_bar = function()
         if(targetEntity ~= nil) then
             local tbBgPops = panelStyle.push_panel_background(GlamourUI.settings.TargetBar);
             if(imgui.Begin('TargetBar##GlamTB' .. get_window_suffix(), gTarget.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize))) then
-                local mainFontPushed = gResources.push_font_scale((GlamourUI.settings.TargetBar.font_scale * .6) * GlamourUI.settings.TargetBar.gui_scale);
+                local mainFontPushed = gResources.push_font_scale((GlamourUI.settings.TargetBar.font_scale * .6) * GlamourUI.settings.TargetBar.gui_scale, GlamourUI.settings.TargetBar);
                 local targHPLen = (imgui.CalcTextSize(tostring(targetEntity.HPPercent)) * GlamourUI.settings.PlayerStats.gui_scale);
                 local hpBarTexture = gResources.getTex(GlamourUI.settings, 'TargetBar', 'hpBar.png');
                 local hpFillTexture = gResources.getTex(GlamourUI.settings, 'TargetBar', 'hpFill.png');
@@ -2278,8 +3259,10 @@ render.render_target_bar = function()
                     imgui.SameLine();
                     imgui.SetCursorPosX(30 * GlamourUI.settings.TargetBar.gui_scale);
                     gResources.pop_font(mainFontPushed);
-                    local detailFontPushed = gResources.push_font_scale((GlamourUI.settings.TargetBar.font_scale * .4) * GlamourUI.settings.TargetBar.gui_scale);
-                    imgui.Text(string.format('Mob ID:  %x', targetEntity.ServerId));
+                    local detailFontPushed = gResources.push_font_scale((GlamourUI.settings.TargetBar.font_scale * .4) * GlamourUI.settings.TargetBar.gui_scale, GlamourUI.settings.TargetBar);
+                    local kind = (nameStatus ~= nil) and nameStatus.type or nil;
+                    local filterId = entity_ids.get_filter_id(targetEntity.ServerId, kind);
+                    imgui.Text(string.format('%x', filterId));
 
                     --Distance
                     imgui.SameLine();
@@ -2287,7 +3270,7 @@ render.render_target_bar = function()
                     imgui.Text('     ' .. get_target_distance_text(targetEntity));
 
                     gResources.pop_font(detailFontPushed);
-                    mainFontPushed = gResources.push_font_scale((GlamourUI.settings.TargetBar.font_scale * .6) * GlamourUI.settings.TargetBar.gui_scale);
+                    mainFontPushed = gResources.push_font_scale((GlamourUI.settings.TargetBar.font_scale * .6) * GlamourUI.settings.TargetBar.gui_scale, GlamourUI.settings.TargetBar);
                     imgui.SetCursorPosX(30 * GlamourUI.settings.TargetBar.gui_scale);
                     imgui.PushStyleColor(ImGuiCol_Text, {1.0, 1.0, 1.0, 1.0});
                     imgui.Image(hpBarTexture, {GlamourUI.settings.TargetBar.hpBarDim.l * GlamourUI.settings.TargetBar.gui_scale, GlamourUI.settings.TargetBar.hpBarDim.g * GlamourUI.settings.TargetBar.gui_scale});
@@ -2312,7 +3295,7 @@ render.render_target_bar = function()
                     end
                     imgui.SetCursorPosX(30 * GlamourUI.settings.TargetBar.gui_scale);
                     gResources.pop_font(mainFontPushed);
-                    mainFontPushed = gResources.push_font_scale(1 * GlamourUI.settings.TargetBar.gui_scale);
+                    mainFontPushed = gResources.push_font_scale(1 * GlamourUI.settings.TargetBar.gui_scale, GlamourUI.settings.TargetBar);
                     imgui.ProgressBar(targetEntity.HPPercent / 100, {GlamourUI.settings.TargetBar.hpBarDim.l * GlamourUI.settings.TargetBar.gui_scale, GlamourUI.settings.TargetBar.hpBarDim.g * GlamourUI.settings.TargetBar.gui_scale}, tostring(targetEntity.HPPercent) .. '%');
                     imgui.PopStyleColor(1);
 
@@ -2329,7 +3312,7 @@ render.render_target_bar = function()
                             local tbScale = GlamourUI.settings.TargetBar.gui_scale;
                             local barW = GlamourUI.settings.TargetBar.hpBarDim.l * tbScale;
                             local xAnchor = 30 * tbScale;
-                            local actionFontPushed = gResources.push_font_scale((GlamourUI.settings.TargetBar.font_scale * .5) * tbScale);
+                            local actionFontPushed = gResources.push_font_scale((GlamourUI.settings.TargetBar.font_scale * .5) * tbScale, GlamourUI.settings.TargetBar);
                             local textW = imgui.CalcTextSize(mobAction);
                             if (type(textW) == 'table') then
                                 textW = tonumber(textW[1]) or tonumber(textW.x) or 0;
@@ -2418,7 +3401,8 @@ render.render_target_bar = function()
                             1.0,
                             build_timer_list('debuff'),
                             1,
-                            true
+                            true,
+                            GlamourUI.settings.TargetBar.font_scale
                         );
                         bottomY = bottomY + (6 * GlamourUI.settings.TargetBar.gui_scale);
                     end
@@ -2436,7 +3420,8 @@ render.render_target_bar = function()
                             1.0,
                             build_timer_list('buff'),
                             1,
-                            true
+                            true,
+                            GlamourUI.settings.TargetBar.font_scale
                         );
                     end
 
@@ -2458,40 +3443,11 @@ render.render_target_bar = function()
     end
 end
 
-render.render_player_no_theme = function(xOffset, color, value, percentage)
-    imgui.SetCursorPosX(xOffset + 5);
-    imgui.PushStyleColor(ImGuiCol_PlotHistogram, color);
-    if(percentage ~= nil) then
-        imgui.ProgressBar(percentage, { GlamourUI.settings.PlayerStats.BarDim.l * GlamourUI.settings.PlayerStats.gui_scale, GlamourUI.settings.PlayerStats.BarDim.g * GlamourUI.settings.PlayerStats.gui_scale }, '');
-        imgui.PopStyleColor();
-    else
-        imgui.ProgressBar(value / 1000, {GlamourUI.settings.PlayerStats.BarDim.l * GlamourUI.settings.PlayerStats.gui_scale, GlamourUI.settings.PlayerStats.BarDim.g * GlamourUI.settings.PlayerStats.gui_scale}, '');
-        imgui.PopStyleColor();
-        if(value > 1000) then
-            imgui.SameLine();
-            imgui.SetCursorPosX(xOffset + 5);
-            imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 0.75, 1.0, 1.0});
-            imgui.ProgressBar((value - 1000) /1000, {GlamourUI.settings.PlayerStats.BarDim.l * GlamourUI.settings.PlayerStats.gui_scale, GlamourUI.settings.PlayerStats.BarDim.g * GlamourUI.settings.PlayerStats.gui_scale}, '');
-            imgui.PopStyleColor(1);
-        end
-        if(value > 2000) then
-            imgui.SameLine();
-            imgui.SetCursorPosX(xOffset + 5);
-            imgui.PushStyleColor(ImGuiCol_PlotHistogram, { 0.0, 1.0, 1.0, 1.0});
-            imgui.ProgressBar((value - 2000) /1000, {GlamourUI.settings.PlayerStats.BarDim.l * GlamourUI.settings.PlayerStats.gui_scale, GlamourUI.settings.PlayerStats.BarDim.g * GlamourUI.settings.PlayerStats.gui_scale}, '');
-            imgui.PopStyleColor(1);
-        end
-    end
-    imgui.SameLine();
-    imgui.SetCursorPosX(xOffset + 5);
-    imgui.Text(tostring(value));
-end
-
 render.render_invite = function()
     if(gPacket.InviteActive == true)then
         local inviteBgPops = panelStyle.push_panel_background(GlamourUI.settings.Party.pList);
         if(imgui.Begin('PartyInvite##GlamPI' .. get_window_suffix(), true, bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoDecoration)))then
-            local fontPushed = gResources.push_font_scale(GlamourUI.settings.Party.pList.font_scale * GlamourUI.settings.Party.pList.gui_scale);
+            local fontPushed = gResources.push_font_scale(GlamourUI.settings.Party.pList.font_scale * GlamourUI.settings.Party.pList.gui_scale, GlamourUI.settings.Party.pList);
             imgui.Text('Party Invite From:  ' .. gPacket.inviter);
 
             gResources.pop_font(fontPushed);
@@ -2563,7 +3519,7 @@ render.render_cast_bar = function()
         imgui.SetNextWindowPos({GlamourUI.settings.cBar.x, GlamourUI.settings.cBar.y}, ImGuiCond_FirstUseEver);
         local cbarBgPops = panelStyle.push_panel_background(GlamourUI.settings.cBar);
         if(imgui.Begin('CastBar##GlamCBar' .. get_window_suffix(), true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
-            local fontPushed = gResources.push_font_scale(GlamourUI.settings.cBar.font_scale * 0.3);
+            local fontPushed = gResources.push_font_scale(GlamourUI.settings.cBar.font_scale * 0.3, GlamourUI.settings.cBar);
             if(GlamourUI.settings.cBar.themed == true)then
                 imgui.SetCursorPosX(10);
                 imgui.SetCursorPosY(50 * GlamourUI.settings.cBar.font_scale * 0.3);
@@ -2619,9 +3575,22 @@ render.render_lot = function()
         end
         local allPass = passCount == #gInv.treasurePool;
         local allLot = lotCount == #gInv.treasurePool;
+        local allBtnFontPushed = gResources.push_font_scale(0.35, GlamourUI.settings.Inv);
+        local function tpool_all_button_size(label)
+            local style = imgui.GetStyle();
+            local framePadX = (tonumber(style.FramePadding.x) or 4) * 2;
+            local framePadY = (tonumber(style.FramePadding.y) or 4) * 2;
+            local tw, th = imgui.CalcTextSize(label);
+            tw = tonumber(tw) or 0;
+            th = tonumber(th) or 12;
+            return {
+                math.ceil(tw + framePadX + 8),
+                math.max(18, math.ceil(th + framePadY)),
+            };
+        end
         imgui.SetCursorPosX(50);
         if(not allPass and not allLot)then
-            if(imgui.Button('Lot All##TPool'))then
+            if(imgui.Button('Lot All##TPool', tpool_all_button_size('Lot All')))then
                 for i=1,#gInv.treasurePool do
                     if(not gInv.treasurePool[i].current.hasRolled)then
                         if (gInv.tryLotDrop ~= nil) then
@@ -2634,9 +3603,8 @@ render.render_lot = function()
             end
         end
         if(not allPass)then
-            imgui.SameLine();
-            imgui.SetCursorPosX(150);
-            if(imgui.Button('Pass All##TPool'))then
+            imgui.SameLine(0, 8);
+            if(imgui.Button('Pass All##TPool', tpool_all_button_size('Pass All')))then
                 for i=1,#gInv.treasurePool do
                     local item = gInv.treasurePool[i];
                     if(not item.current.hasRolled)then
@@ -2645,11 +3613,12 @@ render.render_lot = function()
                 end
             end
         end
-        local titleFontPushed = gResources.push_font_scale(0.7);
+        gResources.pop_font(allBtnFontPushed);
+        local titleFontPushed = gResources.push_font_scale(0.7, GlamourUI.settings.Inv);
         imgui.SetCursorPosX((imgui.GetWindowWidth() - imgui.CalcTextSize('Loot Table')) * 0.5);
         imgui.Text('Loot Table');
         gResources.pop_font(titleFontPushed);
-        local bodyFontPushed = gResources.push_font_scale(0.4);
+        local bodyFontPushed = gResources.push_font_scale(0.4, GlamourUI.settings.Inv);
         for i=1,#gInv.treasurePool do
             local item = gInv.treasurePool[i];
             local offset = 0;
@@ -2702,6 +3671,70 @@ render.render_lot = function()
     panelStyle.pop_panel_background(lotBgPops);
 end
 
+local function env_center_cursor_for_width(rowWidth, contentWidth)
+    local style = imgui.GetStyle();
+    local pad = tonumber(style.WindowPadding.x) or 8;
+    rowWidth = tonumber(rowWidth) or 0;
+    contentWidth = tonumber(contentWidth);
+    if (contentWidth == nil) then
+        contentWidth = math.max(0, imgui.GetWindowWidth() - pad * 2);
+    end
+    imgui.SetCursorPosX(pad + math.max(0, (contentWidth - rowWidth) * 0.5));
+end
+
+local function env_image_item_width(iconSize)
+    return tonumber(iconSize) or 0;
+end
+
+local function env_measure_moon_suffix_width(moonText, iconSize, itemSpacing)
+    local style = imgui.GetStyle();
+    local sp = itemSpacing;
+    local innerSp = tonumber(style.ItemInnerSpacing.x) or sp;
+    local imgW = env_image_item_width(iconSize);
+    return imgui_calc_text_width('    ') + sp + imgW + innerSp + imgui_calc_text_width(moonText);
+end
+
+local function env_measure_weather_row_width(weatherInfo, moonText, iconSize, itemSpacing)
+    local style = imgui.GetStyle();
+    local sp = itemSpacing;
+    local innerSp = tonumber(style.ItemInnerSpacing.x) or sp;
+    local imgW = env_image_item_width(iconSize);
+    local moonSuffix = env_measure_moon_suffix_width(moonText, iconSize, itemSpacing);
+
+    if (weatherInfo == nil) then
+        return moonSuffix;
+    end
+
+    if (weatherInfo.Count == 0) then
+        return imgui_calc_text_width(tostring(weatherInfo.Type)) + innerSp + moonSuffix;
+    elseif (weatherInfo.Count == 1) then
+        return imgW + innerSp + moonSuffix;
+    elseif (weatherInfo.Count == 2) then
+        return imgW + sp + imgW + innerSp + moonSuffix;
+    end
+
+    return moonSuffix;
+end
+
+local function env_measure_day_row_width(dayTimeText, iconSize, itemSpacing)
+    local innerSp = tonumber(imgui.GetStyle().ItemInnerSpacing.x) or itemSpacing;
+    local imgW = env_image_item_width(iconSize);
+    return imgui_calc_text_width('Day:  ') + innerSp + imgW + itemSpacing + imgui_calc_text_width(dayTimeText);
+end
+
+local function env_panel_content_width(envSettings, weatherInfo, moonText, iconSize, itemSpacing, dayTimeText, includeMinimap)
+    local weatherW = env_measure_weather_row_width(weatherInfo, moonText, iconSize, itemSpacing);
+    local dayW = env_measure_day_row_width(dayTimeText or '  00:00', iconSize, itemSpacing);
+    local contentW = math.max(weatherW, dayW);
+    if (includeMinimap == true and envSettings ~= nil and envSettings.minimap_enabled == true) then
+        local guiScale = tonumber(envSettings.gui_scale) or 1;
+        local mapW = math.max(80, math.floor((tonumber(envSettings.minimap_width) or 180) * guiScale));
+        local childBorder = (tonumber(imgui.GetStyle().ChildBorderSize) or 1) * 2;
+        contentW = math.max(contentW, mapW + childBorder);
+    end
+    return contentW, weatherW, dayW;
+end
+
 render.render_environment = function()
     local timeInfo = gEnv.GetTime();
     local weatherInfo = gEnv.GetWeather();
@@ -2709,25 +3742,41 @@ render.render_environment = function()
     local moonTexture = gResources.getTex(GlamourUI.settings, 'Env', 'moon.png');
     local moonPhase, moonPercent = gEnv.GetMoon();
     local moonText = moonPhase .. ":  " .. tostring(moonPercent) .. '%';
+    local envSettings = GlamourUI.settings.Env;
+    local iconSize = env_icon_size(envSettings);
+    local itemSpacing = tonumber(imgui.GetStyle().ItemSpacing.x) or 8;
 
-    local envBgPops = panelStyle.push_panel_background(GlamourUI.settings.Env);
+    local envBgPops = panelStyle.push_panel_background(envSettings);
     if(imgui.Begin('Environment##GlamEnv' .. get_window_suffix(), gEnv.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
-        local fontPushed = gResources.push_font_scale(0.6 * GlamourUI.settings.Env.font_scale);
-        draw_environment_weather(weatherInfo);
+        local fontPushed = gResources.push_font_scale(0.6 * envSettings.font_scale, envSettings);
+        local dayTimeText = ('  %s:%s'):fmt(tostring(timeInfo.hour), tostring(timeInfo.minute));
+        local includeMinimap = not fullscreen_map.is_open();
+        local contentW, weatherRowW, dayRowW = env_panel_content_width(
+            envSettings, weatherInfo, moonText, iconSize, itemSpacing, dayTimeText, includeMinimap
+        );
+
+        imgui.Dummy({ contentW, 0 });
+
+        env_center_cursor_for_width(weatherRowW, contentW);
+        draw_environment_weather(weatherInfo, iconSize);
         imgui.SameLine();
         imgui.Text('    ');
         imgui.SameLine();
-        imgui.Image(moonTexture, {25 * GlamourUI.settings.Env.gui_scale, 25 * GlamourUI.settings.Env.gui_scale});
+        imgui.Image(moonTexture, { iconSize, iconSize });
         imgui.SameLine();
         imgui.Text(moonText);
 
-        local dayTextOffset = (imgui.GetWindowWidth() - (imgui.CalcTextSize('Day:    :' .. tostring(timeInfo.hour) .. tostring(timeInfo.minute)) + 25)) * 0.5 ;
-        imgui.SetCursorPosX(dayTextOffset);
+        env_center_cursor_for_width(dayRowW, contentW);
         imgui.Text('Day:  ');
         imgui.SameLine();
-        imgui.Image(dayTexture, {25 * GlamourUI.settings.Env.gui_scale,25 * GlamourUI.settings.Env.gui_scale});
+        imgui.Image(dayTexture, { iconSize, iconSize });
         imgui.SameLine();
-        imgui.Text('  ' .. tostring(timeInfo.hour) .. ':' .. tostring(timeInfo.minute));
+        imgui.Text(dayTimeText);
+
+        if (not fullscreen_map.is_open()) then
+            glamMinimap.draw();
+            minimap_zone_show.draw_hover_toggles(GlamourUI.settings.Env);
+        end
 
         gResources.pop_font(fontPushed);
         imgui.End();
@@ -2956,6 +4005,8 @@ local function get_player_heading_radians()
     return nil;
 end
 
+glamMinimap.set_heading_fn(get_player_heading_radians);
+
 local function compass_label_for_deg(deg)
     local d = wrap_deg_360(deg);
     if (d == 0) then return 'N'; end
@@ -3034,7 +4085,7 @@ render.render_compass = function()
 
     local compassBgPops = panelStyle.push_panel_background(s);
     if (imgui.Begin('Compass##GlamCompass' .. get_window_suffix(), true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_NoScrollbar, ImGuiWindowFlags_NoScrollWithMouse))) then
-        local fontPushed = gResources.push_font_scale((tonumber(s.font_scale) or 1) * 0.5);
+        local fontPushed = gResources.push_font_scale((tonumber(s.font_scale) or 1) * 0.5, s);
 
         local dl = imgui.GetWindowDrawList();
         local winPos = { imgui.GetWindowPos() };
@@ -3145,124 +4196,6 @@ render.render_compass = function()
     panelStyle.pop_panel_background(compassBgPops);
 end
 
-render.render_widescan_panel = function()
-    if (gPacket == nil or gPacket.widescan_is_open ~= true) then
-        return;
-    end
-
-    local entries = (gPacket.BuildWidescanEntries ~= nil) and gPacket.BuildWidescanEntries() or T{};
-    local npcs = T{};
-    local mobs = T{};
-    for i = 1, #entries do
-        local e = entries[i];
-        local t = tonumber(e.type) or -1;
-        if (t == 1) then
-            npcs[#npcs + 1] = e;
-        elseif (t == 2) then
-            mobs[#mobs + 1] = e;
-        end
-    end
-
-    local listH = 340;
-    local btnW = 55;
-    local btnGap = 8;
-    local btnAreaW = btnW + btnGap + btnW + 14;
-
-    local bgPops = panelStyle.push_panel_background(GlamourUI.settings.PlayerStats);
-    local fontPushed = gResources.push_font_scale(0.45);
-
-    local headerNpcW = imgui_calc_text_width(('NPCs (%d)'):fmt(#npcs));
-    local headerMobW = imgui_calc_text_width(('Mobs (%d)'):fmt(#mobs));
-    local maxNpcRow = headerNpcW;
-    for i = 1, #npcs do
-        local e = npcs[i];
-        local row = ('%s  [0x%X]'):fmt(tostring(e.name), tonumber(e.actIndex) or 0);
-        maxNpcRow = math.max(maxNpcRow, imgui_calc_text_width(row));
-    end
-    local maxMobRow = headerMobW;
-    for i = 1, #mobs do
-        local e = mobs[i];
-        local row = ('%s  [0x%X]'):fmt(tostring(e.name), tonumber(e.actIndex) or 0);
-        maxMobRow = math.max(maxMobRow, imgui_calc_text_width(row));
-    end
-
-    local colNpcW = math.max(200, math.ceil(maxNpcRow + btnAreaW));
-    local colMobW = math.max(200, math.ceil(maxMobRow + btnAreaW));
-    local gutter = 12;
-    local padX = 28;
-    local windowW = colNpcW + colMobW + gutter + padX;
-
-    local toolbarH = 42;
-    local windowH = toolbarH + listH + 24;
-    imgui.SetNextWindowSize({ windowW, windowH }, ImGuiCond_Always);
-
-    if (imgui.Begin('Wide Scan##GlamWS' .. get_window_suffix(), gPacket.widescan_is_open, ImGuiWindowFlags_NoDecoration)) then
-        if (imgui.Button('Refresh##GlamWS', { 80, 0 })) then
-            if (gPacket.RequestWidescanList ~= nil) then
-                gPacket.RequestWidescanList();
-            end
-        end
-        imgui.SameLine();
-        if (imgui.Button('Cancel Track##GlamWS', { 110, 0 })) then
-            if (gPacket.RequestTrackingEnd ~= nil) then
-                gPacket.RequestTrackingEnd();
-            end
-        end
-
-        imgui.Separator();
-
-        imgui.BeginChild('WSNpcCol##GlamWS', { colNpcW, listH }, 0);
-        imgui.Text(('NPCs (%d)'):fmt(#npcs));
-        imgui.Separator();
-        for i = 1, #npcs do
-            local e = npcs[i];
-            imgui.Text(('%s  [0x%X]'):fmt(tostring(e.name), tonumber(e.actIndex) or 0));
-            imgui.SameLine();
-            imgui.SetCursorPosX(math.max(0, colNpcW - btnAreaW));
-            if (imgui.Button(('Focus##GlamWSNpc%d'):fmt(i), { btnW, 0 })) then
-                if (gTarget ~= nil and gTarget.add_focus_target_by_index ~= nil) then
-                    gTarget.add_focus_target_by_index(e.actIndex);
-                end
-            end
-            imgui.SameLine();
-            if (imgui.Button(('Track##GlamWSNpc%d'):fmt(i), { btnW, 0 })) then
-                if (gPacket.RequestTrackingStart ~= nil) then
-                    gPacket.RequestTrackingStart(e.actIndex);
-                end
-            end
-        end
-        imgui.EndChild();
-
-        imgui.SameLine();
-
-        imgui.BeginChild('WSMobCol##GlamWS', { colMobW, listH }, 0);
-        imgui.Text(('Mobs (%d)'):fmt(#mobs));
-        imgui.Separator();
-        for i = 1, #mobs do
-            local e = mobs[i];
-            imgui.Text(('%s  [0x%X]'):fmt(tostring(e.name), tonumber(e.actIndex) or 0));
-            imgui.SameLine();
-            imgui.SetCursorPosX(math.max(0, colMobW - btnAreaW));
-            if (imgui.Button(('Focus##GlamWSMob%d'):fmt(i), { btnW, 0 })) then
-                if (gTarget ~= nil and gTarget.add_focus_target_by_index ~= nil) then
-                    gTarget.add_focus_target_by_index(e.actIndex);
-                end
-            end
-            imgui.SameLine();
-            if (imgui.Button(('Track##GlamWSMob%d'):fmt(i), { btnW, 0 })) then
-                if (gPacket.RequestTrackingStart ~= nil) then
-                    gPacket.RequestTrackingStart(e.actIndex);
-                end
-            end
-        end
-        imgui.EndChild();
-
-        gResources.pop_font(fontPushed);
-        imgui.End();
-    end
-    panelStyle.pop_panel_background(bgPops);
-end
-
 render.render_f_target = function()
     local focusTargets = gTarget.ftTable;
     local hpBarTexture = gResources.getTex(GlamourUI.settings, 'PlayerStats', 'hpBar.png');
@@ -3272,7 +4205,7 @@ render.render_f_target = function()
         imgui.SetNextWindowSize({0, 0});
         local ftBgPops = panelStyle.push_panel_background(GlamourUI.settings.PlayerStats);
         if(imgui.Begin('FocusTarget##GlamFT' .. get_window_suffix(), gTarget.ft_is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
-            local mainFontPushed = gResources.push_font_scale(0.5);
+            local mainFontPushed = gResources.push_font_scale(0.5, GlamourUI.settings.PlayerStats);
             imgui.Text('   Focus Targets');
             for i=1,#focusTargets do
                 local focusTarget = focusTargets[i];
@@ -3296,12 +4229,12 @@ render.render_f_target = function()
                 imgui.Text('     ');
                 imgui.SameLine();
                 gResources.pop_font(mainFontPushed);
-                local buttonFontPushed = gResources.push_font_scale(0.3);
+                local buttonFontPushed = gResources.push_font_scale(0.3, GlamourUI.settings.PlayerStats);
                 if(imgui.Button('-----##GlamFT' .. tostring(i), {30, 20}))then
                     gTarget.remove_focus_target(i);
                 end
                 gResources.pop_font(buttonFontPushed);
-                mainFontPushed = gResources.push_font_scale(0.5);
+                mainFontPushed = gResources.push_font_scale(0.5, GlamourUI.settings.PlayerStats);
             end
             gResources.pop_font(mainFontPushed);
             imgui.End();
@@ -3317,7 +4250,7 @@ render.render_skills = function()
     if(gParty.ShowSkills == true)then
         local skillsBgPops = panelStyle.push_panel_background(GlamourUI.settings.Party.pList);
         if(imgui.Begin('Skills##GlamPT' .. get_window_suffix(), gParty.Skill_Is_Open, bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoDecoration)))then
-            local fontPushed = gResources.push_font_scale(0.4);
+            local fontPushed = gResources.push_font_scale(0.4, GlamourUI.settings.Party.pList);
             imgui.BeginTabBar('SkillsTB##GlamPT');
             if(imgui.BeginTabItem('Melee Skills##GlamPTSkills'))then
                 for skillName, skillData in pairs(combatSkills.Melee) do
@@ -3357,55 +4290,6 @@ render.render_skills = function()
     end
 end
 
-local render_chat_input_window = function()
-    local chatSettings = GlamourUI.settings.Chat;
-    local cm = AshitaCore:GetChatManager();
-    if (cm == nil or cm:IsInputOpen() <= 0) then
-        return;
-    end
-
-    textShadow.suppress_begin();
-
-    local fontScale = (chatSettings.inputFontScale or 1.0);
-    local fontPushed = gResources.push_font_scale(fontScale * 0.5);
-    local inputStyle = {
-        panelBackgroundEnabled = chatSettings.inputPanelBackgroundEnabled,
-        panelBackground = chatSettings.inputPanelBackground,
-        panelRounding = chatSettings.inputPanelRounding,
-        panelPaddingX = chatSettings.inputPanelPaddingX,
-        panelPaddingY = chatSettings.inputPanelPaddingY,
-        panelBorderSize = chatSettings.inputPanelBorderSize,
-    };
-    local inputBgPops = panelStyle.push_panel_background(inputStyle);
-
-    local inputText = cm:GetInputTextRaw();
-    local st = (gChat.get_input_display_state ~= nil) and gChat.get_input_display_state(inputText) or { purpose = 'Say', label = 'Input' };
-    local purpose = st.purpose or 'Say';
-    local label = st.label or 'Input';
-    local purposeColor = gChat.get_purpose_color(purpose) or { 1.0, 1.0, 1.0, 1.0 };
-
-    local usePurposeTint = (chatSettings.inputPanelBackground == nil);
-    if (usePurposeTint) then
-        local bg = { purposeColor[1] * 0.12, purposeColor[2] * 0.12, purposeColor[3] * 0.12, 0.78 };
-        imgui.PushStyleColor(ImGuiCol_WindowBg, bg);
-    end
-    if (imgui.Begin('ChatInput##Glam' .. get_window_suffix(), true, bit.bor(ImGuiWindowFlags_NoTitleBar, ImGuiWindowFlags_AlwaysAutoResize))) then
-        imgui.SetCursorPosX(5);
-        imgui.TextColored(purposeColor, (label .. ':'));
-        imgui.SetCursorPosX(15);
-        local cleanedInput = (gChat ~= nil and gChat.clean_str ~= nil) and gChat.clean_str(inputText) or inputText;
-        imgui.Text(cleanedInput);
-        imgui.End();
-    end
-    if (usePurposeTint) then
-        imgui.PopStyleColor();
-    end
-
-    panelStyle.pop_panel_background(inputBgPops);
-    textShadow.suppress_end();
-    gResources.pop_font(fontPushed);
-end
-
 render.render_chat_logs = function()
     if (GlamourUI.settings.Chat == nil or GlamourUI.settings.Chat.enabled ~= true) then
         return;
@@ -3417,7 +4301,6 @@ render.render_chat_logs = function()
         render_chat_window('Chat Window 1', gChat.get_window_settings(1), 1);
         render_chat_window('Chat Window 2', gChat.get_window_settings(2), 2);
     end
-    render_chat_input_window();
 end
 
 return render;

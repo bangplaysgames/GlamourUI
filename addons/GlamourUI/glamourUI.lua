@@ -13,7 +13,44 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '2.0.0';
+addon.version = '2.1.0';
+
+local function glam_normalize_root(path)
+    path = tostring(path or '');
+    if (path == '') then
+        path = AshitaCore:GetInstallPath() .. 'addons/GlamourUI/';
+    end
+    if (path:sub(-1) ~= '/' and path:sub(-1) ~= '\\') then
+        path = path .. '/';
+    end
+    return path;
+end
+
+local function glam_setup_package_path()
+    local root = glam_normalize_root(addon.path);
+    GlamourUI_ROOT = root;
+    local entries = {
+        root .. '?.lua',
+        root .. 'core/?.lua',
+        root .. 'ui/?.lua',
+        root .. 'chat/?.lua',
+        root .. 'chat/libs/?.lua',
+        root .. 'net/?.lua',
+        root .. 'map/?.lua',
+        root .. 'combat/?.lua',
+        root .. 'combat/combatParse/?.lua',
+        root .. 'data/?.lua',
+    };
+    -- Ashita already prepends addon root to package.path; do not skip subfolders when root is present.
+    for i = #entries, 1, -1 do
+        local entry = entries[i];
+        if (package.path:find(entry, 1, true) == nil) then
+            package.path = entry .. ';' .. package.path;
+        end
+    end
+end
+
+glam_setup_package_path();
 
 local settings = require('settings');
 require('common');
@@ -27,11 +64,14 @@ gPacket = require('packethandler');
 gEffects = require('effects');
 gHelper = require('helpers');
 gConf = require('conf');
+gFirstRun = require('firstrun_wizard');
 gUI = require('render');
 gResources = require('resources');
 gCBar = require('cbar');
 gHide = require('hideDefault');
 gEnv = require('environment');
+gMinimap = require('minimap');
+gFullscreenMap = require('fullscreen_map');
 gChat = require('chatlog');
 local customChat = require('customChat');
 local panelStyleLib = require('panelStyle');
@@ -540,6 +580,27 @@ local function render_packet_debug_window()
     imgui.End();
 end
 
+local chatCombatPurposeOrder = T{
+    'Add Buff',
+    'Add Debuff',
+    'Lose Effect',
+    'Lose Debuff',
+    'Damage Dealt',
+    'Damage Taken',
+    'Mob Ready',
+    'Evade',
+    'Miss',
+    'HP Recovered',
+    'Spell Cast',
+    'Spell Complete',
+    'Kill',
+    'Spoils',
+    'Interrupted',
+    'After Battle',
+    'Ability Not Ready',
+    'Remove Debuff',
+};
+
 local chatPurposeOrder = T{
     'Say',
     'Emote',
@@ -550,6 +611,7 @@ local chatPurposeOrder = T{
     'Shout',
     'Yell',
     'System',
+    'Check',
     'Unity',
     'Assist[J]',
     'Assist[E]',
@@ -562,12 +624,53 @@ local chatPurposeOrder = T{
     'None',
 };
 
+for i = 1, #chatCombatPurposeOrder do
+    chatPurposeOrder[#chatPurposeOrder + 1] = chatCombatPurposeOrder[i];
+end
+
+local function argb_to_rgba01(argb)
+    argb = tonumber(argb) or 0xFFFFFFFF;
+    return {
+        bit.band(bit.rshift(argb, 16), 0xFF) / 255.0,
+        bit.band(bit.rshift(argb, 8), 0xFF) / 255.0,
+        bit.band(argb, 0xFF) / 255.0,
+        bit.band(bit.rshift(argb, 24), 0xFF) / 255.0,
+    };
+end
+
+-- FFXI retail battle-log channel colors (ARGB from native chat mode palette).
+local COMBAT_COLOR = argb_to_rgba01(0xFFDCF1FC);
+local COMBAT_SPELL_COLOR = argb_to_rgba01(0xFFDDC9FF);
+local COMBAT_SYSTEM_COLOR = argb_to_rgba01(0xFFFFF3DA);
+
+local defaultChatCombatPurposeColors = T{
+    ['Add Buff'] = COMBAT_SPELL_COLOR,
+    ['Add Debuff'] = COMBAT_SPELL_COLOR,
+    ['Lose Effect'] = COMBAT_SPELL_COLOR,
+    ['Lose Debuff'] = COMBAT_SPELL_COLOR,
+    ['Damage Dealt'] = COMBAT_COLOR,
+    ['Damage Taken'] = COMBAT_COLOR,
+    ['Mob Ready'] = COMBAT_COLOR,
+    ['Evade'] = COMBAT_COLOR,
+    ['Miss'] = COMBAT_COLOR,
+    ['HP Recovered'] = COMBAT_SPELL_COLOR,
+    ['Spell Cast'] = COMBAT_SPELL_COLOR,
+    ['Spell Complete'] = COMBAT_SPELL_COLOR,
+    ['Kill'] = COMBAT_COLOR,
+    ['Spoils'] = COMBAT_SYSTEM_COLOR,
+    ['Interrupted'] = COMBAT_COLOR,
+    ['After Battle'] = COMBAT_SYSTEM_COLOR,
+    ['Ability Not Ready'] = COMBAT_COLOR,
+    ['Remove Debuff'] = COMBAT_SPELL_COLOR,
+};
+
 local knownChatColorCodes = T{
     { code = '01', label = 'Default Text', color = { 1.0, 1.0, 1.0, 1.0 } },
     { code = '02', label = 'Item / Highlight Text', color = { 1.0, 0.9, 0.2, 1.0 } },
     { code = '06', label = 'System Header', color = { 0.35, 0.8, 1.0, 1.0 } },
     { code = '08', label = 'RoE Objective Highlight', color = { 1.0, 0.65, 0.2, 1.0 } },
     { code = '44', label = 'Error Framing Text', color = { 1.0, 0.45, 0.45, 1.0 } },
+    { code = '52', label = 'Check NM Name', color = { 1.0, 0.82, 0.20, 1.0 } },
     { code = '51', label = 'Header Brackets', color = { 0.85, 0.85, 0.9, 1.0 } },
     { code = '68', label = 'Error Subject', color = { 0.8, 0.55, 1.0, 1.0 } },
     { code = '6A', label = 'System Detail Text', color = { 0.75, 0.85, 0.95, 1.0 } },
@@ -594,6 +697,7 @@ local defaultChatPurposeColors = T{
     ['Shout'] = {0.8, 0.8, 0.4, 1.0 },
     ['Yell'] = {0.9, 0.7, 0.3, 1.0 },
     ['System'] = {0.8, 0.8, 0.8, 1.0 },
+    ['Check'] = {0.92, 0.92, 0.88, 1.0 },
     ['Unity'] = {0.85, 0.8, 0.4, 1.0 },
     ['Assist[J]'] = {1.0, 1.0, 1.0, 1.0 },
     ['Assist[E]'] = {1.0, 1.0, 1.0, 1.0 },
@@ -605,6 +709,11 @@ local defaultChatPurposeColors = T{
     ['GoV'] = {0.75, 0.75, 0.75, 0.75 },
     ['None'] = {0.65, 0.65, 0.65, 1.0 },
 };
+
+for i = 1, #chatCombatPurposeOrder do
+    local purpose = chatCombatPurposeOrder[i];
+    defaultChatPurposeColors[purpose] = defaultChatCombatPurposeColors[purpose];
+end
 
 local function build_chat_window_defaults(enabled, combatEnabled)
     local window = T{
@@ -622,16 +731,11 @@ local function build_chat_window_defaults(enabled, combatEnabled)
 
     if (combatEnabled) then
         window['Add Effect'] = true;
+        window['Check'] = true;
         window['Special'] = true;
         window['None'] = true;
-        local nativeCombatModes = {
-            'Add Buff', 'Add Debuff', 'Lose Effect', 'Lose Debuff',
-            'Damage Dealt', 'Damage Taken', 'Mob Ready', 'Evade', 'Miss',
-            'HP Recovered', 'Spell Cast', 'Spell Complete', 'Kill', 'Spoils',
-            'Interrupted', 'After Battle', 'Ability Not Ready', 'Remove Debuff',
-        };
-        for i = 1, #nativeCombatModes do
-            window[nativeCombatModes[i]] = true;
+        for i = 1, #chatCombatPurposeOrder do
+            window[chatCombatPurposeOrder[i]] = true;
         end
     else
         window['Say'] = true;
@@ -642,6 +746,7 @@ local function build_chat_window_defaults(enabled, combatEnabled)
         window['Tell'] = true;
         window['Shout'] = true;
         window['Yell'] = true;
+        window['Check'] = true;
         window['Unity'] = true;
         window['Assist[J]'] = true;
         window['Assist[E]'] = true;
@@ -789,32 +894,21 @@ local function normalize_chat_settings(chatSettings)
 
     for i = 1, #chatPurposeOrder do
         local purpose = chatPurposeOrder[i];
+        local defaultColor = defaultChatPurposeColors[purpose];
         if (settingsTable.purposeColors[purpose] == nil) then
-            settingsTable.purposeColors[purpose] = defaultChatPurposeColors[purpose] or { 1.0, 1.0, 1.0, 1.0 };
+            if (defaultColor ~= nil) then
+                settingsTable.purposeColors[purpose] = {
+                    defaultColor[1], defaultColor[2], defaultColor[3], defaultColor[4],
+                };
+            else
+                settingsTable.purposeColors[purpose] = { 1.0, 1.0, 1.0, 1.0 };
+            end
         end
         if (settingsTable.window1[purpose] == nil) then
             settingsTable.window1[purpose] = defaults.window1[purpose] == true;
         end
         if (settingsTable.window2[purpose] == nil) then
             settingsTable.window2[purpose] = defaults.window2[purpose] == true;
-        end
-    end
-
-    do
-        local legacyCombatPurposes = {
-            'Add Buff', 'Add Debuff', 'Lose Effect', 'Lose Debuff',
-            'Damage Dealt', 'Damage Taken', 'Mob Ready', 'Evade', 'Miss',
-            'HP Recovered', 'Spell Cast', 'Spell Complete', 'Kill', 'Spoils',
-            'Interrupted', 'After Battle', 'Ability Not Ready', 'Remove Debuff',
-        };
-        for i = 1, #legacyCombatPurposes do
-            local purpose = legacyCombatPurposes[i];
-            if (settingsTable.window1[purpose] == nil) then
-                settingsTable.window1[purpose] = defaults.window1[purpose] == true;
-            end
-            if (settingsTable.window2[purpose] == nil) then
-                settingsTable.window2[purpose] = defaults.window2[purpose] == true;
-            end
         end
     end
 
@@ -826,6 +920,27 @@ local function normalize_chat_settings(chatSettings)
     end
 
     return settingsTable;
+end
+
+local function normalize_player_stats_settings(pstats)
+    if(pstats == nil)then
+        return;
+    end
+    if(type(pstats.barPadding) ~= 'number')then
+        pstats.barPadding = 50;
+    end
+    if(type(pstats.rowGap) ~= 'number')then
+        pstats.rowGap = 8;
+    end
+    if(pstats.expBarDim == nil)then
+        pstats.expBarDim = T{ l = 600, g = 14 };
+    end
+    if(type(pstats.expBarDim.l) ~= 'number')then
+        pstats.expBarDim.l = 600;
+    end
+    if(type(pstats.expBarDim.g) ~= 'number')then
+        pstats.expBarDim.g = 14;
+    end
 end
 
 local function normalize_party_p_list_settings()
@@ -862,6 +977,7 @@ local function normalize_all_panel_style(dst)
         ps.normalize_settings(dst.Chat.window1);
         ps.normalize_settings(dst.Chat.window2);
     end
+    normalize_player_stats_settings(dst.PlayerStats);
 end
 
 local function refreshManagers()
@@ -890,6 +1006,24 @@ local update_menu_state = function()
     end
 end
 
+local WIZARD_SETTINGS_VERSION = 2;
+
+local function migrate_wizard_settings(s)
+    if (s == nil) then
+        return false;
+    end
+    local ver = tonumber(s.settings_version) or 1;
+    if (ver < WIZARD_SETTINGS_VERSION) then
+        s.settings_version = WIZARD_SETTINGS_VERSION;
+        s.firstrun_completed = true;
+        if (s.packet_injection_enabled == nil) then
+            s.packet_injection_enabled = false;
+        end
+        return true;
+    end
+    return false;
+end
+
 local ensure_loaded = function(playerServerId)
     if(GlamourUI.firstLoad == false or playerServerId == 0)then
         return loaded;
@@ -899,12 +1033,23 @@ local ensure_loaded = function(playerServerId)
     print(chat.header('GlamourUI Loading...'));
     coroutine.sleep(3);
     GlamourUI.settings = settings.load(default_settings);
+    if (migrate_wizard_settings(GlamourUI.settings)) then
+        settings.save();
+    end
     GlamourUI.settings = apply_defaults(GlamourUI.settings, default_settings);
     GlamourUI.settings.Chat = normalize_chat_settings(GlamourUI.settings.Chat);
+    normalize_configured_fonts(GlamourUI.settings);
     normalize_party_p_list_settings();
     normalize_all_panel_style(GlamourUI.settings);
     gHelper.loadLayout(GlamourUI.settings.Party.pList.layout);
+    local fontPath = ('%s\\config\\addons\\%s\\Fonts\\'):fmt(AshitaCore:GetInstallPath(), addon.name);
+    require('font_manager').scan_directory(fontPath);
+    if (gResources.update_shift_jis_font_list ~= nil) then
+        gResources.update_shift_jis_font_list();
+    end
+    normalize_configured_fonts(GlamourUI.settings);
     gResources.loadFont(GlamourUI.settings.font);
+    gResources.preload_configured_fonts(GlamourUI.settings);
     gParty.Party = gParty.get_party();
     gParty.set_party_leads();
     if (package.loaded['chatPartyNames'] ~= nil) then
@@ -912,6 +1057,11 @@ local ensure_loaded = function(playerServerId)
     end
     coroutine.sleep(1);
     loaded = true;
+
+    if (firstrun_auto_opened ~= true and gFirstRun ~= nil and gFirstRun.should_auto_open ~= nil and gFirstRun.should_auto_open()) then
+        firstrun_auto_opened = true;
+        gFirstRun.open();
+    end
 
     return loaded;
 end
@@ -952,13 +1102,18 @@ local render_frame = function()
         gParty.render_player_stats();
         gUI.render_invite();
         gConf.render_config();
+        if (gFirstRun ~= nil and gFirstRun.render ~= nil) then
+            gFirstRun.render();
+        end
         if (gPacket ~= nil and gPacket.TickCastBarDismiss ~= nil) then
             gPacket.TickCastBarDismiss();
         end
         gUI.render_cast_bar();
         gUI.render_environment();
+        if (gFullscreenMap ~= nil and gFullscreenMap.draw ~= nil) then
+            gFullscreenMap.draw();
+        end
         gUI.render_f_target();
-        gUI.render_widescan_panel();
         if(menu == 'loot')then
             gUI.render_lot();
         end
@@ -1063,6 +1218,21 @@ local function glam_should_block_key_vk(vk)
         return (vk == 0x0D or vk == 0x1B); -- VK_RETURN / VK_ESCAPE
     end
 
+    if (gFullscreenMap ~= nil and gFullscreenMap.is_open ~= nil and gFullscreenMap.is_open()) then
+        if (gFullscreenMap.tick_movement ~= nil) then
+            gFullscreenMap.tick_movement();
+        end
+        if (gFullscreenMap.is_player_moving ~= nil and gFullscreenMap.is_player_moving()) then
+            return false;
+        end
+        if (vk == 0x1B) then -- VK_ESCAPE
+            if (gFullscreenMap.close ~= nil) then
+                gFullscreenMap.close();
+            end
+            return true;
+        end
+    end
+
     return false;
 end
 
@@ -1074,6 +1244,52 @@ ashita.events.register('key', 'glam_key_block_cb', function(e)
         e.blocked = true;
     end
 end);
+
+local function normalize_panel_font(panel, defaultFont, requireShiftJis)
+    if (panel == nil) then
+        return;
+    end
+    if (panel.font == nil) then
+        panel.font = '';
+    end
+    if (panel.font == '') then
+        return;
+    end
+    local fm = require('font_manager');
+    if (requireShiftJis == true) then
+        panel.font = fm.pick_shift_jis_fallback(panel.font, defaultFont);
+    end
+end
+
+function normalize_configured_fonts(settings)
+    if (settings == nil) then
+        return;
+    end
+
+    local defaultFont = settings.font or '';
+    if (settings.Party ~= nil) then
+        normalize_panel_font(settings.Party.pList, defaultFont, false);
+        normalize_panel_font(settings.Party.aPanel, defaultFont, false);
+    end
+    normalize_panel_font(settings.TargetBar, defaultFont, false);
+    normalize_panel_font(settings.PlayerStats, defaultFont, false);
+    normalize_panel_font(settings.Inv, defaultFont, false);
+    normalize_panel_font(settings.rcPanel, defaultFont, false);
+    normalize_panel_font(settings.cBar, defaultFont, false);
+    normalize_panel_font(settings.Compass, defaultFont, false);
+    normalize_panel_font(settings.Env, defaultFont, false);
+
+    local chat = settings.Chat;
+    if (chat ~= nil) then
+        normalize_panel_font(chat, defaultFont, true);
+        if (chat.window1 ~= nil) then
+            normalize_panel_font(chat.window1, defaultFont, true);
+        end
+        if (chat.window2 ~= nil) then
+            normalize_panel_font(chat.window2, defaultFont, true);
+        end
+    end
+end
 
 local default_settings = T{
     Party = T{
@@ -1140,6 +1356,12 @@ local default_settings = T{
             l = 200,
             g = 16
         },
+        barPadding = 50,
+        expBarDim = T{
+            l = 600,
+            g = 14
+        },
+        rowGap = 8,
     },
     rcPanel = T{
         enabled = true,
@@ -1166,6 +1388,49 @@ local default_settings = T{
         themed = true,
         theme = 'Default',
         gui_scale = 1,
+        minimap_enabled = true,
+        minimap_width = 180,
+        minimap_height = 180,
+        minimap_zoom_step = 0.1,
+        minimap_default_zoom = 1.0,
+        minimap_opacity = 1.0,
+        minimap_transit_opacity = 0.45,
+        minimap_render_mode = 'normal',
+        minimap_zone_zoom = {},
+        minimap_cache_max = 64,
+        minimap_overlay_opacity = 1.0,
+        minimap_show_npcs = true,
+        minimap_show_mobs = true,
+        minimap_show_party = true,
+        minimap_show_alliance = true,
+        minimap_show_other_players = true,
+        minimap_show_target = true,
+        minimap_label_hover_only = false,
+        minimap_label_mobs = false,
+        minimap_label_players = false,
+        minimap_label_npcs = false,
+        minimap_label_target = true,
+        minimap_label_hostile = true,
+        minimap_label_font_scale = 0.85,
+        minimap_label_color_mobs = { 1.0, 0.55, 0.50, 1.0 },
+        minimap_label_color_players = { 0.65, 0.82, 1.0, 1.0 },
+        minimap_label_color_npcs = { 0.98, 0.94, 0.55, 1.0 },
+        minimap_label_color_target = { 1.0, 0.92, 0.2, 1.0 },
+        minimap_label_color_hostile = { 1.0, 0.45, 0.35, 1.0 },
+        minimap_scan_distance = 50,
+        minimap_icon_target = 8,
+        minimap_color_target = { 1.0, 0.92, 0.2, 1.0 },
+        minimap_scan_interval = 2,
+        minimap_icon_npc = 4,
+        minimap_icon_mob = 4,
+        minimap_icon_party = 6,
+        minimap_icon_alliance = 5,
+        minimap_icon_player = 5,
+        minimap_color_npc = { 0.95, 0.90, 0.25, 0.95 },
+        minimap_color_mob = { 0.95, 0.35, 0.30, 0.95 },
+        minimap_color_party = { 0.20, 0.85, 0.35, 0.95 },
+        minimap_color_alliance = { 0.35, 0.65, 1.00, 0.95 },
+        minimap_color_player = { 0.55, 0.75, 1.00, 0.95 },
     },
     Compass = T{
         enabled = true,
@@ -1190,7 +1455,10 @@ local default_settings = T{
         centerColor = nil,
     },
     Chat = build_chat_defaults(),
-    font = 'SpicyTaste.ttf'
+    font = 'SpicyTaste.ttf',
+    settings_version = 2,
+    firstrun_completed = false,
+    packet_injection_enabled = false,
 }
 
 GlamourUI = T{
@@ -1198,6 +1466,7 @@ GlamourUI = T{
     settings = settings.load(default_settings),
     font = nil,
     starGlyphMerged = false,
+    backslashGlyphMerged = false,
     debug = false,
     chatLogFocus = false,
     chatExpandOpen = false,
@@ -1225,21 +1494,27 @@ GlamourUI.PartyList.BuffNav = {
     list = T{},
 };
 
+if (migrate_wizard_settings(GlamourUI.settings)) then
+    settings.save();
+end
 GlamourUI.settings = apply_defaults(GlamourUI.settings, default_settings);
 GlamourUI.settings.Chat = normalize_chat_settings(GlamourUI.settings.Chat);
 normalize_party_p_list_settings();
 normalize_all_panel_style(GlamourUI.settings);
 GlamourUI.chatPurposeOrder = chatPurposeOrder;
+GlamourUI.chatCombatPurposeOrder = chatCombatPurposeOrder;
 GlamourUI.knownChatColorCodes = knownChatColorCodes;
 
 MemoryManager = nil;
 ResourceManager = nil;
 
 local loaded = false;
+local firstrun_auto_opened = false;
 
 settings.register('settings', 'settings_update', function(s)
     if (s ~= nil) then
         GlamourUI.settings = s;
+        migrate_wizard_settings(GlamourUI.settings);
         GlamourUI.settings = apply_defaults(GlamourUI.settings, default_settings);
         GlamourUI.settings.Chat = normalize_chat_settings(GlamourUI.settings.Chat);
         if (gChat.rebuild_window_entry_lists ~= nil) then
@@ -1295,11 +1570,19 @@ ashita.events.register('load', 'load_cb', function()
     end
     GlamourUI.PartyList.x = GlamourUI.settings.Party.pList.x;
     GlamourUI.PartyList.y = GlamourUI.settings.Party.pList.y;
+    gMinimap.init();
 end)
 
 ashita.events.register('d3d_present', 'present_cb', function()
     refreshManagers();
     update_party_after_zone();
+    if (gMinimap ~= nil and gMinimap.tick ~= nil) then
+        gMinimap.tick();
+    end
+    if (gFullscreenMap ~= nil and gFullscreenMap.is_open ~= nil and gFullscreenMap.is_open()
+        and gFullscreenMap.tick_movement ~= nil) then
+        gFullscreenMap.tick_movement();
+    end
     gChat.on_present();
     do
         local plist = GlamourUI.settings and GlamourUI.settings.Party and GlamourUI.settings.Party.pList;
@@ -1346,6 +1629,9 @@ ashita.events.register('d3d_present', 'present_cb', function()
 end)
 
 ashita.events.register('unload', 'unload_cb', function()
+    pcall(function()
+        require('maptexture').clear_all();
+    end);
     settings.save();
     if (customChat.on_unload ~= nil) then
         customChat.on_unload();
@@ -1455,6 +1741,14 @@ ashita.events.register('packet_in', 'packet_in_cb', function(e)
         gPartyBuffs = gResources.ReadPartyBuffsFromPacket(e);
     end
 
+    if (e.id == 0x29) then
+        local mob_check = require('mob_check');
+        local block, _ = mob_check.try_handle_packet_in(e);
+        if (block) then
+            e.blocked = true;
+        end
+    end
+
     gPacket.HandleIncoming(e);
     gParty.Party = gParty.get_party();
     gParty.set_party_leads();
@@ -1477,6 +1771,14 @@ end)
 
 ashita.events.register('command', 'command_cb', function (e)
     local args = e.command:args();
+    if (#args > 0 and args[1]:any('/gmap')) then
+        local gmapCmd = require('gmap');
+        if (gmapCmd.handle_command(args) == true) then
+            e.blocked = true;
+            return;
+        end
+    end
+
     if((args[1] == '/join' or args[1] == '/decline'))then
         gPacket.InviteActive = false;
         return;
@@ -1492,12 +1794,18 @@ ashita.events.register('command', 'command_cb', function (e)
             print(chat.message('/glam lot slot# - Lots on the treasure pool item in slot: slot#'));
             print(chat.message('/glam pass slot# - Passes on the treasure pool item in slot: slot#'));
             print(chat.message('/glam debug - Toggle incoming packet debug (UI + append to Logs\\packet_in_DATE.log)'));
+            print(chat.message('/glam firstrun - Open or close the first-run setup wizard'));
             print(chat.error('The slot number is reflected in the GlamourUI Treasure Pool.  This number may not reflect the positioning in the default Treasure Pool Window'));
         elseif(args[1]:any('/glam'))then
             e.blocked = true;
             if(#args > 1) then
                 if (args[2] == 'config') then
                     gConf.is_open = not gConf.is_open;
+                end
+                if (args[2]:any('firstrun')) then
+                    if (gFirstRun ~= nil and gFirstRun.toggle ~= nil) then
+                        gFirstRun.toggle();
+                    end
                 end
                 if (args[2] == 'newlayout') then
                     if(args[3] ~= nil)then
@@ -1650,17 +1958,11 @@ ashita.events.register('command', 'command_cb', function (e)
                         end
                     end
                 end
-                if(args[2] == 'widescan')then
-                    if (gPacket ~= nil) then
-                        gPacket.widescan_is_open = not (gPacket.widescan_is_open == true);
-                        if (gPacket.widescan_is_open and gPacket.RequestWidescanList ~= nil) then
-                            gPacket.RequestWidescanList();
+                if (args[2] == 'chatmode') then
+                    if (gChat.debug_dump_native_chat_mode ~= nil) then
+                        for _, line in ipairs(gChat.debug_dump_native_chat_mode()) do
+                            print(chat.header('GlamourUI'):append(chat.message(line)));
                         end
-                    end
-                end
-                if(args[2] == 'wsCancel')then
-                    if (gPacket ~= nil and gPacket.RequestTrackingEnd ~= nil) then
-                        gPacket.RequestTrackingEnd();
                     end
                 end
                 if(args[2] == 'chatdebug')then

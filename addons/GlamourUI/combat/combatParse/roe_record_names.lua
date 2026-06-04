@@ -1,5 +1,4 @@
-﻿-- Vendored RoE record id -> EN name (from LandSandBoat roe_records.lua comments). Fallback when GetString has no table.
-return {
+﻿return {
     [1] = "First Step Forward +",
     [2] = "Vanquish 1 Enemy +",
     [3] = "Undertake a FoV Training Regime",

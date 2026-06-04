@@ -333,7 +333,7 @@ local function render_id_row(t, ids, opts)
             local rem = math.max(0, data.expiresClock - now);
             local txt = format_remaining_seconds(rem);
             if (txt ~= nil and txt ~= '') then
-                local pushed = gResources.push_font_scale(fontScale);
+                local pushed = gResources.push_font_scale(fontScale, GlamourUI.settings.Party.pList);
                 local tw = imgui_calc_text_width(txt);
                 local tx = pos[1] + (iconSize - tw) * 0.5;
                 local ty = pos[2] + iconSize - 10;

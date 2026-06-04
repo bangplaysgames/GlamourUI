@@ -10,19 +10,6 @@ ffi.cdef[[
     int32_t memcmp(const void* buff1, const void* buff2, size_t count);
 ]];
 
-ffi.cdef[[
-    typedef struct {
-        char flag;
-        char unknown1;
-        short unknown2;
-    } wsPacket;
-]]
-
-local WSPacket = ffi.new('wsPacket');
-WSPacket.flag = 1;
-WSPacket.unknown1 = 0;
-WSPacket.unknown2 = 0;
-
 local function pack_u32_le(n)
     n = math.floor(tonumber(n) or 0);
     if (n < 0) then
@@ -43,7 +30,17 @@ local function pack_world_cli_packet_u32(payloadU32)
 end
 
 
+local function packet_injection_enabled()
+    if (GlamourUI == nil or GlamourUI.settings == nil) then
+        return false;
+    end
+    return GlamourUI.settings.packet_injection_enabled == true;
+end
+
 local function send_world_cli_u32(opcode, payloadU32)
+    if (not packet_injection_enabled()) then
+        return;
+    end
     local pm = AshitaCore:GetPacketManager();
     if (pm == nil) then
         return;
@@ -56,15 +53,6 @@ local function send_world_cli_u32(opcode, payloadU32)
         end);
         return;
     end
-    pm:AddOutgoingPacket(opcode, pack_world_cli_packet_u32(v));
-end
-
-local function send_tracking_cli_u32(opcode, payloadU32)
-    local pm = AshitaCore:GetPacketManager();
-    if (pm == nil) then
-        return;
-    end
-    local v = math.floor(tonumber(payloadU32) or 0) % 4294967296;
     pm:AddOutgoingPacket(opcode, pack_world_cli_packet_u32(v));
 end
 
@@ -195,7 +183,9 @@ end
 
 local setEXPmode = function()
     local player = AshitaCore:GetMemoryManager():GetPlayer();
-    if(player:GetIsExperiencePointsLocked() == true)then
+    local locked = player:GetIsExperiencePointsLocked();
+    local isLocked = (locked == true) or (tonumber(locked) ~= nil and tonumber(locked) ~= 0);
+    if(isLocked)then
         gParty.EXPMode = 'LP';
     else
         gParty.EXPMode = 'EXP';
@@ -203,6 +193,8 @@ local setEXPmode = function()
 end
 
 local packet = {}
+
+packet.injection_enabled = packet_injection_enabled;
 
 packet.timer = 0;
 
@@ -277,7 +269,35 @@ packet.CharInfo = {}
 -- Widescan request throttling (used to fill missing mob levels on target).
 packet._ws_last_request_clock = 0;
 packet._ws_last_request_target = 0;
-packet.widescan_is_open = false;
+packet._ws_request_pending = false;
+packet._ws_request_started_clock = 0;
+packet._ws_last_sent_clock = 0;
+packet.WS_REQUEST_TIMEOUT_SEC = 10;
+packet.WS_MIN_INTERVAL_SEC = 15;
+
+local function widescan_rate_limited()
+    local t0 = packet._ws_last_sent_clock or 0;
+    if (t0 <= 0) then
+        return false;
+    end
+    return (os.clock() - t0) < (packet.WS_MIN_INTERVAL_SEC or 15);
+end
+
+local function widescan_request_timed_out()
+    if (packet._ws_request_pending ~= true) then
+        return false;
+    end
+    local t0 = packet._ws_request_started_clock or 0;
+    if (t0 <= 0) then
+        return false;
+    end
+    return (os.clock() - t0) > (packet.WS_REQUEST_TIMEOUT_SEC or 10);
+end
+
+packet.ClearWidescanPending = function()
+    packet._ws_request_pending = false;
+    packet._ws_request_started_clock = 0;
+end
 
 packet.tracking = {
     active = false,
@@ -324,7 +344,8 @@ packet.LoginPacket = function(e)
     if(gPacket.action.Target == nil and GetPlayerEntity() ~= nil)then
         gPacket.action.Target = GetPlayerEntity().TargetIndex;
     end
-    packet.CharInfo = {}
+    local mob_check = require('mob_check');
+    mob_check.clear_char_info();
     packet.timer = os.time() + 30;
 end
 
@@ -500,24 +521,12 @@ packet.ActionMessage = function(Packet)
     end
 
     if (m == 6 or m == 20 or m == 97 or m == 113 or m == 406 or m == 605 or m == 646) then
-        if (gPacket.CharInfo[target] ~= nil) then
-            gPacket.CharInfo[target] = nil;
-        end
+        require('mob_check').purge_target_index(target);
     end
 
-    if (target ~= nil and target ~= 0 and m >= 170 and m <= 178) then
-        local lvl = tonumber(p1);
-        if (lvl ~= nil and lvl > 0 and lvl < 200) then
-            if (packet.CharInfo[target] == nil) then
-                packet.CharInfo[target] = {};
-            end
-            packet.CharInfo[target].Level = lvl;
-            packet.CharInfo[target].Type = 2;
-            if (entity ~= nil and entity.Name ~= nil and entity.Name ~= '') then
-                packet.CharInfo[target].Name = entity.Name;
-                packet.CharInfo[target].ServerId = entity.ServerId;
-            end
-        end
+    do
+        local mob_check = require('mob_check');
+        mob_check.ingest_check(target, entity, m, p1, p2);
     end
 
     if (gEffects ~= nil and gEffects.remove ~= nil and entity ~= nil and entity.ServerId ~= nil and entity.ServerId ~= 0) then
@@ -597,9 +606,7 @@ packet.KillMessage = function(pack)
         end
     end
 
-    if(gPacket.CharInfo[target] ~= nil)then
-        gPacket.CharInfo[target] = nil
-    end
+    require('mob_check').purge_server_id(target);
 
     if (gEffects ~= nil and gEffects.purge_target ~= nil) then
         gEffects.purge_target(target);
@@ -627,6 +634,9 @@ end
 
 
 packet.WSInfo = function(Packet)
+    if (not packet_injection_enabled()) then
+        return;
+    end
     local w = struct.unpack('I', Packet.data, 0x04 + 1);
     local Index = w % 65536;
     local Info = {};
@@ -641,21 +651,23 @@ packet.WSInfo = function(Packet)
 end
 
 packet.RequestWidescanList = function()
-    send_world_cli_u32(0xF4, 1);
-end
-
-packet.RequestTrackingStart = function(actIndex)
-    local idx = tonumber(actIndex) or 0;
-    if (idx < 1 or idx > 65535) then
-        return;
+    if (not packet_injection_enabled()) then
+        return false;
     end
-    send_tracking_cli_u32(0xF5, idx);
-end
-
-packet.RequestTrackingEnd = function()
-    send_tracking_cli_u32(0xF6, 0);
-    packet.tracking.active = false;
-    packet.tracking.actIndex = 0;
+    if (widescan_rate_limited()) then
+        return false;
+    end
+    if (packet._ws_request_pending == true and not widescan_request_timed_out()) then
+        return false;
+    end
+    if (widescan_request_timed_out()) then
+        packet.ClearWidescanPending();
+    end
+    packet._ws_request_pending = true;
+    packet._ws_request_started_clock = os.clock();
+    packet._ws_last_sent_clock = os.clock();
+    send_world_cli_u32(0xF4, 1);
+    return true;
 end
 
 packet.TrackingPos = function(Packet)
@@ -681,7 +693,17 @@ packet.TrackingState = function(Packet)
     if (Packet.data == nil or #Packet.data < 0x04 + 1) then
         return;
     end
-    packet.tracking.listState = struct.unpack('B', Packet.data, 0x04 + 1);
+    local mark = struct.unpack('B', Packet.data, 0x04 + 1);
+    packet.tracking.listState = mark;
+    -- Incoming 0xF6: 1 = widescan list start, 2 = widescan list end (see Windower ws mark enum).
+    if (mark == 1) then
+        packet._ws_request_pending = true;
+        if ((packet._ws_request_started_clock or 0) <= 0) then
+            packet._ws_request_started_clock = os.clock();
+        end
+    elseif (mark == 2) then
+        packet.ClearWidescanPending();
+    end
 end
 
 --- Runs every frame so interrupt dismissal fires even if cast UI briefly shows \"Interrupted\".
@@ -744,35 +766,29 @@ packet.TickTargetMobLevel = function()
         return;
     end
 
+    if (not packet_injection_enabled()) then
+        return;
+    end
+
+    if (widescan_rate_limited()) then
+        return;
+    end
+    if (packet._ws_request_pending == true and not widescan_request_timed_out()) then
+        return;
+    end
+
     local now = os.clock();
     local lastT = packet._ws_last_request_target or 0;
     local lastC = packet._ws_last_request_clock or 0;
+    local minIv = packet.WS_MIN_INTERVAL_SEC or 15;
     local changed = (targetIndex ~= lastT);
-    if (changed or (now - lastC) > 1.0) then
-        packet._ws_last_request_clock = now;
-        packet._ws_last_request_target = targetIndex;
-        packet.RequestWidescanList();
-    end
-end
-
-packet.BuildWidescanEntries = function()
-    local entries = T{};
-    for idx, info in pairs(packet.CharInfo) do
-        if (type(info) == 'table' and info.Name ~= nil) then
-            local name = tostring(info.Name):gsub('%z.*', '');
-            local ai = tonumber(idx);
-            if (ai == nil) then
-                ai = idx;
-            end
-            entries[#entries + 1] = { actIndex = ai, name = name, level = info.Level, type = info.Type };
+    if (changed or (now - lastC) >= minIv) then
+        if (packet.RequestWidescanList()) then
+            packet._ws_last_request_clock = now;
+            packet._ws_last_request_target = targetIndex;
         end
     end
-    table.sort(entries, function(a, b)
-        return tostring(a.name) < tostring(b.name);
-    end);
-    return entries;
 end
-
 
 --NPC Message Packets
 packet.NPCMessage = function(Packet)
@@ -814,6 +830,8 @@ packet.HandleIncoming = function(e)
     end
     if(e.id == 0x0A)then
         packet.LoginPacket(e);
+    elseif(e.id == 0x0B)then
+        require('mob_check').clear_char_info();
     elseif(e.id == 0x17)then
         packet.ChatMessage(e);
     elseif(e.id == 0x28)then
@@ -831,13 +849,13 @@ packet.HandleIncoming = function(e)
         end
         packet.IncActionPacket(e);
     elseif(e.id == 0x29)then
+        packet.ActionMessage(e);
         if (target_mob_action ~= nil and target_mob_action.ingest_0x29_packet ~= nil) then
             target_mob_action.ingest_0x29_packet(e);
         end
         if (gChat ~= nil and gChat.handle_packet_in ~= nil) then
             gChat.handle_packet_in(e);
         end
-        packet.ActionMessage(e);
     elseif(e.id == 0x02D)then
         if (gChat ~= nil and gChat.handle_packet_in ~= nil) then
             gChat.handle_packet_in(e);
@@ -904,10 +922,6 @@ packet.HandleOutgoing = function(e)
     if (gChat ~= nil and gChat.handle_packet_out ~= nil) then
         gChat.handle_packet_out(e);
     end
-end
-
-packet.InjectWSPacket = function()
-    packet.RequestWidescanList();
 end
 
 return packet;

@@ -5,6 +5,7 @@ local scaling = require('scaling')
 local settings = require('settings')
 local panelStyle = require('panelStyle')
 local nativeStatusBlock = require('native_status_block')
+local font_manager = require('font_manager')
 
 local function glam_custom_chat_windows_active()
     if (GlamourUI ~= nil and GlamourUI.is_custom_chat_windows_enabled ~= nil) then
@@ -46,13 +47,74 @@ local function getLayoutID(layout)
     end
 end
 
-local function getFontID(font)
-    local dir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Fonts\\'):fmt(AshitaCore:GetInstallPath()), '.ttf');
-
-    for i = 1,#dir,1 do
-        if(dir[i] == font) then
+local function getFontID(font, fontList)
+    fontList = fontList or (configDirs ~= nil and configDirs.fonts) or T{};
+    for i = 1, #fontList, 1 do
+        if (fontList[i] == font) then
             return i;
         end
+    end
+end
+
+local function font_combo_label(name, shiftJisOnly)
+    if (not shiftJisOnly) then
+        return name;
+    end
+    if (font_manager.supports_shift_jis(name)) then
+        return name;
+    end
+    return ('%s (not Shift-JIS)'):fmt(name);
+end
+
+local function render_font_combo(comboId, selectedFont, onSelect, opts)
+    opts = opts or {};
+    local shiftJisOnly = opts.shift_jis_only == true;
+    if (#font_manager.get_all_font_names() == 0) then
+        refresh_config_dirs();
+    end
+    if (gResources.update_shift_jis_font_list ~= nil) then
+        gResources.update_shift_jis_font_list();
+    end
+    local fontList = shiftJisOnly and font_manager.get_shift_jis_font_names() or font_manager.get_all_font_names();
+    if (fontList == nil) then
+        fontList = T{};
+    end
+    if (shiftJisOnly and #fontList == 0 and configDirs.fonts ~= nil and #configDirs.fonts > 0) then
+        fontList = configDirs.fonts;
+    end
+
+    local display = selectedFont;
+    if (display == nil or display == '') then
+        display = '(Default)';
+    end
+
+    if (not imgui.BeginCombo(comboId, display, combo_flags)) then
+        return;
+    end
+
+    if (opts.allow_default ~= false) then
+        if (imgui.Selectable(('(Default)##%sDef'):fmt(comboId), selectedFont == nil or selectedFont == '')) then
+            onSelect('');
+        end
+    end
+
+    local itemIndex = 0;
+    for _, name in ipairs(fontList) do
+        itemIndex = itemIndex + 1;
+        local isSelected = (selectedFont == name);
+        local label = font_combo_label(name, shiftJisOnly);
+        if (imgui.Selectable(('%s##%s%d'):fmt(label, comboId, itemIndex), isSelected)) then
+            onSelect(name);
+        end
+        if (isSelected) then
+            imgui.SetItemDefaultFocus();
+        end
+    end
+
+    imgui.EndCombo();
+
+    if (shiftJisOnly) then
+        imgui.TextDisabled('Lists fonts that support Japanese chat glyphs (CP932 / ImGui probe).');
     end
 end
 
@@ -66,12 +128,6 @@ local function getBuffID(buff)
     end
 end
 
-local themeID = T{ getThemeID('Default')};
-local layoutID = T{ getLayoutID('Default')};
-local fontID = T{ getFontID('Default')};
-local buffID = T{ getBuffID('Default')};
-local plLEditor = false;
-local configWasOpen = false;
 local configDirs = {
     themes = T{},
     layouts = T{},
@@ -79,7 +135,199 @@ local configDirs = {
     fonts = T{},
 };
 
+local themeID = T{ getThemeID('Default')};
+local layoutID = T{ getLayoutID('Default')};
+local fontID = T{ getFontID('Default') or 1 };
+local buffID = T{ getBuffID('Default')};
+local plLEditor = false;
+local configWasOpen = false;
+
 local confFooterHeight = 40;
+
+local conf = {};
+
+conf.is_open = false;
+conf.selected_tab = 'General';
+
+local CONFIG_CONTENT_MIN_W = 520;
+local CONFIG_CONTENT_MIN_H = 520;
+local CONFIG_TITLE = 'Glamour UI Configuration';
+
+-- Approximate content body heights at 1080p before header/footer and scaleH.
+local CONFIG_CONTENT_HEIGHTS = {
+    General = 430,
+    PartyList = 500,
+    Alliance = 360,
+    TargetBar = 360,
+    PlayerStats = 540,
+    Inventory = 260,
+    Recast = 360,
+    Chat = 940,
+    CastBar = 340,
+    Compass = 360,
+    Environment = 360,
+};
+
+local function conf_calc_text_size(text)
+    local tw, th = imgui.CalcTextSize(tostring(text or ''));
+    if (type(tw) == 'table') then
+        th = tonumber(tw[2]) or tonumber(tw.y) or 0;
+        tw = tonumber(tw[1]) or tonumber(tw.x) or 0;
+    end
+    return tonumber(tw) or 0, tonumber(th) or 0;
+end
+
+local function conf_tab_button_width(label)
+    local style = imgui.GetStyle();
+    local framePadX = (tonumber(style.FramePadding.x) or 4) * 2;
+    local tw = conf_calc_text_size(label);
+    return math.ceil(tw + framePadX + 12);
+end
+
+local function tab_button(label, id, isSelected)
+    if (isSelected) then
+        imgui.PushStyleColor(ImGuiCol_Button, { 0.20, 0.55, 0.95, 1.0 });
+        imgui.PushStyleColor(ImGuiCol_ButtonHovered, { 0.25, 0.60, 1.0, 1.0 });
+        imgui.PushStyleColor(ImGuiCol_ButtonActive, { 0.18, 0.50, 0.90, 1.0 });
+    end
+    local clicked = imgui.Button(('%s##Tab%s'):fmt(label, id));
+    if (isSelected) then
+        imgui.PopStyleColor(3);
+    end
+    return clicked;
+end
+
+local function conf_build_tabs()
+    return T{
+        { id = 'General', label = 'General', show = true },
+        { id = 'PartyList', label = 'Party List', show = GlamourUI.settings.Party.pList.enabled == true },
+        { id = 'Alliance', label = 'Alliance', show = GlamourUI.settings.Party.aPanel.enabled == true },
+        { id = 'TargetBar', label = 'Target Bar', show = GlamourUI.settings.TargetBar.enabled == true },
+        { id = 'PlayerStats', label = 'Player Stats', show = GlamourUI.settings.PlayerStats.enabled == true },
+        { id = 'Inventory', label = 'Inventory', show = GlamourUI.settings.Inv.enabled == true },
+        { id = 'Recast', label = 'Recast', show = GlamourUI.settings.rcPanel.enabled == true },
+        { id = 'Chat', label = 'Chat', show = GlamourUI.settings.Chat.enabled == true },
+        { id = 'CastBar', label = 'Cast Bar', show = GlamourUI.settings.cBar.enabled == true },
+        { id = 'Compass', label = 'Compass', show = GlamourUI.settings.Compass ~= nil and GlamourUI.settings.Compass.enabled == true },
+        { id = 'Environment', label = 'Environment', show = true },
+    };
+end
+
+local function conf_measure_tab_bar(tabs, rowWidth)
+    rowWidth = math.max(200, tonumber(rowWidth) or 600);
+    local style = imgui.GetStyle();
+    local itemSpacingX = tonumber(style.ItemSpacing.x) or 8;
+    local itemSpacingY = tonumber(style.ItemSpacing.y) or 4;
+    local _, tabBtnH = conf_calc_text_size('Ay');
+    tabBtnH = math.max(22, tabBtnH + (tonumber(style.FramePadding.y) or 4) * 2);
+
+    local widths = {};
+    local visible = 0;
+    for i = 1, #tabs do
+        if (tabs[i].show) then
+            visible = visible + 1;
+            widths[#widths + 1] = conf_tab_button_width(tabs[i].label);
+        end
+    end
+
+    if (visible == 0) then
+        return 0, 1, tabBtnH;
+    end
+
+    local rows = 1;
+    local rowUsed = 0;
+    local widestRow = 0;
+    for i = 1, #widths do
+        local w = widths[i];
+        local gap = (rowUsed > 0) and itemSpacingX or 0;
+        if (rowUsed > 0 and (rowUsed + gap + w) > rowWidth) then
+            rows = rows + 1;
+            widestRow = math.max(widestRow, rowUsed);
+            rowUsed = w;
+        else
+            rowUsed = rowUsed + gap + w;
+        end
+    end
+    widestRow = math.max(widestRow, rowUsed);
+
+    local totalW = widestRow;
+    if (rows == 1) then
+        totalW = rowUsed;
+    end
+    return totalW, rows, tabBtnH + (rows - 1) * (tabBtnH + itemSpacingY);
+end
+
+local function conf_render_tab_bar(tabs, rowWidth)
+    rowWidth = math.max(200, tonumber(rowWidth) or 600);
+    local style = imgui.GetStyle();
+    local itemSpacingX = tonumber(style.ItemSpacing.x) or 8;
+    local itemSpacingY = tonumber(style.ItemSpacing.y) or 4;
+    local _, lineH = conf_calc_text_size('Ay');
+    local tabBtnH = math.max(22, lineH + (tonumber(style.FramePadding.y) or 4) * 2);
+    local startX, startY = imgui.GetCursorPos();
+    local rowY = startY;
+    local rowUsed = 0;
+    local firstInRow = true;
+
+    for i = 1, #tabs do
+        if (tabs[i].show) then
+            local btnW = conf_tab_button_width(tabs[i].label);
+            local gap = firstInRow and 0 or itemSpacingX;
+            if (not firstInRow and (rowUsed + gap + btnW) > rowWidth) then
+                rowY = rowY + tabBtnH + itemSpacingY;
+                imgui.SetCursorPos({ startX, rowY });
+                imgui.Dummy({ 1, 1 });
+                rowUsed = 0;
+                firstInRow = true;
+                gap = 0;
+            end
+
+            if (not firstInRow) then
+                imgui.SameLine(0, itemSpacingX);
+            end
+            firstInRow = false;
+            rowUsed = rowUsed + gap + btnW;
+
+            local isSel = conf.selected_tab == tabs[i].id;
+            if (tab_button(tabs[i].label, tabs[i].id, isSel)) then
+                conf.selected_tab = tabs[i].id;
+            end
+        end
+    end
+
+    imgui.SetCursorPos({ startX, rowY + tabBtnH + 4 });
+    imgui.Dummy({ 1, 1 });
+end
+
+local function conf_calc_window_size(tabs, selectedTab, scaleW, scaleH, screenW, screenH)
+    local titleW = conf_calc_text_size(CONFIG_TITLE) + 48;
+    local probeRowW = math.floor(900 * scaleW);
+    local tabBarW, tabRows, tabBarH = conf_measure_tab_bar(tabs, probeRowW);
+
+    local contentH = CONFIG_CONTENT_HEIGHTS[selectedTab] or 520;
+    local baseHeaderExtra = 42;
+    local headerH = math.max(55, math.floor((baseHeaderExtra + tabBarH) * scaleH));
+    local footerH = math.max(40, math.floor(55 * scaleH));
+
+    local confW = math.max(CONFIG_CONTENT_MIN_W, math.floor(600 * scaleW), titleW, tabBarW + 40);
+    local confH = headerH + footerH + math.floor(contentH * scaleH);
+
+    local maxW = math.max(CONFIG_CONTENT_MIN_W, screenW - 48);
+    local maxH = math.max(CONFIG_CONTENT_MIN_H, screenH - 48);
+    confW = math.min(confW, maxW);
+    confH = math.min(confH, maxH);
+
+    if (tabBarW + 40 > confW) then
+        tabBarW, tabRows, tabBarH = conf_measure_tab_bar(tabs, confW - 40);
+        headerH = math.max(55, math.floor((baseHeaderExtra + tabBarH) * scaleH));
+        confH = headerH + footerH + math.floor(contentH * scaleH);
+        confH = math.min(confH, maxH);
+    end
+
+    confW = math.max(CONFIG_CONTENT_MIN_W, confW);
+    confH = math.max(CONFIG_CONTENT_MIN_H, confH);
+    return confW, confH, headerH, footerH;
+end
 
 local function conf_content_avail_x()
     local a = imgui.GetContentRegionAvail();
@@ -117,11 +365,6 @@ local function save_chat_input_panel_style_holder(chatSettings, holder)
     chatSettings.inputPanelBorderSize = holder.panelBorderSize;
 end
 
-local conf = {}
-
-conf.is_open = false;
-conf.selected_tab = 'General';
-
 local render_toggle = nil;
 local render_float_setting = nil;
 local render_panel_background_controls = nil;
@@ -130,17 +373,12 @@ local render_dimension_controls = nil;
 local render_chat_color_swatch = nil;
 local render_chat_code_color_swatch = nil;
 
-local function tab_button(label, id, isSelected)
-    if (isSelected) then
-        imgui.PushStyleColor(ImGuiCol_Button, { 0.20, 0.55, 0.95, 1.0 });
-        imgui.PushStyleColor(ImGuiCol_ButtonHovered, { 0.25, 0.60, 1.0, 1.0 });
-        imgui.PushStyleColor(ImGuiCol_ButtonActive, { 0.18, 0.50, 0.90, 1.0 });
+local function ensure_chat_purpose_color(chatSettings, purpose)
+    local colors = chatSettings.purposeColors;
+    if (colors[purpose] == nil) then
+        colors[purpose] = { 1.0, 1.0, 1.0, 1.0 };
     end
-    local clicked = imgui.Button(('%s##Tab%s'):fmt(label, id));
-    if (isSelected) then
-        imgui.PopStyleColor(3);
-    end
-    return clicked;
+    return colors[purpose];
 end
 
 local function render_general_contents()
@@ -160,22 +398,22 @@ local function render_general_contents()
     GlamourUI.settings.Compass.enabled = select(1, render_toggle('Enable Heading Compass##GlamEnable', GlamourUI.settings.Compass.enabled == true));
 
     imgui.Separator();
-    imgui.Text('Font');
-    if(imgui.BeginCombo('Font##GlamConf', GlamourUI.settings.font, combo_flags))then
-        for i = 1,#configDirs.fonts,1 do
-            local is_selected = i == fontID;
+    imgui.Text('Default Font');
+    render_font_combo('DefaultFont##GlamConfGen', GlamourUI.settings.font, function(name)
+        GlamourUI.settings.font = name;
+        fontID = T{ getFontID(name) or 1 };
+        gResources.loadFont(name);
+        gResources.preload_configured_fonts(GlamourUI.settings);
+    end, { allow_default = false });
+    imgui.TextDisabled('Panels use their own font when set; otherwise this default is used.');
 
-            if (GlamourUI.settings.font ~= configDirs.fonts[i] and imgui.Selectable(configDirs.fonts[i], is_selected))then
-                fontID = i;
-                GlamourUI.settings.font = configDirs.fonts[i];
-                gResources.loadFont(GlamourUI.settings.font);
-            end
-            if(is_selected) then
-                imgui.SetItemDefaultFocus();
-            end
-        end
-        imgui.EndCombo();
-    end
+    imgui.Separator();
+    imgui.Text('Packet Injection');
+    local injOn = GlamourUI.settings.packet_injection_enabled == true;
+    GlamourUI.settings.packet_injection_enabled = select(1, render_toggle('Enable Packet Injection Mode##GlamConfInject', injOn));
+    imgui.PushTextWrapPos(imgui.GetCursorPosX() + math.max(200, conf_content_avail_x()));
+    imgui.TextDisabled('Enables outgoing widescan requests to discover mob levels. Buff cancel and treasure lot/pass are always allowed. Confirm with your server staff before enabling.');
+    imgui.PopTextWrapPos();
 end
 
 local function render_party_list_contents()
@@ -222,6 +460,10 @@ local function render_party_list_contents()
         '%.1f'
     );
     GlamourUI.settings.Party.pList.font_scale = render_float_setting('FontScale##GlamPList', GlamourUI.settings.Party.pList.font_scale, 0.1, 5.0, '%.1f');
+    render_font_combo('Font##GlamPList', GlamourUI.settings.Party.pList.font or '', function(name)
+        GlamourUI.settings.Party.pList.font = name;
+        gResources.reload_font(name ~= '' and name or GlamourUI.settings.font);
+    end);
     GlamourUI.settings.Party.pList.FillDown = select(1, render_toggle('Fill Down##Plist', GlamourUI.settings.Party.pList.FillDown));
 
     imgui.Separator();
@@ -250,6 +492,10 @@ local function render_standard_themed_contents(childId, settingsTable, scaleLabe
 
     settingsTable.gui_scale = render_float_setting(scaleLabels.gui, settingsTable.gui_scale, 0.1, 5.0, '%.1f');
     settingsTable.font_scale = render_float_setting(scaleLabels.font, settingsTable.font_scale, 0.1, 5.0, '%.1f');
+    render_font_combo(('Font##%s'):fmt(childId), settingsTable.font or '', function(name)
+        settingsTable.font = name;
+        gResources.reload_font(name ~= '' and name or GlamourUI.settings.font);
+    end);
 
     if(dimensions ~= nil)then
         render_dimension_controls(dimensionPrefix, dimensions);
@@ -264,6 +510,10 @@ local function render_inventory_contents()
         GlamourUI.settings.Inv.theme = themeName;
     end);
     GlamourUI.settings.Inv.font_scale = render_float_setting('FontScale##GlamInvPanel', GlamourUI.settings.Inv.font_scale, 0.1, 5.0, '%.1f');
+    render_font_combo('Font##GlamInvPanel', GlamourUI.settings.Inv.font or '', function(name)
+        GlamourUI.settings.Inv.font = name;
+        gResources.reload_font(name ~= '' and name or GlamourUI.settings.font);
+    end);
     imgui.Separator();
     render_panel_background_controls('InvPanelPB', GlamourUI.settings.Inv);
 end
@@ -279,6 +529,38 @@ local function render_recast_contents()
     );
 end
 
+local function render_pstats_bar_dim_controls(title, dimTable, idSuffix)
+    imgui.Text(title);
+    local barLength = { dimTable.l };
+    local barGirth = { dimTable.g };
+
+    imgui.PushItemWidth(math.max(80, conf_content_avail_x() - conf_slider_arrow_pair_reserve));
+    imgui.SliderInt(('Length##GlamPlayerStats%sLen'):fmt(idSuffix), barLength, 0, 700);
+    imgui.PopItemWidth();
+    dimTable.l = barLength[1];
+    imgui.SameLine(0, 6);
+    if(imgui.ArrowButton(('lleft##GlamPlayerStats%sLen'):fmt(idSuffix), ImGuiDir_Left))then
+        dimTable.l = dimTable.l - 1;
+    end
+    imgui.SameLine(0, 2);
+    if(imgui.ArrowButton(('lright##GlamPlayerStats%sLen'):fmt(idSuffix), ImGuiDir_Right))then
+        dimTable.l = dimTable.l + 1;
+    end
+
+    imgui.PushItemWidth(math.max(80, conf_content_avail_x() - conf_slider_arrow_pair_reserve));
+    imgui.SliderInt(('Girth##GlamPlayerStats%sGir'):fmt(idSuffix), barGirth, 0, 100);
+    imgui.PopItemWidth();
+    dimTable.g = barGirth[1];
+    imgui.SameLine(0, 6);
+    if(imgui.ArrowButton(('gleft##GlamPlayerStats%sGir'):fmt(idSuffix), ImGuiDir_Up))then
+        dimTable.g = dimTable.g - 1;
+    end
+    imgui.SameLine(0, 2);
+    if(imgui.ArrowButton(('gright##GlamPlayerStats%sGir'):fmt(idSuffix), ImGuiDir_Down))then
+        dimTable.g = dimTable.g + 1;
+    end
+end
+
 local function render_player_stats_contents()
     GlamourUI.settings.PlayerStats.themed = select(1, render_toggle('Themed##GlamPlayerStats', GlamourUI.settings.PlayerStats.themed));
 
@@ -288,36 +570,21 @@ local function render_player_stats_contents()
 
     GlamourUI.settings.PlayerStats.gui_scale = render_float_setting('GuiScale##GlamPlayerStats', GlamourUI.settings.PlayerStats.gui_scale, 0.1, 5.0, '%.1f');
     GlamourUI.settings.PlayerStats.font_scale = render_float_setting('FontScale##GlamPlayerStats', GlamourUI.settings.PlayerStats.font_scale, 0.1, 5.0, '%.1f');
+    render_font_combo('Font##GlamPlayerStats', GlamourUI.settings.PlayerStats.font or '', function(name)
+        GlamourUI.settings.PlayerStats.font = name;
+        gResources.reload_font(name ~= '' and name or GlamourUI.settings.font);
+    end);
 
-    local barLength = {GlamourUI.settings.PlayerStats.BarDim.l};
-    local barGirth = {GlamourUI.settings.PlayerStats.BarDim.g};
-
-    imgui.Text('Bar Dimensions');
-    imgui.PushItemWidth(math.max(80, conf_content_avail_x() - conf_slider_arrow_pair_reserve));
-    imgui.SliderInt('Length##GlamPlayerStatsBar', barLength, 0, 700);
-    imgui.PopItemWidth();
-    GlamourUI.settings.PlayerStats.BarDim.l = barLength[1];
-    imgui.SameLine(0, 6);
-    if(imgui.ArrowButton('lleft##GlamPlayerStatsBar', ImGuiDir_Left))then
-        GlamourUI.settings.PlayerStats.BarDim.l = GlamourUI.settings.PlayerStats.BarDim.l - 1;
+    if(GlamourUI.settings.PlayerStats.expBarDim == nil)then
+        GlamourUI.settings.PlayerStats.expBarDim = { l = 600, g = 14 };
     end
-    imgui.SameLine(0, 2);
-    if(imgui.ArrowButton('lright##GlamPlayerStatsBar', ImGuiDir_Right))then
-        GlamourUI.settings.PlayerStats.BarDim.l = GlamourUI.settings.PlayerStats.BarDim.l + 1;
+    if(type(GlamourUI.settings.PlayerStats.barPadding) ~= 'number')then
+        GlamourUI.settings.PlayerStats.barPadding = 50;
     end
 
-    imgui.PushItemWidth(math.max(80, conf_content_avail_x() - conf_slider_arrow_pair_reserve));
-    imgui.SliderInt('Girth##GlamPlayerStatsBar', barGirth, 0, 100);
-    imgui.PopItemWidth();
-    GlamourUI.settings.PlayerStats.BarDim.g = barGirth[1];
-    imgui.SameLine(0, 6);
-    if(imgui.ArrowButton('gleft##GlamPlayerStatsBar', ImGuiDir_Up))then
-        GlamourUI.settings.PlayerStats.BarDim.g = GlamourUI.settings.PlayerStats.BarDim.g - 1;
-    end
-    imgui.SameLine(0, 2);
-    if(imgui.ArrowButton('gright##GlamPlayerStatsBar', ImGuiDir_Down))then
-        GlamourUI.settings.PlayerStats.BarDim.g = GlamourUI.settings.PlayerStats.BarDim.g + 1;
-    end
+    render_pstats_bar_dim_controls('HP / MP / TP Bar Dimensions', GlamourUI.settings.PlayerStats.BarDim, 'Stat');
+    GlamourUI.settings.PlayerStats.barPadding = render_float_setting('Bar Padding##GlamPlayerStatsPad', GlamourUI.settings.PlayerStats.barPadding, 0, 200, '%.0f');
+    render_pstats_bar_dim_controls('EXP / CP Bar Dimensions', GlamourUI.settings.PlayerStats.expBarDim, 'Exp');
 
     imgui.Separator();
     render_panel_background_controls('PlayerStatsPB', GlamourUI.settings.PlayerStats);
@@ -345,6 +612,10 @@ local function render_chat_logs_contents()
     chatSettings.maxEntries = maxBufContents[1];
 
     chatSettings.inputFontScale = render_float_setting('Input Font Scale##GlamChatInput', chatSettings.inputFontScale or 1.0, 0.1, 5.0, '%.1f');
+    render_font_combo('Input Font##GlamChatInput', chatSettings.font or '', function(name)
+        chatSettings.font = font_manager.pick_shift_jis_fallback(name, GlamourUI.settings.font);
+        gResources.reload_font(chatSettings.font);
+    end, { shift_jis_only = true });
     local inputBgHolder = build_chat_input_panel_style_holder(chatSettings);
     render_panel_background_controls('ChatInputPB', inputBgHolder);
     save_chat_input_panel_style_holder(chatSettings, inputBgHolder);
@@ -353,8 +624,7 @@ local function render_chat_logs_contents()
     imgui.Text('Purpose Colors');
     for i = 1, #GlamourUI.chatPurposeOrder do
         local purpose = GlamourUI.chatPurposeOrder[i];
-        local color = chatSettings.purposeColors[purpose] or { 1.0, 1.0, 1.0, 1.0 };
-        render_chat_color_swatch(purpose, color);
+        render_chat_color_swatch(purpose, ensure_chat_purpose_color(chatSettings, purpose));
     end
 
     imgui.Separator();
@@ -388,6 +658,10 @@ local function render_chat_logs_contents()
     if (imgui.BeginTabBar('ChatWindowTabs##GlamConf')) then
         if (chatSettings.window1.enabled and imgui.BeginTabItem('Chat Window 1##GlamChatWin1')) then
             chatSettings.window1.font_scale = render_float_setting('Font Scale##GlamChatWin1Font', chatSettings.window1.font_scale or 1.0, 0.1, 5.0, '%.1f');
+            render_font_combo('Font##GlamChatWin1', chatSettings.window1.font or '', function(name)
+                chatSettings.window1.font = font_manager.pick_shift_jis_fallback(name, GlamourUI.settings.font);
+                gResources.reload_font(chatSettings.window1.font);
+            end, { shift_jis_only = true });
             local w1cap = { math.floor(math.min(20000, math.max(100, tonumber(chatSettings.window1.maxLines) or tonumber(chatSettings.maxEntries) or 1000))) };
             imgui.SliderInt('Max lines in this window##GlamChatWin1MaxLines', w1cap, 100, 20000);
             chatSettings.window1.maxLines = w1cap[1];
@@ -403,6 +677,10 @@ local function render_chat_logs_contents()
         end
         if (chatSettings.window2.enabled and imgui.BeginTabItem('Chat Window 2##GlamChatWin2')) then
             chatSettings.window2.font_scale = render_float_setting('Font Scale##GlamChatWin2Font', chatSettings.window2.font_scale or 1.0, 0.1, 5.0, '%.1f');
+            render_font_combo('Font##GlamChatWin2', chatSettings.window2.font or '', function(name)
+                chatSettings.window2.font = font_manager.pick_shift_jis_fallback(name, GlamourUI.settings.font);
+                gResources.reload_font(chatSettings.window2.font);
+            end, { shift_jis_only = true });
             local w2cap = { math.floor(math.min(20000, math.max(100, tonumber(chatSettings.window2.maxLines) or tonumber(chatSettings.maxEntries) or 1000))) };
             imgui.SliderInt('Max lines in this window##GlamChatWin2MaxLines', w2cap, 100, 20000);
             chatSettings.window2.maxLines = w2cap[1];
@@ -488,14 +766,122 @@ local function render_compass_contents()
 
 end
 
+local function ensure_rgba4_inplace(tbl, fallback)
+    if (type(tbl) ~= 'table') then
+        return fallback;
+    end
+    tbl[1] = tonumber(tbl[1]) or fallback[1];
+    tbl[2] = tonumber(tbl[2]) or fallback[2];
+    tbl[3] = tonumber(tbl[3]) or fallback[3];
+    tbl[4] = tonumber(tbl[4]) or fallback[4];
+    return tbl;
+end
+
+local function render_minimap_label_color_picker(popupId, label, color)
+    imgui.PushStyleColor(ImGuiCol_Button, color);
+    imgui.PushStyleColor(ImGuiCol_ButtonHovered, color);
+    imgui.PushStyleColor(ImGuiCol_ButtonActive, color);
+    if (imgui.Button(('##GlamMMLabelColor' .. popupId), { 20, 20 })) then
+        imgui.OpenPopup(('GlamMMLabelColorPicker##' .. popupId));
+    end
+    imgui.PopStyleColor(3);
+    imgui.SameLine();
+    imgui.Text(label);
+
+    if (imgui.BeginPopup(('GlamMMLabelColorPicker##' .. popupId))) then
+        imgui.ColorPicker3(('##GlamMMPick' .. popupId), color);
+        imgui.EndPopup();
+    end
+end
+
 local function render_environment_contents()
+    local s = GlamourUI.settings.Env;
     render_standard_themed_contents(
         'Environment##GlamConf',
-        GlamourUI.settings.Env,
+        s,
         { gui = 'GuiScale##GlamEnv', font = 'FontScale##GlamEnv', },
         nil,
         nil
     );
+
+    imgui.Separator();
+    imgui.Text('Minimap');
+    s.minimap_enabled = select(1, render_toggle('Enable Minimap##GlamEnvMM', s.minimap_enabled == true));
+    if (s.minimap_enabled == true) then
+        s.minimap_width = render_float_setting('Width (px)##GlamEnvMM', tonumber(s.minimap_width) or 180, 80, 400, '%.0f');
+        s.minimap_height = render_float_setting('Height (px)##GlamEnvMM', tonumber(s.minimap_height) or 180, 80, 400, '%.0f');
+        s.minimap_zoom_step = render_float_setting('Zoom Step##GlamEnvMM', tonumber(s.minimap_zoom_step) or 0.1, 0.01, 1.0, '%.2f');
+        s.minimap_default_zoom = render_float_setting('Default Zoom Multiplier##GlamEnvMM', tonumber(s.minimap_default_zoom) or 1.0, 1.0, 10.0, '%.2f');
+        s.minimap_opacity = render_float_setting('Map Opacity##GlamEnvMM', tonumber(s.minimap_opacity) or 1.0, 0.1, 1.0, '%.2f');
+        s.minimap_transit_opacity = render_float_setting('In-Transit Opacity (full map)##GlamEnvMM', tonumber(s.minimap_transit_opacity) or 0.45, 0.05, 1.0, '%.2f');
+        do
+            local map_render = require('map_render');
+            local maptexture = require('maptexture');
+            s.minimap_render_mode = map_render.normalize_mode(s.minimap_render_mode);
+            local modeIndex = T{ map_render.mode_index(s.minimap_render_mode) };
+            render_selection_combo('Map Render Mode##GlamEnvMM', map_render.label_for_mode(s.minimap_render_mode), map_render.MODE_LABELS, modeIndex, function(label)
+                for i = 1, #map_render.MODE_LABELS do
+                    if (map_render.MODE_LABELS[i] == label) then
+                        local newMode = map_render.MODE_IDS[i];
+                        if (newMode ~= s.minimap_render_mode) then
+                            s.minimap_render_mode = newMode;
+                            maptexture.clear_all();
+                            ashita.tasks.once(1, function()
+                                local minimap = require('minimap');
+                                if (minimap.reload_map ~= nil) then
+                                    minimap.reload_map();
+                                end
+                            end);
+                        end
+                        break;
+                    end
+                end
+            end);
+            imgui.TextDisabled('Color modes decompress DXT/bitmap maps (slower than Normal).');
+        end
+        s.minimap_cache_max = render_float_setting('Map Cache Max (textures)##GlamEnvMM', tonumber(s.minimap_cache_max) or 64, 8, 256, '%.0f');
+        s.minimap_overlay_opacity = render_float_setting('Marker Opacity##GlamEnvMM', tonumber(s.minimap_overlay_opacity) or 1.0, 0.1, 1.0, '%.2f');
+        s.minimap_scan_distance = render_float_setting('Scan Distance (yalms)##GlamEnvMM', tonumber(s.minimap_scan_distance) or 50, 10, 100, '%.0f');
+        s.minimap_scan_interval = render_float_setting('Scan Interval (sec)##GlamEnvMM', tonumber(s.minimap_scan_interval) or 2, 0.5, 30, '%.1f');
+        imgui.Separator();
+        imgui.Text('Markers (zone defaults — per-zone overrides on Environment panel hover)');
+        s.minimap_show_npcs = select(1, render_toggle('Default: Show NPCs##GlamEnvMM', s.minimap_show_npcs == true));
+        s.minimap_show_mobs = select(1, render_toggle('Default: Show Mobs##GlamEnvMM', s.minimap_show_mobs == true));
+        s.minimap_show_party = select(1, render_toggle('Default: Show Party##GlamEnvMM', s.minimap_show_party == true));
+        s.minimap_show_alliance = select(1, render_toggle('Default: Show Alliance##GlamEnvMM', s.minimap_show_alliance == true));
+        s.minimap_show_other_players = select(1, render_toggle('Default: Show Other Players##GlamEnvMM', s.minimap_show_other_players == true));
+        s.minimap_show_target = select(1, render_toggle('Default: Show Target Marker##GlamEnvMM', s.minimap_show_target == true));
+        imgui.Text('Name labels (each entity once)');
+        s.minimap_label_hover_only = select(1, render_toggle('Names on Hover Only##GlamEnvMM', s.minimap_label_hover_only == true));
+        s.minimap_label_mobs = select(1, render_toggle('Label: Mobs##GlamEnvMM', s.minimap_label_mobs == true));
+        s.minimap_label_players = select(1, render_toggle('Label: Players##GlamEnvMM', s.minimap_label_players == true));
+        s.minimap_label_npcs = select(1, render_toggle('Label: NPCs##GlamEnvMM', s.minimap_label_npcs == true));
+        s.minimap_label_target = select(1, render_toggle('Label: Target##GlamEnvMM', s.minimap_label_target == true));
+        s.minimap_label_hostile = select(1, render_toggle('Label: Hostile##GlamEnvMM', s.minimap_label_hostile == true));
+        s.minimap_label_font_scale = render_float_setting('Label Font Scale##GlamEnvMM', tonumber(s.minimap_label_font_scale) or 0.85, 0.4, 2.0, '%.2f');
+        if (type(s.minimap_label_color_mobs) ~= 'table') then s.minimap_label_color_mobs = { 1.0, 0.55, 0.50, 1.0 }; end
+        if (type(s.minimap_label_color_players) ~= 'table') then s.minimap_label_color_players = { 0.65, 0.82, 1.0, 1.0 }; end
+        if (type(s.minimap_label_color_npcs) ~= 'table') then s.minimap_label_color_npcs = { 0.98, 0.94, 0.55, 1.0 }; end
+        if (type(s.minimap_label_color_target) ~= 'table') then s.minimap_label_color_target = { 1.0, 0.92, 0.2, 1.0 }; end
+        if (type(s.minimap_label_color_hostile) ~= 'table') then s.minimap_label_color_hostile = { 1.0, 0.45, 0.35, 1.0 }; end
+        ensure_rgba4_inplace(s.minimap_label_color_mobs, { 1.0, 0.55, 0.50, 1.0 });
+        ensure_rgba4_inplace(s.minimap_label_color_players, { 0.65, 0.82, 1.0, 1.0 });
+        ensure_rgba4_inplace(s.minimap_label_color_npcs, { 0.98, 0.94, 0.55, 1.0 });
+        ensure_rgba4_inplace(s.minimap_label_color_target, { 1.0, 0.92, 0.2, 1.0 });
+        ensure_rgba4_inplace(s.minimap_label_color_hostile, { 1.0, 0.45, 0.35, 1.0 });
+        imgui.Text('Label text colors');
+        render_minimap_label_color_picker('Mobs', 'Mobs', s.minimap_label_color_mobs);
+        render_minimap_label_color_picker('Players', 'Players', s.minimap_label_color_players);
+        render_minimap_label_color_picker('NPCs', 'NPCs', s.minimap_label_color_npcs);
+        render_minimap_label_color_picker('Target', 'Target', s.minimap_label_color_target);
+        render_minimap_label_color_picker('Hostile', 'Hostile', s.minimap_label_color_hostile);
+        s.minimap_icon_npc = render_float_setting('NPC Icon Size##GlamEnvMM', tonumber(s.minimap_icon_npc) or 4, 2, 16, '%.0f');
+        s.minimap_icon_mob = render_float_setting('Mob Icon Size##GlamEnvMM', tonumber(s.minimap_icon_mob) or 4, 2, 16, '%.0f');
+        s.minimap_icon_party = render_float_setting('Party Icon Size##GlamEnvMM', tonumber(s.minimap_icon_party) or 6, 3, 20, '%.0f');
+        s.minimap_icon_alliance = render_float_setting('Alliance Icon Size##GlamEnvMM', tonumber(s.minimap_icon_alliance) or 5, 3, 20, '%.0f');
+        s.minimap_icon_player = render_float_setting('Other Player Icon Size##GlamEnvMM', tonumber(s.minimap_icon_player) or 5, 3, 20, '%.0f');
+        s.minimap_icon_target = render_float_setting('Target Icon Size##GlamEnvMM', tonumber(s.minimap_icon_target) or 8, 4, 24, '%.0f');
+    end
 end
 
 local refresh_config_dirs = function()
@@ -505,7 +891,12 @@ local refresh_config_dirs = function()
     configDirs.themes = ashita.fs.get_directory(('%s\\config\\addons\\%s\\Themes\\'):fmt(installPath, addon.name));
     configDirs.layouts = ashita.fs.get_directory(('%s\\config\\addons\\%s\\Layouts\\'):fmt(installPath, addon.name));
     configDirs.buffs = ashita.fs.get_directory(('%s\\resources\\%s'):fmt(installPath, addon.name));
-    configDirs.fonts = ashita.fs.get_dir(fontPath, '.*');
+    font_manager.scan_directory(fontPath);
+    if (gResources.update_shift_jis_font_list ~= nil) then
+        gResources.update_shift_jis_font_list();
+    end
+    local scanned = font_manager.get_all_font_names();
+    configDirs.fonts = (#scanned > 0) and scanned or ashita.fs.get_dir(fontPath, '.*');
 end
 
 local sync_config_ids = function()
@@ -783,6 +1174,10 @@ local render_inventory_tab = function()
         GlamourUI.settings.Inv.theme = themeName;
     end);
     GlamourUI.settings.Inv.font_scale = render_float_setting('FontScale##GlamInvPanel', GlamourUI.settings.Inv.font_scale, 0.1, 5.0, '%.1f');
+    render_font_combo('Font##GlamInvTab', GlamourUI.settings.Inv.font or '', function(name)
+        GlamourUI.settings.Inv.font = name;
+        gResources.reload_font(name ~= '' and name or GlamourUI.settings.font);
+    end);
 
     imgui.Separator();
     render_panel_background_controls('InvPanelPB', GlamourUI.settings.Inv);
@@ -816,6 +1211,9 @@ render_chat_color_swatch = function(purpose, color)
 
     if (imgui.BeginPopup(('ColorPicker##' .. purpose))) then
         imgui.ColorPicker3(('##CP' .. purpose), color);
+        if (gChat ~= nil and gChat.invalidate_draw_cache ~= nil) then
+            gChat.invalidate_draw_cache();
+        end
         imgui.EndPopup();
     end
 end
@@ -874,6 +1272,10 @@ local render_chat_logs_tab = function()
     chatSettings.maxEntries = maxBufTab[1];
 
     chatSettings.inputFontScale = render_float_setting('Input Font Scale##GlamChatInput', chatSettings.inputFontScale or 1.0, 0.1, 5.0, '%.1f');
+    render_font_combo('Input Font##GlamChatInput', chatSettings.font or '', function(name)
+        chatSettings.font = font_manager.pick_shift_jis_fallback(name, GlamourUI.settings.font);
+        gResources.reload_font(chatSettings.font);
+    end, { shift_jis_only = true });
     local inputBgHolder = build_chat_input_panel_style_holder(chatSettings);
     render_panel_background_controls('ChatInputPB', inputBgHolder);
     save_chat_input_panel_style_holder(chatSettings, inputBgHolder);
@@ -882,8 +1284,7 @@ local render_chat_logs_tab = function()
     imgui.Text('Purpose Colors');
     for i = 1, #GlamourUI.chatPurposeOrder do
         local purpose = GlamourUI.chatPurposeOrder[i];
-        local color = chatSettings.purposeColors[purpose] or { 1.0, 1.0, 1.0, 1.0 };
-        render_chat_color_swatch(purpose, color);
+        render_chat_color_swatch(purpose, ensure_chat_purpose_color(chatSettings, purpose));
     end
 
     imgui.Separator();
@@ -917,6 +1318,10 @@ local render_chat_logs_tab = function()
     if (imgui.BeginTabBar('ChatWindowTabs##GlamConf')) then
         if (chatSettings.window1.enabled and imgui.BeginTabItem('Chat Window 1##GlamChatWin1')) then
             chatSettings.window1.font_scale = render_float_setting('Font Scale##GlamChatWin1Font', chatSettings.window1.font_scale or 1.0, 0.1, 5.0, '%.1f');
+            render_font_combo('Font##GlamChatWin1', chatSettings.window1.font or '', function(name)
+                chatSettings.window1.font = font_manager.pick_shift_jis_fallback(name, GlamourUI.settings.font);
+                gResources.reload_font(chatSettings.window1.font);
+            end, { shift_jis_only = true });
             local w1capTab = { math.floor(math.min(20000, math.max(100, tonumber(chatSettings.window1.maxLines) or tonumber(chatSettings.maxEntries) or 1000))) };
             imgui.SliderInt('Max lines in this window##GlamChatWin1MaxLinesTab', w1capTab, 100, 20000);
             chatSettings.window1.maxLines = w1capTab[1];
@@ -932,6 +1337,10 @@ local render_chat_logs_tab = function()
         end
         if (chatSettings.window2.enabled and imgui.BeginTabItem('Chat Window 2##GlamChatWin2')) then
             chatSettings.window2.font_scale = render_float_setting('Font Scale##GlamChatWin2Font', chatSettings.window2.font_scale or 1.0, 0.1, 5.0, '%.1f');
+            render_font_combo('Font##GlamChatWin2', chatSettings.window2.font or '', function(name)
+                chatSettings.window2.font = font_manager.pick_shift_jis_fallback(name, GlamourUI.settings.font);
+                gResources.reload_font(chatSettings.window2.font);
+            end, { shift_jis_only = true });
             local w2capTab = { math.floor(math.min(20000, math.max(100, tonumber(chatSettings.window2.maxLines) or tonumber(chatSettings.maxEntries) or 1000))) };
             imgui.SliderInt('Max lines in this window##GlamChatWin2MaxLinesTab', w2capTab, 100, 20000);
             chatSettings.window2.maxLines = w2capTab[1];
@@ -972,36 +1381,21 @@ local render_player_stats_tab = function()
 
     GlamourUI.settings.PlayerStats.gui_scale = render_float_setting('GuiScale##GlamPlayerStats', GlamourUI.settings.PlayerStats.gui_scale, 0.1, 5.0, '%.1f');
     GlamourUI.settings.PlayerStats.font_scale = render_float_setting('FontScale##GlamPlayerStats', GlamourUI.settings.PlayerStats.font_scale, 0.1, 5.0, '%.1f');
+    render_font_combo('Font##GlamPlayerStats', GlamourUI.settings.PlayerStats.font or '', function(name)
+        GlamourUI.settings.PlayerStats.font = name;
+        gResources.reload_font(name ~= '' and name or GlamourUI.settings.font);
+    end);
 
-    local barLength = {GlamourUI.settings.PlayerStats.BarDim.l};
-    local barGirth = {GlamourUI.settings.PlayerStats.BarDim.g};
-
-    imgui.Text('Bar Dimensions');
-    imgui.PushItemWidth(math.max(80, conf_content_avail_x() - conf_slider_arrow_pair_reserve));
-    imgui.SliderInt('Length##GlamPlayerStatsBarTab', barLength, 0, 700);
-    imgui.PopItemWidth();
-    GlamourUI.settings.PlayerStats.BarDim.l = barLength[1];
-    imgui.SameLine(0, 6);
-    if(imgui.ArrowButton('lleft##GlamPlayerStatsBarTab', ImGuiDir_Left))then
-        GlamourUI.settings.PlayerStats.BarDim.l = GlamourUI.settings.PlayerStats.BarDim.l - 1;
+    if(GlamourUI.settings.PlayerStats.expBarDim == nil)then
+        GlamourUI.settings.PlayerStats.expBarDim = { l = 600, g = 14 };
     end
-    imgui.SameLine(0, 2);
-    if(imgui.ArrowButton('lright##GlamPlayerStatsBarTab', ImGuiDir_Right))then
-        GlamourUI.settings.PlayerStats.BarDim.l = GlamourUI.settings.PlayerStats.BarDim.l + 1;
+    if(type(GlamourUI.settings.PlayerStats.barPadding) ~= 'number')then
+        GlamourUI.settings.PlayerStats.barPadding = 50;
     end
 
-    imgui.PushItemWidth(math.max(80, conf_content_avail_x() - conf_slider_arrow_pair_reserve));
-    imgui.SliderInt('Girth##GlamPlayerStatsBarTab', barGirth, 0, 100);
-    imgui.PopItemWidth();
-    GlamourUI.settings.PlayerStats.BarDim.g = barGirth[1];
-    imgui.SameLine(0, 6);
-    if(imgui.ArrowButton('gleft##GlamPlayerStatsBarTab', ImGuiDir_Up))then
-        GlamourUI.settings.PlayerStats.BarDim.g = GlamourUI.settings.PlayerStats.BarDim.g - 1;
-    end
-    imgui.SameLine(0, 2);
-    if(imgui.ArrowButton('gright##GlamPlayerStatsBarTab', ImGuiDir_Down))then
-        GlamourUI.settings.PlayerStats.BarDim.g = GlamourUI.settings.PlayerStats.BarDim.g + 1;
-    end
+    render_pstats_bar_dim_controls('HP / MP / TP Bar Dimensions', GlamourUI.settings.PlayerStats.BarDim, 'StatTab');
+    GlamourUI.settings.PlayerStats.barPadding = render_float_setting('Bar Padding##GlamPlayerStatsPadTab', GlamourUI.settings.PlayerStats.barPadding, 0, 200, '%.0f');
+    render_pstats_bar_dim_controls('EXP / CP Bar Dimensions', GlamourUI.settings.PlayerStats.expBarDim, 'ExpTab');
 
     imgui.Separator();
     render_panel_background_controls('PlayerStatsPB', GlamourUI.settings.PlayerStats);
@@ -1051,68 +1445,38 @@ conf.render_config = function()
             configWasOpen = true;
         end
 
-        local baseW, baseH = 600, 800;
         local winW = scaling.window.w or 1920;
         local winH = scaling.window.h or 1080;
         local scaleW = (winW / 1920);
         local scaleH = (winH / 1080);
-        local confW = math.floor(baseW * scaleW);
-        local confH = math.floor(baseH * scaleH);
-        confW = math.max(420, confW);
-        confH = math.max(520, confH);
 
-        imgui.SetNextWindowSize({confW, confH}, ImGuiCond_Always);
+        local configFontPushed = gResources.push_font_scale(0.35);
+        local tabs = conf_build_tabs();
+
+        local selectedValid = false;
+        for i = 1, #tabs do
+            if (tabs[i].show and tabs[i].id == conf.selected_tab) then
+                selectedValid = true;
+                break;
+            end
+        end
+        if (not selectedValid) then
+            conf.selected_tab = 'General';
+        end
+
+        local confW, confH, headerH, footerH = conf_calc_window_size(tabs, conf.selected_tab, scaleW, scaleH, winW, winH);
+        imgui.SetNextWindowSize({ confW, confH }, ImGuiCond_Always);
+
         if(imgui.Begin('ConfMain##GlamConf', conf.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_NoScrollbar, ImGuiWindowFlags_NoScrollWithMouse)))then
-            local configFontPushed = gResources.push_font_scale(0.35);
-
-            local headerH = math.max(55, math.floor(90 * scaleH));
-            local footerH = math.max(40, math.floor(55 * scaleH));
-
-            local tabs = T{
-                { id = 'General', label = 'General', show = true },
-                { id = 'PartyList', label = 'Party List', show = GlamourUI.settings.Party.pList.enabled == true },
-                { id = 'Alliance', label = 'Alliance', show = GlamourUI.settings.Party.aPanel.enabled == true },
-                { id = 'TargetBar', label = 'Target Bar', show = GlamourUI.settings.TargetBar.enabled == true },
-                { id = 'PlayerStats', label = 'Player Stats', show = GlamourUI.settings.PlayerStats.enabled == true },
-                { id = 'Inventory', label = 'Inventory', show = GlamourUI.settings.Inv.enabled == true },
-                { id = 'Recast', label = 'Recast', show = GlamourUI.settings.rcPanel.enabled == true },
-                { id = 'Chat', label = 'Chat', show = GlamourUI.settings.Chat.enabled == true },
-                { id = 'CastBar', label = 'Cast Bar', show = GlamourUI.settings.cBar.enabled == true },
-                { id = 'Compass', label = 'Compass', show = GlamourUI.settings.Compass ~= nil and GlamourUI.settings.Compass.enabled == true },
-                { id = 'Environment', label = 'Environment', show = true },
-            };
-
-            local selectedValid = false;
-            for i = 1, #tabs do
-                if (tabs[i].show and tabs[i].id == conf.selected_tab) then
-                    selectedValid = true;
-                    break;
-                end
-            end
-            if (not selectedValid) then
-                conf.selected_tab = 'General';
-            end
 
             imgui.BeginChild('ConfHeader##GlamConf', {-1, headerH}, 0);
-            local title = 'Glamour UI Configuration';
-            local txtOffset = ((imgui.GetWindowWidth() - imgui.CalcTextSize(title)) * 0.5);
+            local titleW = conf_calc_text_size(CONFIG_TITLE);
+            local txtOffset = ((imgui.GetWindowWidth() - titleW) * 0.5);
             imgui.SetCursorPosX(math.max(0, txtOffset));
-            imgui.Text(title);
+            imgui.Text(CONFIG_TITLE);
             imgui.Separator();
 
-            local firstTab = true;
-            for i = 1, #tabs do
-                if (tabs[i].show) then
-                    if (not firstTab) then
-                        imgui.SameLine();
-                    end
-                    firstTab = false;
-                    local isSel = conf.selected_tab == tabs[i].id;
-                    if (tab_button(tabs[i].label, tabs[i].id, isSel)) then
-                        conf.selected_tab = tabs[i].id;
-                    end
-                end
-            end
+            conf_render_tab_bar(tabs, imgui.GetWindowWidth() - 16);
             imgui.EndChild();
 
             imgui.BeginChild('ConfContents##GlamConf', {-1, -footerH}, 0);
@@ -1576,5 +1940,11 @@ conf.render_config = function()
         end
     end
 end
+
+conf.refresh_config_dirs = refresh_config_dirs;
+conf.get_config_dirs = function()
+    return configDirs;
+end;
+conf.render_font_combo = render_font_combo;
 
 return conf;

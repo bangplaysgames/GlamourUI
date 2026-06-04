@@ -6,6 +6,7 @@ local chat = require('chat');
 local compat = require('compat');
 local imgui = require('imgui');
 local gBuffs = require('buffTable');
+local font_manager = require('font_manager');
 
 local d3d8_device = d3d8.get_device();
 
@@ -83,7 +84,9 @@ end
 
 local resources = {}
 
-resources.fontBaseSize = 45
+resources.fontBaseSize = 45;
+resources.loaded_fonts = {};
+resources.default_font_name = nil;
 
 local function load_dummy_icon()
     local icon_path = ('%s\\addons\\%s\\ladybug.png'):fmt(AshitaCore:GetInstallPath(), 'GlamourUI');
@@ -432,53 +435,241 @@ resources.get_player_buff_timer_seconds_split = function()
     return buffSecs, debuffSecs;
 end
 
-local function merge_gob_star_glyph(fontSize)
-    if (ImFontConfig == nil or ImFontGlyphRangesBuilder == nil) then
-        return false;
-    end
-
-    local mergeCandidates = {
+local function get_glyph_merge_font_candidates()
+    local candidates = {
         'C:\\Windows\\Fonts\\seguisym.ttf',
         'C:\\Windows\\Fonts\\arial.ttf',
         'C:\\Windows\\Fonts\\DejaVuSans.ttf',
+        '/System/Library/Fonts/Supplemental/Arial.ttf',
+        '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
+        '/Library/Fonts/Arial.ttf',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        '/usr/share/fonts/TTF/DejaVuSans.ttf',
     };
+    return candidates;
+end
 
-    local mergePath = nil;
-    for i = 1, #mergeCandidates do
-        if (ashita.fs.exists(mergeCandidates[i])) then
-            mergePath = mergeCandidates[i];
-            break;
+local function merge_font_glyphs(fontSize, codepoints)
+    if (ImFontConfig == nil or codepoints == nil or #codepoints == 0) then
+        return false;
+    end
+
+    local mergeCandidates = get_glyph_merge_font_candidates();
+    local ok = false;
+
+    for c = 1, #mergeCandidates do
+        local mergePath = mergeCandidates[c];
+        if (ashita.fs.exists(mergePath)) then
+            local mergeOk = pcall(function()
+                local rangeCount = (#codepoints * 2) + 1;
+                local ranges = ffi.new('uint16_t[?]', rangeCount);
+                for i = 1, #codepoints do
+                    local cp = codepoints[i];
+                    ranges[(i - 1) * 2] = cp;
+                    ranges[(i - 1) * 2 + 1] = cp;
+                end
+                ranges[rangeCount - 1] = 0;
+                local cfg = ImFontConfig();
+                cfg.MergeMode = true;
+                cfg.PixelSnapH = true;
+                imgui.AddFontFromFileTTF(mergePath, fontSize, cfg, ranges);
+            end);
+            if (mergeOk == true) then
+                ok = true;
+                break;
+            end
         end
     end
 
-    if (mergePath == nil) then
-        return false;
+    return ok;
+end
+
+local function merge_gob_star_glyph(fontSize)
+    return merge_font_glyphs(fontSize, { 0x2605, 0x2606 });
+end
+
+local function merge_backslash_glyph(fontSize)
+    -- Many JP/CJK fonts draw U+005C as yen; merge an ASCII backslash glyph.
+    return merge_font_glyphs(fontSize, { 0x005C });
+end
+
+resources.resolve_font_name = function(fontName)
+    if (fontName ~= nil and fontName ~= '') then
+        return fontName;
+    end
+    if (GlamourUI ~= nil and GlamourUI.settings ~= nil and GlamourUI.settings.font ~= nil and GlamourUI.settings.font ~= '') then
+        return GlamourUI.settings.font;
+    end
+    return resources.default_font_name;
+end
+
+resources.get_font = function(fontName)
+    local name = resources.resolve_font_name(fontName);
+    if (name == nil or name == '') then
+        return nil;
     end
 
-    local ok = pcall(function()
-        local ranges = ffi.new('uint16_t[3]', 0x2605, 0x2606, 0);
-        local cfg = ImFontConfig();
-        cfg.MergeMode = true;
-        cfg.PixelSnapH = true;
-        imgui.AddFontFromFileTTF(mergePath, fontSize, cfg, ranges);
-    end);
+    local cached = resources.loaded_fonts[name];
+    if (cached ~= nil) then
+        return cached;
+    end
 
-    return ok == true;
+    local path = font_manager.get_font_path(name);
+    if (path == nil or ashita.fs.exists(path) ~= true) then
+        return nil;
+    end
+
+    local fontSize = resources.fontBaseSize;
+    local font = imgui.AddFontFromFileTTF(path, fontSize);
+    if (font == nil) then
+        return nil;
+    end
+
+    merge_gob_star_glyph(fontSize);
+    merge_backslash_glyph(fontSize);
+    resources.loaded_fonts[name] = font;
+    return font;
 end
 
 resources.loadFont = function(f)
-    local fontSize = resources.fontBaseSize;
-    GlamourUI.font = imgui.AddFontFromFileTTF(('%s\\config\\addons\\%s\\Fonts\\%s'):fmt(AshitaCore:GetInstallPath(), addon.name, f), fontSize);
-    GlamourUI.starGlyphMerged = merge_gob_star_glyph(fontSize);
+    resources.default_font_name = f;
+    GlamourUI.font = resources.get_font(f);
 end
 
-resources.push_font_scale = function(scale)
-    if(GlamourUI.font == nil)then
+resources.reload_font = function(fontName)
+    if (fontName == nil or fontName == '') then
+        return;
+    end
+    resources.loaded_fonts[fontName] = nil;
+    resources.get_font(fontName);
+    if (resources.resolve_font_name(fontName) == resources.resolve_font_name(nil)) then
+        GlamourUI.font = resources.get_font(fontName);
+    end
+end
+
+local function add_font_name_to_set(set, fontName)
+    if (fontName ~= nil and fontName ~= '') then
+        set[fontName] = true;
+    end
+end
+
+-- Codepoints FFXI chat commonly needs after CP932 decode.
+local SHIFT_JIS_PROBE_CODEPOINTS = {
+    0x0041,
+    0x3042,
+    0x30A2,
+    0x65E5,
+    0x3000,
+    0xFF0F,
+};
+
+local function font_name_suggests_shift_jis(fontName)
+    if (fontName == nil or fontName == '') then
+        return false;
+    end
+    local n = fontName:lower();
+    return n:find('kosugi', 1, true) ~= nil
+        or n:find('maru', 1, true) ~= nil
+        or n:find('fff', 1, true) ~= nil
+        or n:find('tusj', 1, true) ~= nil
+        or n:find('spicy', 1, true) ~= nil
+        or n:find('strawberry', 1, true) ~= nil
+        or n:find('mystic', 1, true) ~= nil
+        or n:find('mincho', 1, true) ~= nil
+        or n:find('gothic', 1, true) ~= nil
+        or n:find('notosanscjk', 1, true) ~= nil
+        or n:find('msgothic', 1, true) ~= nil
+        or n:find('cjk', 1, true) ~= nil;
+end
+
+resources.font_supports_shift_jis = function(fontName)
+    if (fontName == nil or fontName == '') then
         return false;
     end
 
-    local fontSize = math.max(resources.fontBaseSize * scale, 1);
-    imgui.PushFont(GlamourUI.font, fontSize);
+    if (font_manager.supports_shift_jis(fontName)) then
+        return true;
+    end
+
+    local font = resources.get_font(fontName);
+    if (font ~= nil and font.IsGlyphInFont ~= nil) then
+        local glyphOk = true;
+        for i = 1, #SHIFT_JIS_PROBE_CODEPOINTS do
+            if (font:IsGlyphInFont(SHIFT_JIS_PROBE_CODEPOINTS[i]) ~= true) then
+                glyphOk = false;
+                break;
+            end
+        end
+        if (glyphOk) then
+            return true;
+        end
+    end
+
+    return font_name_suggests_shift_jis(fontName);
+end
+
+resources.update_shift_jis_font_list = function()
+    font_manager.shift_jis_font_names = T{};
+    local names = font_manager.get_all_font_names();
+    for i = 1, #names do
+        local name = names[i];
+        if (resources.font_supports_shift_jis(name)) then
+            font_manager.shift_jis_font_names[#font_manager.shift_jis_font_names + 1] = name;
+            local meta = font_manager.get_meta(name);
+            if (meta ~= nil) then
+                meta.supports_shift_jis = true;
+            end
+        end
+    end
+    table.sort(font_manager.shift_jis_font_names);
+end
+
+resources.preload_configured_fonts = function(settings)
+    if (settings == nil) then
+        return;
+    end
+
+    local names = {};
+    add_font_name_to_set(names, settings.font);
+    if (settings.Party ~= nil) then
+        if (settings.Party.pList ~= nil) then add_font_name_to_set(names, settings.Party.pList.font); end
+        if (settings.Party.aPanel ~= nil) then add_font_name_to_set(names, settings.Party.aPanel.font); end
+    end
+    add_font_name_to_set(names, settings.TargetBar and settings.TargetBar.font);
+    add_font_name_to_set(names, settings.PlayerStats and settings.PlayerStats.font);
+    add_font_name_to_set(names, settings.Inv and settings.Inv.font);
+    add_font_name_to_set(names, settings.rcPanel and settings.rcPanel.font);
+    add_font_name_to_set(names, settings.cBar and settings.cBar.font);
+    add_font_name_to_set(names, settings.Compass and settings.Compass.font);
+    add_font_name_to_set(names, settings.Env and settings.Env.font);
+
+    local chat = settings.Chat;
+    if (chat ~= nil) then
+        add_font_name_to_set(names, chat.font);
+        if (chat.window1 ~= nil) then add_font_name_to_set(names, chat.window1.font); end
+        if (chat.window2 ~= nil) then add_font_name_to_set(names, chat.window2.font); end
+    end
+
+    for fontName, _ in pairs(names) do
+        resources.get_font(fontName);
+    end
+end
+
+resources.push_font_scale = function(scale, fontOrSettings)
+    local fontName = nil;
+    if (type(fontOrSettings) == 'table') then
+        fontName = fontOrSettings.font;
+    elseif (type(fontOrSettings) == 'string') then
+        fontName = fontOrSettings;
+    end
+
+    local font = resources.get_font(fontName);
+    if (font == nil) then
+        return false;
+    end
+
+    local fontSize = math.max(resources.fontBaseSize * (tonumber(scale) or 1), 1);
+    imgui.PushFont(font, fontSize);
     return true;
 end
 

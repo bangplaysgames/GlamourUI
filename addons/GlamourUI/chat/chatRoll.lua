@@ -1,9 +1,3 @@
---[[
-    Corsair roll parsing, enrichment, deduplication, and display logic.
-    All roll state and helpers live here; chatlog.lua wires up the color
-    callback via M.init() and delegates to these functions at runtime.
-]]
-
 local rollData = require('roll_data');
 
 local M = {};

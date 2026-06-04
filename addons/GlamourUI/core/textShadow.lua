@@ -1,8 +1,3 @@
---[[
-  Fake drop shadow for ImGui.Text / TextColored / TextDisabled / TextWrapped.
-  Use suppress_begin/suppress_end around regions that must not be shadowed (e.g. chat).
-]]
-
 local M = {
     _depth = 0,
     _orig = nil,

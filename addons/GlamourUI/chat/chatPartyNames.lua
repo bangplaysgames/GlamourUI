@@ -1,7 +1,3 @@
---[[
-    Party / trust name coloring for Glamour chat (role-based trinity colors).
-    Matches ChatTest behavior: trusts in party → white; players → job role colors.
-]]
 require('common');
 
 local M = {};

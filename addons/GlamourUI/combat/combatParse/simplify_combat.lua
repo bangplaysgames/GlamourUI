@@ -26,6 +26,10 @@ local EXCLUDED = T{
     23, 64, 133, 204, 210, 211, 212, 213, 214, 350, 442, 516, 531, 557, 565, 582,
     --- Records of Eminence / FoV-GoV (${regime}, ${number}/${number2}) — simplify drops placeholders.
     558, 690, 697, 698, 704, 705, 740,
+    --- /checkparam and other debug stat readouts (hit-eva, atk-def, HIT-EVA, ATK-DEF, etc.).
+    79, 80, 81, 99, 105, 179, 180, 181, 182, 183, 184,
+    --- Experience / limit / capacity point messages (keep retail wording).
+    8, 10, 21, 37, 253, 371, 372, 718, 735,
 };
 
 local STATUS_FORCE = T{

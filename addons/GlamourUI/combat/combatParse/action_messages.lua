@@ -1,8 +1,3 @@
---[[
-    Action / battle log message templates (en/jp + color hint).
-    Part of GlamourUI combatParse — loaded via require('action_messages').
-]]
-
 return {
 	[1] = {id=1,jp="${actor}の攻撃→${target}に、${number}ダメージ。",en="${actor} hits ${target} for ${number} points of damage.",color="D"},
 	[2] = {id=2,jp="${actor}の${spell}が発動。${lb}→${target}に、${number}ダメージ。",en="${actor} casts ${spell}.${lb}${target} takes ${number} points of damage.",color="D"},

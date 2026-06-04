@@ -1,9 +1,12 @@
---[[
-    GlamourUI custom chat receiver — handles plugin events from third-party addons.
-]]
-
 local installPath = AshitaCore and AshitaCore:GetInstallPath() or '';
-local libPath = installPath .. 'addons/GlamourUI/libs/';
+local root = addon.path;
+if (root == nil or root == '') then
+    root = installPath .. 'addons/GlamourUI/';
+end
+if (root:sub(-1) ~= '/' and root:sub(-1) ~= '\\') then
+    root = root .. '/';
+end
+local libPath = root .. 'chat/libs/';
 if (not package.path:find(libPath, 1, true)) then
     package.path = libPath .. '?.lua;' .. package.path;
 end

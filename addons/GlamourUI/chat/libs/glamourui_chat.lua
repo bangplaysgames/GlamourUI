@@ -2,7 +2,7 @@
     GlamourUI custom chat — sender API for third-party addons.
 
     Setup (once per addon):
-        package.path = AshitaCore:GetInstallPath() .. 'addons/GlamourUI/libs/?.lua;' .. package.path
+        package.path = AshitaCore:GetInstallPath() .. 'addons/GlamourUI/chat/libs/?.lua;' .. package.path
         local glamChat = require('glamourui_chat')
 
     Dual-mode usage:
@@ -23,7 +23,7 @@
 ]]
 
 local installPath = AshitaCore and AshitaCore:GetInstallPath() or '';
-local libPath = installPath .. 'addons/GlamourUI/libs/';
+local libPath = installPath .. 'addons/GlamourUI/chat/libs/';
 if (not package.path:find(libPath, 1, true)) then
     package.path = libPath .. '?.lua;' .. package.path;
 end

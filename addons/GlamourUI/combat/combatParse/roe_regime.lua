@@ -1,6 +1,3 @@
---[[
-    Records of Eminence: resolve ${regime} ids to display names and format 0x29 lines.
-]]
 require('common');
 
 local M = {};
