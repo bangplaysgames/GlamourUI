@@ -1,4 +1,4 @@
-﻿return {
+return {
     [1] = "First Step Forward +",
     [2] = "Vanquish 1 Enemy +",
     [3] = "Undertake a FoV Training Regime",

@@ -893,8 +893,8 @@ end
 
 packet.HandleOutgoingChunk = function(e)
     local time = os.clock();
-       
-    
+
+
     local offset = 0;
     while (offset < e.chunk_size) do
         local id    = ashita.bits.unpack_be(e.chunk_data_raw, offset, 0, 9);
