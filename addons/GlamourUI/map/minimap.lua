@@ -2,13 +2,37 @@ local ffi = require('ffi');
 local imgui = require('imgui');
 local mapcore = require('mapcore');
 local maptexture = require('maptexture');
+local map_grid = require('map_grid');
 local minimap_entities = require('minimap_entities');
 
 local M = {};
 
-M.map_zoom = -1.0;
-M.last_zone_key = nil;
+local ZOOM_MINIMAP = 'minimap';
+local ZOOM_FULLSCREEN = 'fullscreen';
+
+M.zoom_state = {
+    [ZOOM_MINIMAP] = { zoom = -1.0, last_zone_key = nil },
+    [ZOOM_FULLSCREEN] = { zoom = -1.0, last_zone_key = nil },
+};
+
 M.heading_fn = nil;
+
+local function resolve_zoom_context(opts)
+    if (opts ~= nil and opts.zoomContext == ZOOM_FULLSCREEN) then
+        return ZOOM_FULLSCREEN;
+    end
+    if (opts ~= nil and opts.zoomContext == ZOOM_MINIMAP) then
+        return ZOOM_MINIMAP;
+    end
+    if (opts ~= nil and opts.panState ~= nil) then
+        return ZOOM_FULLSCREEN;
+    end
+    return ZOOM_MINIMAP;
+end
+
+local function zoom_state_for(context)
+    return M.zoom_state[context] or M.zoom_state[ZOOM_MINIMAP];
+end
 
 function M.set_heading_fn(fn)
     M.heading_fn = fn;
@@ -27,10 +51,11 @@ local function zone_key_from_data()
     return mapcore.get_zone_key();
 end
 
-local function load_saved_zoom(zoneKey)
+local function load_saved_zoom(zoneKey, context)
     local s = env_settings();
-    if (zoneKey ~= nil and s ~= nil and s.minimap_zone_zoom ~= nil and s.minimap_zone_zoom[zoneKey] ~= nil) then
-        local z = tonumber(s.minimap_zone_zoom[zoneKey]);
+    local settingKey = (context == ZOOM_FULLSCREEN) and 'fullscreen_map_zone_zoom' or 'minimap_zone_zoom';
+    if (zoneKey ~= nil and s ~= nil and s[settingKey] ~= nil and s[settingKey][zoneKey] ~= nil) then
+        local z = tonumber(s[settingKey][zoneKey]);
         if (z ~= nil and z > 0) then
             return z;
         end
@@ -38,19 +63,24 @@ local function load_saved_zoom(zoneKey)
     return nil;
 end
 
-local function save_zoom(zoneKey, zoom)
+local function save_zoom(zoneKey, zoom, context)
     local s = env_settings();
     if (s == nil or zoneKey == nil or zoom == nil) then
         return;
     end
-    if (s.minimap_zone_zoom == nil) then
-        s.minimap_zone_zoom = {};
+    local settingKey = (context == ZOOM_FULLSCREEN) and 'fullscreen_map_zone_zoom' or 'minimap_zone_zoom';
+    if (s[settingKey] == nil) then
+        s[settingKey] = {};
     end
-    s.minimap_zone_zoom[zoneKey] = zoom;
+    s[settingKey][zoneKey] = zoom;
 end
 
-local function default_zoom_multiplier()
+local function default_zoom_multiplier(context)
     local s = env_settings();
+    if (context == ZOOM_FULLSCREEN) then
+        return math.max(1.0, math.min(10.0, tonumber(s and s.fullscreen_map_default_zoom)
+            or tonumber(s and s.minimap_default_zoom) or 1.0));
+    end
     return math.max(1.0, math.min(10.0, tonumber(s and s.minimap_default_zoom) or 1.0));
 end
 
@@ -61,18 +91,27 @@ end
 
 local function apply_zoom_for_active_map()
     local zoneKey = zone_key_from_data();
-    if (zoneKey ~= nil and zoneKey ~= M.last_zone_key) then
-        M.last_zone_key = zoneKey;
-        local saved = load_saved_zoom(zoneKey);
-        M.map_zoom = (saved ~= nil) and saved or -1.0;
+    if (zoneKey == nil) then
+        return;
+    end
+
+    for _, context in ipairs({ ZOOM_MINIMAP, ZOOM_FULLSCREEN }) do
+        local st = zoom_state_for(context);
+        if (zoneKey ~= st.last_zone_key) then
+            st.last_zone_key = zoneKey;
+            local saved = load_saved_zoom(zoneKey, context);
+            st.zoom = (saved ~= nil) and saved or -1.0;
+        end
     end
 end
 
 function M.reload_map()
     local ok, err = maptexture.activate_current_floor();
     if (not ok) then
-        M.map_zoom = -1.0;
-        M.last_zone_key = nil;
+        M.zoom_state[ZOOM_MINIMAP].zoom = -1.0;
+        M.zoom_state[ZOOM_MINIMAP].last_zone_key = nil;
+        M.zoom_state[ZOOM_FULLSCREEN].zoom = -1.0;
+        M.zoom_state[ZOOM_FULLSCREEN].last_zone_key = nil;
         return false, err;
     end
 
@@ -341,7 +380,7 @@ local function draw_player_marker(dl, centerX, centerY, headingRad, size, opacit
     dl:AddCircleFilled({ centerX, centerY }, 2.5, bit.bor(bit.lshift(dotAlpha, 24), 0x00FFFFFF), 8);
 end
 
---- Draw map into the current ImGui region. opts: width, height, mapOpacity, interactive, persistZoom, centerOnPlayer.
+--- Draw map into the current ImGui region. opts: width, height, mapOpacity, interactive, persistZoom, centerOnPlayer, zoomContext.
 --- Returns true when map was drawn, false when unavailable (caller may show a message).
 function M.draw_viewport(opts)
     opts = opts or {};
@@ -353,6 +392,8 @@ function M.draw_viewport(opts)
     local centerOnPlayer = (opts.centerOnPlayer ~= false);
     local panState = opts.panState;
     local fadeOverlayWithMapOpacity = (opts.fadeOverlayWithMapOpacity == true);
+    local zoomContext = resolve_zoom_context(opts);
+    local zoomSt = zoom_state_for(zoomContext);
 
     if (not maptexture.is_ready()) then
         return false;
@@ -362,21 +403,23 @@ function M.draw_viewport(opts)
     local guiScale = tonumber(s and s.gui_scale) or 1;
 
     local zoneKey = zone_key_from_data();
-    if (zoneKey ~= nil and zoneKey ~= M.last_zone_key) then
-        M.last_zone_key = zoneKey;
-        local saved = load_saved_zoom(zoneKey);
-        M.map_zoom = (saved ~= nil) and saved or -1.0;
+    if (zoneKey ~= nil and zoneKey ~= zoomSt.last_zone_key) then
+        zoomSt.last_zone_key = zoneKey;
+        local saved = load_saved_zoom(zoneKey, zoomContext);
+        zoomSt.zoom = (saved ~= nil) and saved or -1.0;
     end
 
     local childMinX, childMinY = imgui.GetCursorScreenPos();
     local texW = maptexture.width;
     local texH = maptexture.height;
     local minZoom = math.min(availW / texW, availH / texH);
+    local mapZoom = zoomSt.zoom;
 
-    if (M.map_zoom < 0) then
-        M.map_zoom = math.min(minZoom * default_zoom_multiplier(), 5.0);
+    if (mapZoom < 0) then
+        mapZoom = math.min(minZoom * default_zoom_multiplier(zoomContext), 5.0);
     end
-    M.map_zoom = math.max(minZoom, math.min(M.map_zoom, 5.0));
+    mapZoom = math.max(minZoom, math.min(mapZoom, 5.0));
+    zoomSt.zoom = mapZoom;
 
     local mouseX, mouseY = imgui.GetMousePos();
     local hovered = mouseX >= childMinX and mouseX <= (childMinX + availW)
@@ -385,12 +428,13 @@ function M.draw_viewport(opts)
     if (interactive) then
         local wheel = imgui.GetIO().MouseWheel;
         if (hovered and wheel ~= 0) then
-            local oldZoom = M.map_zoom;
+            local oldZoom = mapZoom;
             local newZoom = math.max(minZoom, math.min(oldZoom + wheel * zoom_step(), 5.0));
             if (math.abs(newZoom - oldZoom) > 0.0001) then
-                M.map_zoom = newZoom;
+                mapZoom = newZoom;
+                zoomSt.zoom = mapZoom;
                 if (persistZoom and zoneKey ~= nil) then
-                    save_zoom(zoneKey, M.map_zoom);
+                    save_zoom(zoneKey, mapZoom, zoomContext);
                 end
             end
         end
@@ -399,17 +443,17 @@ function M.draw_viewport(opts)
     local offsetX, offsetY;
     if (panState ~= nil) then
         offsetX, offsetY = update_fullscreen_pan(
-            panState, availW, availH, texW, texH, M.map_zoom, mouseX, mouseY, hovered, interactive
+            panState, availW, availH, texW, texH, mapZoom, mouseX, mouseY, hovered, interactive
         );
     else
-        offsetX, offsetY = compute_map_offset(availW, availH, texW, texH, M.map_zoom, centerOnPlayer);
+        offsetX, offsetY = compute_map_offset(availW, availH, texW, texH, mapZoom, centerOnPlayer);
     end
     if (offsetX == nil) then
         return false;
     end
 
-    local texWidth = texW * M.map_zoom;
-    local texHeight = texH * M.map_zoom;
+    local texWidth = texW * mapZoom;
+    local texHeight = texH * mapZoom;
     local posX = childMinX + offsetX;
     local posY = childMinY + offsetY;
 
@@ -446,7 +490,7 @@ function M.draw_viewport(opts)
         overlayAlpha = math.max(0.0, math.min(1.0, overlayAlpha));
     end
 
-    minimap_entities.draw(dl, childMinX, childMinY, offsetX, offsetY, M.map_zoom, texW, mouseX, mouseY, overlayAlpha);
+    minimap_entities.draw(dl, childMinX, childMinY, offsetX, offsetY, mapZoom, texW, mouseX, mouseY, overlayAlpha);
 
     local headingRad = (M.heading_fn ~= nil) and M.heading_fn() or nil;
     local markerX, markerY;
@@ -454,11 +498,21 @@ function M.draw_viewport(opts)
         markerX = childMinX + availW * 0.5;
         markerY = childMinY + availH * 0.5;
     else
-        markerX, markerY = player_marker_screen_pos(childMinX, childMinY, offsetX, offsetY, M.map_zoom, texW);
+        markerX, markerY = player_marker_screen_pos(childMinX, childMinY, offsetX, offsetY, mapZoom, texW);
     end
     if (markerX ~= nil and markerY ~= nil) then
         local markerOpacity = tonumber(mapOpacityOverride) or tonumber(s and s.minimap_opacity) or 1.0;
         draw_player_marker(dl, markerX, markerY, headingRad, 14 * guiScale, markerOpacity);
+    end
+
+    if (opts.showGridLabel ~= false) then
+        local gridOpacity = tonumber(mapOpacityOverride) or tonumber(s and s.minimap_opacity) or 1.0;
+        if (fadeOverlayWithMapOpacity and mapOpacityOverride ~= nil) then
+            local baseMapOpacity = math.max(0.001, tonumber(s and s.minimap_opacity) or 1.0);
+            gridOpacity = gridOpacity / baseMapOpacity;
+            gridOpacity = math.max(0.0, math.min(1.0, gridOpacity));
+        end
+        map_grid.draw_overlay(dl, clipX1, clipY1, clipX2, clipY2, gridOpacity);
     end
 
     dl:PopClipRect();
@@ -492,6 +546,8 @@ function M.draw()
         height = mapH,
         interactive = true,
         persistZoom = true,
+        zoomContext = 'minimap',
+        showGridLabel = false,
     })) then
         imgui.TextDisabled('Map unavailable');
     end
@@ -500,11 +556,11 @@ function M.draw()
 end
 
 function M.tick()
+    mapcore.tick();
     if (not enabled()) then
         return;
     end
     minimap_entities.scan();
-    mapcore.tick();
 end
 
 ashita.events.register('packet_in', 'glam_minimap_zone_cb', function(e)

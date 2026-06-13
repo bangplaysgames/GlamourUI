@@ -694,6 +694,8 @@ party.player_skills = function()
         [41] = 'String',
         [42] = 'Wind',
         [43] = 'Blue Magic',
+        [44] = 'Geomancy',
+        [45] = 'Handbell',
 
         --Crafts
         [48] = 'Fishing',
@@ -724,7 +726,7 @@ party.player_skills = function()
         combat.Defensive[skillTable[i]] = pCS;
     end
 
-    for i = 32,43 do
+    for i = 32,45 do
         local pCS = player:GetCombatSkill(i);
         combat.Magic[skillTable[i]] = pCS;
     end

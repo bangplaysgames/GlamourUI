@@ -47,6 +47,7 @@ local chatlog = T{
     lastTellFrom = nil,
     lastTellTo = nil,
     lastCombatPacketEmitClock = nil,
+    recentTrustCastByPlayer = T{},
     fsTextInputDisplay = T{
         ready = false,
         source = 'uninitialized',
@@ -740,6 +741,23 @@ local function should_suppress_battle_log_text_in_echo(entry, modeWord)
     local lowPurpose = setmode(bit.band(tonumber(modeWord) or 0, 0xFFFF));
     if (suppress_text_in_for_battle_log_purpose[purpose]
         or suppress_text_in_for_battle_log_purpose[lowPurpose]) then
+        return true;
+    end
+    return false;
+end
+
+local function message_looks_like_broken_trust_join_echo(msg)
+    if (msg == nil or msg == '') then
+        return false;
+    end
+    msg = tostring(msg);
+    if (msg:match('^%([^)]+%)%s+%.$') ~= nil) then
+        return true;
+    end
+    if (msg:match('^%([^)]+%)%s+%${item}$') ~= nil) then
+        return true;
+    end
+    if (msg:match('^%([^)]+%)%s+Indi%-') ~= nil or msg:match('^%([^)]+%)%s+Geo%-') ~= nil) then
         return true;
     end
     return false;
@@ -2670,6 +2688,211 @@ local function handle_system_message_packet_0x53(e)
     end
 end
 
+local TRUST_JOIN_MESSAGE_ID = 711;
+local TRUST_CAST_RECENT_TTL = 8.0;
+
+local function resource_object_display_name(obj)
+    if (obj == nil or obj.Name == nil) then
+        return nil;
+    end
+    local nm = obj.Name;
+    local ok, a, b = pcall(function()
+        return nm[1], nm[2];
+    end);
+    if (ok) then
+        for i = 1, 2 do
+            local v = (i == 1) and a or b;
+            if (v ~= nil) then
+                local s = tostring(v);
+                if (s ~= '' and s ~= 'nil') then
+                    return s;
+                end
+            end
+        end
+    elseif (type(nm) == 'string' and nm ~= '') then
+        return nm;
+    end
+    return nil;
+end
+
+local function prune_recent_trust_casts(now)
+    now = tonumber(now) or os.clock();
+    local store = chatlog.recentTrustCastByPlayer;
+    if (store == nil) then
+        return;
+    end
+    for player, rec in pairs(store) do
+        if (rec == nil or (now - (tonumber(rec.time) or 0)) > TRUST_CAST_RECENT_TTL) then
+            store[player] = nil;
+        end
+    end
+end
+
+function chatlog.note_recent_trust_spell_cast(message)
+    if (message == nil or message == '') then
+        return;
+    end
+    local player, trust, target = tostring(message):match('^%[([^%]]+)%]%s+(.-)%s+→%s*(.+)%s*$');
+    if (player == nil or trust == nil or target == nil) then
+        return;
+    end
+    player = player:match('^%s*(.-)%s*$') or player;
+    target = target:match('^%s*(.-)%s*$') or target;
+    trust = trust:match('^%s*(.-)%s*$') or trust;
+    if (player == '' or trust == '' or trust == '.' or player ~= target) then
+        return;
+    end
+    if (chatlog.recentTrustCastByPlayer == nil) then
+        chatlog.recentTrustCastByPlayer = T{};
+    end
+    chatlog.recentTrustCastByPlayer[player] = {
+        trust = trust,
+        time = os.clock(),
+    };
+    prune_recent_trust_casts();
+end
+
+local function trust_spell_name_is_geo_indi(name)
+    if (name == nil or name == '') then
+        return false;
+    end
+    name = tostring(name);
+    if (name:find('^Indi%-', 1) ~= nil or name:find('^Geo%-', 1) ~= nil) then
+        return true;
+    end
+    return false;
+end
+
+local function trust_name_is_plausible(name)
+    if (name == nil) then
+        return false;
+    end
+    name = tostring(name):match('^%s*(.-)%s*$') or '';
+    if (name == '' or name == '.' or name == '?' or name:find('^#%d+$') ~= nil) then
+        return false;
+    end
+    return true;
+end
+
+local function spell_name_and_trust_flag_from_id(id)
+    id = math.floor(tonumber(id) or 0);
+    if (id <= 0) then
+        return nil, false;
+    end
+
+    local rm2 = AshitaCore and AshitaCore:GetResourceManager() or nil;
+    if (rm2 ~= nil and rm2.GetSpellById ~= nil) then
+        local ok, spell = pcall(function()
+            return rm2:GetSpellById(id);
+        end);
+        if (ok and spell ~= nil) then
+            local raw = resource_object_display_name(spell);
+            if (raw ~= nil and raw ~= '') then
+                local isTrust = raw:find('^Trust:') ~= nil;
+                return raw:gsub('^Trust:%s*', ''), isTrust;
+            end
+        end
+    end
+
+    if (rm2 ~= nil) then
+        for _, tbl in ipairs(T{ 'spells.names', 'spells.names_short', 'spells' }) do
+            local hit = try_get_string_resource(rm2, tbl, id);
+            if (hit ~= nil and hit ~= '') then
+                local isTrust = hit:find('^Trust:') ~= nil;
+                return hit:gsub('^Trust:%s*', ''), isTrust;
+            end
+        end
+    end
+
+    return nil, false;
+end
+
+local function trust_name_from_entity_index(idx, actorName)
+    idx = tonumber(idx) or 0;
+    if (idx <= 0 or GetEntity == nil) then
+        return nil;
+    end
+    local ent = GetEntity(idx);
+    if (ent == nil or ent.Name == nil) then
+        return nil;
+    end
+    local nm = tostring(ent.Name):gsub('%z.*', '');
+    if (not trust_name_is_plausible(nm)) then
+        return nil;
+    end
+    if (actorName ~= nil and actorName ~= '' and nm == actorName) then
+        return nil;
+    end
+    return nm;
+end
+
+local function resolve_trust_join_name_711(p, actorName)
+    prune_recent_trust_casts();
+    local now = os.clock();
+
+    if (actorName ~= nil and actorName ~= '' and chatlog.recentTrustCastByPlayer ~= nil) then
+        local rec = chatlog.recentTrustCastByPlayer[actorName];
+        if (rec ~= nil and trust_name_is_plausible(rec.trust) and (now - (tonumber(rec.time) or 0)) <= TRUST_CAST_RECENT_TTL) then
+            return rec.trust;
+        end
+    end
+
+    local ids = {};
+    local function add_id(v)
+        v = math.floor(tonumber(v) or 0);
+        if (v > 0) then
+            ids[#ids + 1] = v;
+            local lo = bit.band(v, 0xFFFF);
+            if (lo > 0 and lo ~= v) then
+                ids[#ids + 1] = lo;
+            end
+        end
+    end
+    add_id(p.p1);
+    add_id(p.p2);
+
+    for i = 1, #ids do
+        local nm, isTrust = spell_name_and_trust_flag_from_id(ids[i]);
+        if (isTrust and trust_name_is_plausible(nm) and not trust_spell_name_is_geo_indi(nm)) then
+            return nm;
+        end
+    end
+
+    for _, idx in ipairs(T{ p.actIndexTar, p.actIndexCas }) do
+        local nm = trust_name_from_entity_index(idx, actorName);
+        if (nm ~= nil) then
+            return nm;
+        end
+    end
+
+    return nil;
+end
+
+local function append_trust_join_message_711(actorName, trustName)
+    if (not trust_name_is_plausible(actorName) or not trust_name_is_plausible(trustName)) then
+        return;
+    end
+
+    local text = ('(%s) %s'):fmt(actorName, trustName);
+    local committed, shown = append_entry(T{
+        time = os.date('[%H:%M:%S]'),
+        sender = 'System',
+        zone = nil,
+        purpose = 'System',
+        channel = 'system',
+        modeID = '2d',
+        modeBaseID = '2d',
+        rawMessage = nil,
+        message = text,
+        injected = false,
+        isTell = false,
+        killMsgId = TRUST_JOIN_MESSAGE_ID,
+    });
+    if (committed and shown) then
+        record_packet_chat_line(text, true);
+    end
+end
+
 local function handle_kill_message_packet_0x2d(e)
     if (e == nil or e.data == nil or #e.data < 0x18) then
         return;
@@ -2744,6 +2967,18 @@ local function handle_kill_message_packet_0x2d(e)
         if (not sidMatch and not idxMatch) then
             return;
         end
+    end
+
+    if (mid == TRUST_JOIN_MESSAGE_ID) then
+        local actorName = nil;
+        if (selfEnt ~= nil and selfEnt.Name ~= nil and (playerSid == selfSid or targetSid == selfSid)) then
+            actorName = tostring(selfEnt.Name):gsub('%z.*', '');
+        end
+        local trustName = resolve_trust_join_name_711(p, actorName);
+        if (trustName ~= nil) then
+            append_trust_join_message_711(actorName or '???', trustName);
+        end
+        return;
     end
 
     local rm = AshitaCore and AshitaCore:GetResourceManager() or nil;
@@ -2836,25 +3071,12 @@ local function handle_kill_message_packet_0x2d(e)
         end
 
         local function spell_name_from_id(id)
-            id = math.floor(tonumber(id) or 0);
-            if (id <= 0) then
-                return nil;
-            end
-            local rm2 = AshitaCore and AshitaCore:GetResourceManager() or nil;
-            if (rm2 == nil) then
-                return nil;
-            end
-            for _, tbl in ipairs(T{ 'spells.names', 'spells.names_short', 'spells' }) do
-                local hit = try_get_string_resource(rm2, tbl, id);
-                if (hit ~= nil and hit ~= '') then
-                    return hit:gsub('^Trust:%s*', '');
-                end
-            end
-            return nil;
+            local nm = spell_name_and_trust_flag_from_id(id);
+            return nm;
         end
 
-        local item1 = item_name_from_id(p1) or spell_name_from_id(p1) or '';
-        local item2 = item_name_from_id(p2) or spell_name_from_id(p2) or '';
+        local item1 = spell_name_from_id(p1) or item_name_from_id(p1) or '';
+        local item2 = spell_name_from_id(p2) or item_name_from_id(p2) or '';
         if (item1 == '' and GetEntity ~= nil) then
             for _, idx in ipairs(T{ actIndexTar, actIndexCas }) do
                 idx = tonumber(idx) or 0;
@@ -3010,6 +3232,9 @@ chatlog.handle_packet_in = function(e)
         if (combatParse.emit_packet_combat ~= nil) then
             combatParse.emit_packet_combat(e, function(purpose, message)
                 chatlog.lastCombatPacketEmitClock = os.clock();
+                if (purpose == 'Spell Cast') then
+                    chatlog.note_recent_trust_spell_cast(message);
+                end
                 local committed, shown = append_entry(T{
                     time = os.date('[%H:%M:%S]'),
                     sender = 'Battle',
@@ -3347,6 +3572,11 @@ chatlog.handle_text_in = function(e)
 
     if (should_suppress_retail_battle_message_echo(entry)) then
         drop_text_in('retail_battle_echo');
+        return;
+    end
+
+    if (message_looks_like_broken_trust_join_echo(entry.message)) then
+        drop_text_in('broken_trust_join_echo');
         return;
     end
 

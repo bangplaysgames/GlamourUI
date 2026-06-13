@@ -603,6 +603,8 @@ function M.print_help()
 
     print(chat.message('/gmap — open or close full-screen map (Escape closes when not moving)'));
 
+    print(chat.message('/gmap grid — map grid position and per-zone calibration (/gmap grid help)'));
+
 end
 
 
@@ -635,7 +637,11 @@ function M.handle_command(args)
 
     end
 
-
+    if (args[2]:any('grid')) then
+        if (require('map_grid').handle_command(args) == true) then
+            return true;
+        end
+    end
 
     if (args[2]:any('filter')) then
 

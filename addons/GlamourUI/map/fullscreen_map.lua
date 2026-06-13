@@ -160,7 +160,9 @@ function M.draw()
             fadeOverlayWithMapOpacity = true,
             interactive = true,
             persistZoom = true,
+            zoomContext = 'fullscreen',
             panState = M.pan,
+            showGridLabel = false,
         })) then
             imgui.TextDisabled('Map unavailable');
         end

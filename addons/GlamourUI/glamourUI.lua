@@ -74,6 +74,7 @@ gMinimap = require('minimap');
 gFullscreenMap = require('fullscreen_map');
 gChat = require('chatlog');
 local customChat = require('customChat');
+local chatGamepad = require('chat_gamepad');
 local panelStyleLib = require('panelStyle');
 
 local imgui = require('imgui');
@@ -1342,7 +1343,10 @@ local default_settings = T{
         hpBarDim = T{
             l = 600,
             g = 16
-        }
+        },
+        mobdbIcons = true,
+        mobdbIconScale = 1.0,
+        mobdbTextScale = 0.4,
     },
     PlayerStats = T{
         enabled = true,
@@ -1393,10 +1397,12 @@ local default_settings = T{
         minimap_height = 180,
         minimap_zoom_step = 0.1,
         minimap_default_zoom = 1.0,
+        fullscreen_map_default_zoom = 1.0,
         minimap_opacity = 1.0,
         minimap_transit_opacity = 0.45,
         minimap_render_mode = 'normal',
         minimap_zone_zoom = {},
+        fullscreen_map_zone_zoom = {},
         minimap_cache_max = 64,
         minimap_overlay_opacity = 1.0,
         minimap_show_npcs = true,
@@ -1448,6 +1454,18 @@ local default_settings = T{
         label_deg = 45,
         show_degrees = false,
         show_heading_value = false,
+        geoCardinalGlow = true,
+        geoCardinalGlowOpacity = 1.0,
+        geoCardinalColors = T{
+            Water = { 0.0, 0.42307734489440918, 1.0, 1.0 },
+            Fire = { 1.0, 0.23529410362243652, 0.0, 1.0 },
+            Dark = { 0.0, 0.0, 0.0, 1.0 },
+            Light = { 1.0, 1.0, 1.0, 1.0 },
+            Ice = { 0.55, 0.90, 1.0, 1.0 },
+            Wind = { 0.0, 0.93013101816177368, 0.18602624535560608, 1.0 },
+            Earth = { 0.98689955472946167, 0.64557880163192749, 0.13359779119491577, 1.0 },
+            Lightning = { 0.78388655185699463, 0.095230832695960999, 0.99126636981964111, 1.0 },
+        },
         panelBackground = nil,
         ribbonColor = nil,
         tickColor = nil,
@@ -1653,6 +1671,8 @@ unbind_buff_cancel_keys = function()
     kb_unbind('NUMPADENTER');
     kb_unbind('ESCAPE');
 end
+
+chatGamepad.register(glam_game_menu_should_pause_ui);
 
 glam_sync_ui_keybinds = function()
     kb_unbind('LEFT');
@@ -1889,6 +1909,7 @@ ashita.events.register('command', 'command_cb', function (e)
                     GlamourUI.expandScrollOp = nil;
                     GlamourUI.chatExpandSnapBottomPending = false;
                     GlamourUI.expandArrowRepeat = nil;
+                    GlamourUI.gamepadDpadDown = nil;
                     if (buff_cancel_mode_off ~= nil) then
                         buff_cancel_mode_off();
                     elseif (glam_sync_ui_keybinds ~= nil) then

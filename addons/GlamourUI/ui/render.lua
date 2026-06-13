@@ -6,8 +6,12 @@ local gBuffs = require('buffTable');
 local compat = require('compat');
 local enemy_debuff_tracker = require('enemy_debuff_tracker');
 local target_mob_action = require('target_mob_action');
+local mobdb_jobs = require('mobdb_jobs');
+local mobdb_icons = require('mobdb_icons');
 local chatPartyNames = require('chatPartyNames');
 local glamMinimap = require('minimap');
+local map_grid = require('map_grid');
+local mapcore = require('mapcore');
 local entity_ids = require('entity_ids');
 local minimap_zone_show = require('minimap_zone_show');
 local fullscreen_map = require('fullscreen_map');
@@ -550,7 +554,7 @@ local get_target_level_text = function(targetIndex, nameStatus)
         return nil;
     end
 
-    return 'Lv. ' .. tostring(lv);
+    return mobdb_jobs.format_level_text(lv, targetIndex);
 end
 
 local draw_target_name = function(targetIndex, targetEntity, nameStatus, guiScale)
@@ -849,14 +853,6 @@ local function draw_chat_item_hovered_text(p, partText)
     imgui.PushID((itemId * 100000) + chat_item_hover_id);
     imgui.TextColored(p.color or { 1.0, 1.0, 1.0, 1.0 }, partText);
     register_chat_item_hover_region(itemId);
-
-    local hovered = false;
-    if (imgui.IsItemHovered ~= nil) then
-        hovered = imgui.IsItemHovered();
-    end
-    if (hovered and itemId > 0) then
-        show_at_item_tooltip(itemId);
-    end
     imgui.PopID();
 end
 
@@ -994,8 +990,16 @@ local function build_raw_message_segments(rawMessage, defaultColor)
                     local hi = rawMessage:byte(i + 3);
                     local lo = rawMessage:byte(i + 4);
                     local itemId = (hi * 256) + lo;
-                    local info = get_at_item_info(itemId);
-                    local tokenText = (info ~= nil and info.name) or tostring(itemId);
+                    local cleanedToken = gChat.clean_str(rawMessage:sub(i, i + 5));
+                    local tokenText;
+                    if (#cleanedToken > 1 and cleanedToken:sub(1, 1) == '{' and cleanedToken:sub(-1) == '}') then
+                        tokenText = cleanedToken:sub(2, -2);
+                    elseif (#cleanedToken > 0) then
+                        tokenText = cleanedToken;
+                    else
+                        local info = get_at_item_info(itemId);
+                        tokenText = (info ~= nil and info.name) or tostring(itemId);
+                    end
                     local tokenSegment = make_auto_translate_item_segment(tokenText, itemId);
                     tokenSegment.rawStart = i;
                     tokenSegment.rawEnd = i + 5;
@@ -1003,32 +1007,20 @@ local function build_raw_message_segments(rawMessage, defaultColor)
                     table.insert(segments, tokenSegment);
                     i = i + 6;
                 elseif (b1 == 0x02 and b2 == 0x02) then
-                    local hi = rawMessage:byte(i + 3);
-                    local lo = rawMessage:byte(i + 4);
-                    local itemId = (hi * 256) + lo;
-                    local info = get_at_item_info(itemId);
-                    if (info ~= nil) then
-                        local tokenSegment = make_chat_item_link_segment(info.name, itemId, currentColor);
+                    local cleanedToken = gChat.clean_str(rawMessage:sub(i, i + 5));
+                    if (#cleanedToken > 1 and cleanedToken:sub(1, 1) == '{' and cleanedToken:sub(-1) == '}') then
+                        local tokenSegment = make_auto_translate_segment(cleanedToken:sub(2, -2));
                         tokenSegment.rawStart = i;
                         tokenSegment.rawEnd = i + 5;
                         tokenSegment.color = currentColor;
                         table.insert(segments, tokenSegment);
-                    else
-                        local cleanedToken = gChat.clean_str(rawMessage:sub(i, i + 5));
-                        if (#cleanedToken > 1 and cleanedToken:sub(1, 1) == '{' and cleanedToken:sub(-1) == '}') then
-                            local tokenSegment = make_auto_translate_segment(cleanedToken:sub(2, -2));
-                            tokenSegment.rawStart = i;
-                            tokenSegment.rawEnd = i + 5;
-                            tokenSegment.color = currentColor;
-                            table.insert(segments, tokenSegment);
-                        elseif (#cleanedToken > 0) then
-                            table.insert(segments, {
-                                rawStart = i,
-                                rawEnd = i + 5,
-                                text = cleanedToken,
-                                color = currentColor,
-                            });
-                        end
+                    elseif (#cleanedToken > 0) then
+                        table.insert(segments, {
+                            rawStart = i,
+                            rawEnd = i + 5,
+                            text = cleanedToken,
+                            color = currentColor,
+                        });
                     end
                     i = i + 6;
                 else
@@ -1316,7 +1308,7 @@ end
 local function get_chat_draw_tokens(entry, message, rawMessage, defaultColor, prebuiltSegments)
     local segTag = (prebuiltSegments ~= nil) and ('s' .. tostring(#prebuiltSegments)) or 'n';
     local partyStamp = chatPartyNames.is_enabled() and tostring(chatPartyNames.get_roster_cache_stamp()) or 'off';
-    local cacheKey = segTag .. '|v14|' .. partyStamp .. '|' .. tostring(message or '') .. '|' .. tostring(rawMessage ~= nil and #rawMessage or 0);
+    local cacheKey = segTag .. '|v15|' .. partyStamp .. '|' .. tostring(message or '') .. '|' .. tostring(rawMessage ~= nil and #rawMessage or 0);
 
     if (entry ~= nil and entry._chatTokenCacheKey == cacheKey and entry._chatDrawTokens ~= nil) then
         return entry._chatDrawTokens;
@@ -1919,18 +1911,25 @@ local function expand_poll_imgui_key_down(imguiKey)
     return ok and r;
 end
 
+local function expand_gamepad_dpad_down(which)
+    if (GlamourUI == nil or GlamourUI.gamepadDpadDown == nil) then
+        return false;
+    end
+    return GlamourUI.gamepadDpadDown[which] == true;
+end
+
 local function expand_arrow_key_down(which)
     if (which == 'left') then
-        return expand_vk_high_bit(0x25) or expand_poll_imgui_key_down(ImGuiKey_LeftArrow);
+        return expand_vk_high_bit(0x25) or expand_poll_imgui_key_down(ImGuiKey_LeftArrow) or expand_gamepad_dpad_down('left');
     end
     if (which == 'right') then
-        return expand_vk_high_bit(0x27) or expand_poll_imgui_key_down(ImGuiKey_RightArrow);
+        return expand_vk_high_bit(0x27) or expand_poll_imgui_key_down(ImGuiKey_RightArrow) or expand_gamepad_dpad_down('right');
     end
     if (which == 'up') then
-        return expand_vk_high_bit(0x26) or expand_poll_imgui_key_down(ImGuiKey_UpArrow);
+        return expand_vk_high_bit(0x26) or expand_poll_imgui_key_down(ImGuiKey_UpArrow) or expand_gamepad_dpad_down('up');
     end
     if (which == 'down') then
-        return expand_vk_high_bit(0x28) or expand_poll_imgui_key_down(ImGuiKey_DownArrow);
+        return expand_vk_high_bit(0x28) or expand_poll_imgui_key_down(ImGuiKey_DownArrow) or expand_gamepad_dpad_down('down');
     end
     return false;
 end
@@ -3306,13 +3305,36 @@ render.render_target_bar = function()
 
                 if (targetEntity ~= nil) then
                     local yAfterHp = imgui.GetCursorPosY();
-                    if (nameStatus.type == 'mob') then
+                    local tb = GlamourUI.settings.TargetBar;
+                    local tbScale = tb.gui_scale;
+                    local xAnchor = 30 * tbScale;
+                    local barW = tb.hpBarDim.l * tbScale;
+                    local mobdbRowH = 0;
+
+                    if (nameStatus ~= nil and nameStatus.type == 'mob' and tb.mobdbIcons ~= false) then
+                        local mobdbIconSize = 13 * (tonumber(tb.mobdbIconScale) or 1.0) * tbScale;
+                        local mobdbTextScale = (tonumber(tb.font_scale) or 1.0)
+                            * (tonumber(tb.mobdbTextScale) or 0.4) * tbScale;
+                        local mobdbY = yAfterHp + (2 * tbScale);
+                        local mobdbResult = mobdb_icons.draw_target_icons(targetIndex, {
+                            xAnchor = xAnchor,
+                            yPos = mobdbY,
+                            barWidth = barW,
+                            iconSize = mobdbIconSize,
+                            textScale = mobdbTextScale,
+                            tbScale = tbScale,
+                            fontSettings = tb,
+                        });
+                        if (mobdbResult.drew == true) then
+                            mobdbRowH = mobdbResult.rowHeight + (4 * tbScale);
+                            yAfterHp = mobdbY + mobdbRowH;
+                        end
+                    end
+
+                    if (nameStatus ~= nil and nameStatus.type == 'mob') then
                         local mobAction = target_mob_action.get_label(targetEntity.ServerId);
                         if (mobAction ~= nil and mobAction ~= '') then
-                            local tbScale = GlamourUI.settings.TargetBar.gui_scale;
-                            local barW = GlamourUI.settings.TargetBar.hpBarDim.l * tbScale;
-                            local xAnchor = 30 * tbScale;
-                            local actionFontPushed = gResources.push_font_scale((GlamourUI.settings.TargetBar.font_scale * .5) * tbScale, GlamourUI.settings.TargetBar);
+                            local actionFontPushed = gResources.push_font_scale((tb.font_scale * .5) * tbScale, tb);
                             local textW = imgui.CalcTextSize(mobAction);
                             if (type(textW) == 'table') then
                                 textW = tonumber(textW[1]) or tonumber(textW.x) or 0;
@@ -3322,14 +3344,13 @@ render.render_target_bar = function()
                             gResources.pop_font(actionFontPushed);
                         end
                     end
-                    imgui.SetCursorPosX(30 * GlamourUI.settings.TargetBar.gui_scale);
-                    imgui.SetCursorPosY(yAfterHp + (6 * GlamourUI.settings.TargetBar.gui_scale));
-                    local iconSize = (14 * 1.3) * GlamourUI.settings.TargetBar.gui_scale;
+                    imgui.SetCursorPosX(xAnchor);
+                    imgui.SetCursorPosY(yAfterHp + (6 * tbScale));
+                    local iconSize = (14 * 1.3) * tbScale;
                     local theme = (GlamourUI.settings.Party ~= nil and GlamourUI.settings.Party.pList ~= nil)
                         and GlamourUI.settings.Party.pList.buffTheme or nil;
                     local maxCol = 16;
                     local maxRow = 1;
-                    local xAnchor = 30 * GlamourUI.settings.TargetBar.gui_scale;
                     local startY = imgui.GetCursorPosY();
 
                     local debuffs = T{};
@@ -3353,7 +3374,7 @@ render.render_target_bar = function()
                         if (plist ~= nil) then
                             debuffs, buffs = split_status_icons_from_slots(plist);
                         end
-                    elseif (nameStatus.type == 'mob') then
+                    elseif (nameStatus ~= nil and nameStatus.type == 'mob') then
                         local ids, times = enemy_debuff_tracker.GetActiveDebuffs(targetEntity.ServerId);
                         if (ids ~= nil) then
                             debuffs = ids;
@@ -3402,9 +3423,9 @@ render.render_target_bar = function()
                             build_timer_list('debuff'),
                             1,
                             true,
-                            GlamourUI.settings.TargetBar.font_scale
+                            tb.font_scale
                         );
-                        bottomY = bottomY + (6 * GlamourUI.settings.TargetBar.gui_scale);
+                        bottomY = bottomY + (6 * tbScale);
                     end
 
                     if (#buffs > 0) then
@@ -3421,7 +3442,7 @@ render.render_target_bar = function()
                             build_timer_list('buff'),
                             1,
                             true,
-                            GlamourUI.settings.TargetBar.font_scale
+                            tb.font_scale
                         );
                     end
 
@@ -3716,15 +3737,71 @@ local function env_measure_weather_row_width(weatherInfo, moonText, iconSize, it
     return moonSuffix;
 end
 
-local function env_measure_day_row_width(dayTimeText, iconSize, itemSpacing)
-    local innerSp = tonumber(imgui.GetStyle().ItemInnerSpacing.x) or itemSpacing;
-    local imgW = env_image_item_width(iconSize);
-    return imgui_calc_text_width('Day:  ') + innerSp + imgW + itemSpacing + imgui_calc_text_width(dayTimeText);
+local function env_player_grid_label()
+    return mapcore.get_player_grid_label(map_grid.tuning_for_current());
 end
 
-local function env_panel_content_width(envSettings, weatherInfo, moonText, iconSize, itemSpacing, dayTimeText, includeMinimap)
+local function env_measure_coords_width(gridLabel)
+    return imgui_calc_text_width(gridLabel or 'H-12');
+end
+
+local function env_measure_day_row_width(dayTimeText, iconSize, itemSpacing, gridLabel)
+    local innerSp = tonumber(imgui.GetStyle().ItemInnerSpacing.x) or itemSpacing;
+    local imgW = env_image_item_width(iconSize);
+    local dayW = imgui_calc_text_width('Day:  ') + innerSp + imgW + itemSpacing + imgui_calc_text_width(dayTimeText);
+    local coordW = env_measure_coords_width(gridLabel);
+    local gap = itemSpacing * 2;
+    return dayW + gap + coordW;
+end
+
+local function env_center_cursor_in_region(rowWidth, regionWidth, regionX)
+    rowWidth = tonumber(rowWidth) or 0;
+    regionWidth = tonumber(regionWidth) or 0;
+    regionX = tonumber(regionX) or 0;
+    imgui.SetCursorPosX(regionX + math.max(0, (regionWidth - rowWidth) * 0.5));
+end
+
+local function env_draw_day_row(dayTexture, dayTimeText, iconSize, itemSpacing, contentW, gridLabel)
+    local style = imgui.GetStyle();
+    local pad = tonumber(style.WindowPadding.x) or 8;
+    local sp = itemSpacing;
+    local innerSp = tonumber(style.ItemInnerSpacing.x) or sp;
+    local imgW = env_image_item_width(iconSize);
+    local dayW = imgui_calc_text_width('Day:  ') + innerSp + imgW + sp + imgui_calc_text_width(dayTimeText);
+    local coordText = gridLabel or '—';
+    local coordW = imgui_calc_text_width(coordText);
+    local gap = sp * 2;
+    local dayAreaW = math.max(0, contentW - coordW - gap);
+    local lineH = (imgui.GetTextLineHeightWithSpacing and imgui.GetTextLineHeightWithSpacing())
+        or (imgui.GetTextLineHeight() + (tonumber(style.ItemSpacing.y) or 4));
+
+    env_center_cursor_in_region(dayW, dayAreaW, pad);
+    imgui.Text('Day:  ');
+    imgui.SameLine();
+    imgui.Image(dayTexture, { iconSize, iconSize });
+    imgui.SameLine();
+    imgui.Text(dayTimeText);
+
+    local coordOffset = pad + math.max(0, contentW - coordW);
+    if (coordOffset > imgui.GetCursorPosX() + sp) then
+        imgui.SameLine(coordOffset, 0);
+    else
+        imgui.SameLine(0, sp);
+    end
+    if (gridLabel ~= nil) then
+        imgui.Text(coordText);
+    else
+        imgui.TextDisabled(coordText);
+    end
+
+    -- Extend row bounds to contentW without SetCursorPos (ImGui requires a sizing item).
+    imgui.SameLine(pad + contentW, 0);
+    imgui.Dummy({ 1, lineH });
+end
+
+local function env_panel_content_width(envSettings, weatherInfo, moonText, iconSize, itemSpacing, dayTimeText, gridLabel, includeMinimap)
     local weatherW = env_measure_weather_row_width(weatherInfo, moonText, iconSize, itemSpacing);
-    local dayW = env_measure_day_row_width(dayTimeText or '  00:00', iconSize, itemSpacing);
+    local dayW = env_measure_day_row_width(dayTimeText or '  00:00', iconSize, itemSpacing, gridLabel);
     local contentW = math.max(weatherW, dayW);
     if (includeMinimap == true and envSettings ~= nil and envSettings.minimap_enabled == true) then
         local guiScale = tonumber(envSettings.gui_scale) or 1;
@@ -3750,9 +3827,10 @@ render.render_environment = function()
     if(imgui.Begin('Environment##GlamEnv' .. get_window_suffix(), gEnv.is_open, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize)))then
         local fontPushed = gResources.push_font_scale(0.6 * envSettings.font_scale, envSettings);
         local dayTimeText = ('  %s:%s'):fmt(tostring(timeInfo.hour), tostring(timeInfo.minute));
+        local gridLabel = env_player_grid_label();
         local includeMinimap = not fullscreen_map.is_open();
-        local contentW, weatherRowW, dayRowW = env_panel_content_width(
-            envSettings, weatherInfo, moonText, iconSize, itemSpacing, dayTimeText, includeMinimap
+        local contentW, weatherRowW = env_panel_content_width(
+            envSettings, weatherInfo, moonText, iconSize, itemSpacing, dayTimeText, gridLabel, includeMinimap
         );
 
         imgui.Dummy({ contentW, 0 });
@@ -3766,12 +3844,7 @@ render.render_environment = function()
         imgui.SameLine();
         imgui.Text(moonText);
 
-        env_center_cursor_for_width(dayRowW, contentW);
-        imgui.Text('Day:  ');
-        imgui.SameLine();
-        imgui.Image(dayTexture, { iconSize, iconSize });
-        imgui.SameLine();
-        imgui.Text(dayTimeText);
+        env_draw_day_row(dayTexture, dayTimeText, iconSize, itemSpacing, contentW, gridLabel);
 
         if (not fullscreen_map.is_open()) then
             glamMinimap.draw();
@@ -3794,6 +3867,12 @@ local function wrap_deg_360(d)
     local v = (tonumber(d) or 0) % 360;
     if (v < 0) then v = v + 360; end
     return v;
+end
+
+local COMPASS_NORTH_ZERO_OFFSET_DEG = 90;
+
+local function compass_rad_to_deg(rad)
+    return wrap_deg_360((tonumber(rad) or 0) * (180.0 / math.pi) + COMPASS_NORTH_ZERO_OFFSET_DEG);
 end
 
 local compass_player_entity_idx = { idx = nil, sid = nil };
@@ -4005,6 +4084,41 @@ local function get_player_heading_radians()
     return nil;
 end
 
+local compass_d3d8_device = nil;
+local compass_ffi = require('ffi');
+
+local function get_camera_heading_radians()
+    if (compass_d3d8_device == nil) then
+        local ok, d3d8 = pcall(require, 'd3d8');
+        if (not ok or d3d8 == nil) then
+            return nil;
+        end
+        local okDev, dev = pcall(function()
+            return d3d8.get_device();
+        end);
+        if (not okDev or dev == nil) then
+            return nil;
+        end
+        compass_d3d8_device = dev;
+    end
+
+    local ok, view = pcall(function()
+        local _, m = compass_d3d8_device:GetTransform(compass_ffi.C.D3DTS_VIEW);
+        return m;
+    end);
+    if (not ok or view == nil) then
+        return nil;
+    end
+
+    local lx = tonumber(view._13) or 0;
+    local lz = tonumber(view._33) or 0;
+    if (math.abs(lx) < 0.000001 and math.abs(lz) < 0.000001) then
+        return nil;
+    end
+    -- View-matrix forward is 90° behind entity yaw; match player heading space.
+    return math.atan2(lx, lz) + (math.pi * 0.5);
+end
+
 glamMinimap.set_heading_fn(get_player_heading_radians);
 
 local function compass_label_for_deg(deg)
@@ -4018,6 +4132,139 @@ local function compass_label_for_deg(deg)
     if (d == 225) then return 'SW'; end
     if (d == 315) then return 'NW'; end
     return nil;
+end
+
+local function compass_nearest_label_for_deg(deg)
+    local d = wrap_deg_360(deg);
+    local snapped = (math.floor((d + 22.5) / 45.0) % 8) * 45;
+    return compass_label_for_deg(snapped);
+end
+
+local GEO_CARDINAL_DEFAULT_COLORS = {
+    Water = { 0.0, 0.42307734489440918, 1.0, 1.0 },
+    Fire = { 1.0, 0.23529410362243652, 0.0, 1.0 },
+    Dark = { 0.0, 0.0, 0.0, 1.0 },
+    Light = { 1.0, 1.0, 1.0, 1.0 },
+    Ice = { 0.55, 0.90, 1.0, 1.0 },
+    Wind = { 0.0, 0.93013101816177368, 0.18602624535560608, 1.0 },
+    Earth = { 0.98689955472946167, 0.64557880163192749, 0.13359779119491577, 1.0 },
+    Lightning = { 0.78388655185699463, 0.095230832695960999, 0.99126636981964111, 1.0 },
+};
+
+local function resolve_geo_cardinal_color(compassSettings, element)
+    local defaults = GEO_CARDINAL_DEFAULT_COLORS[element];
+    if (defaults == nil) then
+        return nil;
+    end
+    local colors = compassSettings ~= nil and compassSettings.geoCardinalColors or nil;
+    local c = colors ~= nil and colors[element] or nil;
+    if (type(c) ~= 'table') then
+        return { defaults[1], defaults[2], defaults[3], defaults[4] };
+    end
+    return {
+        tonumber(c[1]) or defaults[1],
+        tonumber(c[2]) or defaults[2],
+        tonumber(c[3]) or defaults[3],
+        tonumber(c[4]) or defaults[4],
+    };
+end
+
+-- Cardinal Chant element mapping from GeoCompass (textureAngle sectors).
+local GEO_TEXTURE_ANGLE_OFFSET = (4.0 * math.pi / 3.0) - 1.0;
+
+local function geo_cardinal_element_for_heading_deg(headingDeg)
+    local playerDir = math.rad((tonumber(headingDeg) or 0) - 90.0);
+    local textureAngle = playerDir + GEO_TEXTURE_ANGLE_OFFSET;
+    local twoPi = 2.0 * math.pi;
+    textureAngle = textureAngle % twoPi;
+    if (textureAngle < 0) then
+        textureAngle = textureAngle + twoPi;
+    end
+
+    if (textureAngle >= (15.0 / 16.0) * twoPi or textureAngle < (1.0 / 16.0) * twoPi) then
+        return 'Water';
+    elseif (textureAngle < (3.0 / 16.0) * twoPi) then
+        return 'Fire';
+    elseif (textureAngle < (5.0 / 16.0) * twoPi) then
+        return 'Dark';
+    elseif (textureAngle < (7.0 / 16.0) * twoPi) then
+        return 'Light';
+    elseif (textureAngle < (9.0 / 16.0) * twoPi) then
+        return 'Ice';
+    elseif (textureAngle < (11.0 / 16.0) * twoPi) then
+        return 'Wind';
+    elseif (textureAngle < (13.0 / 16.0) * twoPi) then
+        return 'Earth';
+    elseif (textureAngle < (15.0 / 16.0) * twoPi) then
+        return 'Lightning';
+    end
+    return 'Water';
+end
+
+local function player_is_geo_job()
+    local mm = (MemoryManager ~= nil) and MemoryManager or AshitaCore:GetMemoryManager();
+    if (mm == nil) then
+        return false;
+    end
+    local player = mm:GetPlayer();
+    if (player == nil) then
+        return false;
+    end
+    return player:GetMainJob() == 21 or player:GetSubJob() == 21;
+end
+
+local function draw_geo_cardinal_glow(dl, headingDeg, centerX, innerW, halfRange, topY, botY, opacity, compassSettings)
+    local glowScale = math.max(0, math.min(1, tonumber(opacity) or 1.0));
+    if (glowScale <= 0) then
+        return;
+    end
+
+    local facingElement = geo_cardinal_element_for_heading_deg(headingDeg);
+    local startDeg = math.floor(headingDeg - halfRange);
+    local endDeg = math.ceil(headingDeg + halfRange);
+    local ribbonH = botY - topY;
+
+    for d = startDeg, endDeg do
+        local bearing = wrap_deg_360(d);
+        local rel = wrap_deg_180(bearing - headingDeg);
+        if (math.abs(rel) <= halfRange + 0.001) then
+            local element = geo_cardinal_element_for_heading_deg(bearing);
+            local base = resolve_geo_cardinal_color(compassSettings, element);
+            if (base ~= nil) then
+                local alpha = 0.22 * glowScale;
+                if (element == facingElement) then
+                    alpha = alpha + (0.18 * glowScale);
+                end
+                local x0 = centerX + (rel / halfRange) * (innerW * 0.5);
+                local relNext = wrap_deg_180((bearing + 1) - headingDeg);
+                local x1 = centerX + (relNext / halfRange) * (innerW * 0.5);
+                if (x1 < x0) then
+                    x1 = x0 + 1;
+                end
+                dl:AddRectFilled(
+                    { x0, topY + ribbonH * 0.05 },
+                    { x1 + 1, botY - ribbonH * 0.05 },
+                    imgui.GetColorU32({ base[1], base[2], base[3], alpha }),
+                    2.0,
+                    0
+                );
+            end
+        end
+    end
+
+    do
+        local base = resolve_geo_cardinal_color(compassSettings, facingElement);
+        if (base ~= nil) then
+            local bandW = math.max(8, innerW * 0.06);
+            dl:AddRectFilled(
+                { centerX - (bandW * 0.5), topY },
+                { centerX + (bandW * 0.5), botY },
+                imgui.GetColorU32({ base[1], base[2], base[3], 0.30 * glowScale }),
+                3.0,
+                0
+            );
+        end
+    end
 end
 
 local function get_entity_position_guess(ent)
@@ -4066,12 +4313,15 @@ render.render_compass = function()
         return;
     end
 
-    local headingRad = get_player_heading_radians();
-    if (headingRad == nil) then
+    local playerHeadingRad = get_player_heading_radians();
+    if (playerHeadingRad == nil) then
         return;
     end
 
-    local north_zero_offset_deg = 90;
+    local cameraHeadingRad = get_camera_heading_radians();
+    if (cameraHeadingRad == nil) then
+        cameraHeadingRad = playerHeadingRad;
+    end
 
     local width = tonumber(s.width) or 540;
     local ribbonH = math.max(32, tonumber(s.height) or 58);
@@ -4080,7 +4330,7 @@ render.render_compass = function()
     local degFooterH = showDegFooter and math.max(18, math.floor(14 + 6 * (tonumber(s.font_scale) or 1))) or 0;
     local windowH = ribbonH + degFooterH;
 
-    imgui.SetNextWindowSize({ width, windowH }, ImGuiCond_Once);
+    imgui.SetNextWindowSize({ width, windowH }, ImGuiCond_Always);
     imgui.SetNextWindowPos({ tonumber(s.x) or 700, tonumber(s.y) or 15 }, ImGuiCond_Once);
 
     local compassBgPops = panelStyle.push_panel_background(s);
@@ -4106,8 +4356,8 @@ render.render_compass = function()
         local topY = tl[2];
         local botY = br[2];
 
-        local rawHeadingDeg = (headingRad * (180.0 / math.pi));
-        local headingDeg = wrap_deg_360(rawHeadingDeg + north_zero_offset_deg);
+        local cameraHeadingDeg = compass_rad_to_deg(cameraHeadingRad);
+        local playerHeadingDeg = compass_rad_to_deg(playerHeadingRad);
 
         local fov = math.max(30, math.min(240, tonumber(s.fov_deg) or 120));
         local tick = math.max(1, math.min(45, tonumber(s.tick_deg) or 5));
@@ -4117,15 +4367,19 @@ render.render_compass = function()
         local innerW = math.max(1, br[1] - tl[1]);
         local halfRange = fov * 0.5;
 
-        local startDeg = math.floor((headingDeg - halfRange) / tick) * tick;
-        local endDeg = math.ceil((headingDeg + halfRange) / tick) * tick;
+        if (s.geoCardinalGlow ~= false and player_is_geo_job()) then
+            draw_geo_cardinal_glow(dl, cameraHeadingDeg, centerX, innerW, halfRange, topY, botY, s.geoCardinalGlowOpacity, s);
+        end
+
+        local startDeg = math.floor((cameraHeadingDeg - halfRange) / tick) * tick;
+        local endDeg = math.ceil((cameraHeadingDeg + halfRange) / tick) * tick;
 
         local tickColor = s.tickColor or { 0.90, 0.90, 0.95, 0.90 };
         local labelColor = s.labelColor or { 0.95, 0.95, 0.98, 0.95 };
         local centerColor = s.centerColor or { 0.20, 0.55, 0.95, 0.95 };
 
         for d = startDeg, endDeg, tick do
-            local rel = wrap_deg_180(d - headingDeg);
+            local rel = wrap_deg_180(d - cameraHeadingDeg);
             if (math.abs(rel) <= halfRange + 0.001) then
                 local x = centerX + (rel / halfRange) * (innerW * 0.5);
 
@@ -4151,7 +4405,27 @@ render.render_compass = function()
             end
         end
 
-        dl:AddLine({ centerX, topY }, { centerX, botY }, imgui.GetColorU32(centerColor), 3.0);
+        local playerRel = wrap_deg_180(playerHeadingDeg - cameraHeadingDeg);
+        local halfW = innerW * 0.5;
+        local markerX = centerX + (playerRel / halfRange) * halfW;
+        local markerClamped = false;
+        if (playerRel > halfRange + 0.001) then
+            markerX = br[1];
+            markerClamped = true;
+        elseif (playerRel < -halfRange - 0.001) then
+            markerX = tl[1];
+            markerClamped = true;
+        end
+
+        dl:AddLine({ markerX, topY }, { markerX, botY }, imgui.GetColorU32(centerColor), 3.0);
+
+        if (markerClamped) then
+            local facingLbl = compass_nearest_label_for_deg(playerHeadingDeg);
+            if (facingLbl ~= nil) then
+                local tw = imgui_calc_text_width(facingLbl);
+                textShadow.draw_list_add_text_shadowed(imgui, dl, { markerX - (tw * 0.5), botY + 2 }, imgui.GetColorU32(centerColor), facingLbl);
+            end
+        end
 
         do
             local tr = (gPacket ~= nil) and gPacket.tracking or nil;
@@ -4160,7 +4434,7 @@ render.render_compass = function()
                 local tx, tz = tonumber(tr.x), tonumber(tr.z);
                 if (px ~= nil and pz ~= nil and tx ~= nil and tz ~= nil) then
                     local b = bearing_deg_north0(px, pz, tx, tz);
-                    local rel = wrap_deg_180(b - headingDeg);
+                    local rel = wrap_deg_180(b - cameraHeadingDeg);
                     if (math.abs(rel) <= halfRange + 0.001) then
                         local mx = centerX + (rel / halfRange) * (innerW * 0.5);
                         local my = topY + 2;
@@ -4178,7 +4452,7 @@ render.render_compass = function()
         end
 
         if (showDegFooter) then
-            local text = ('%03d°'):fmt(math.floor(headingDeg + 0.5));
+            local text = ('%03d°'):fmt(math.floor(playerHeadingDeg + 0.5));
             local tw = imgui_calc_text_width(text);
             local textY = winPos[2] + ribbonH + 2;
             textShadow.draw_list_add_text_shadowed(imgui, dl, { centerX - (tw * 0.5), textY }, imgui.GetColorU32(labelColor), text);
@@ -4187,7 +4461,6 @@ render.render_compass = function()
         local pos = { imgui.GetWindowPos() };
         s.x = pos[1];
         s.y = pos[2];
-        s.width = imgui.GetWindowWidth();
         s.height = math.max(32, imgui.GetWindowHeight() - degFooterH);
 
         gResources.pop_font(fontPushed);

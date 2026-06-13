@@ -740,10 +740,68 @@ local function render_cast_bar_contents(cbar_gui_scale, cbar_font_scale)
     render_panel_background_controls('CastBarPB', GlamourUI.settings.cBar);
 end
 
+local function ensure_rgba4_inplace(tbl, fallback)
+    if (type(tbl) ~= 'table') then
+        return fallback;
+    end
+    tbl[1] = tonumber(tbl[1]) or fallback[1];
+    tbl[2] = tonumber(tbl[2]) or fallback[2];
+    tbl[3] = tonumber(tbl[3]) or fallback[3];
+    tbl[4] = tonumber(tbl[4]) or fallback[4];
+    return tbl;
+end
+
 local function render_compass_contents()
     local s = GlamourUI.settings.Compass;
     if (s == nil) then
         return;
+    end
+
+    local geo_cardinal_default_colors = {
+        Water = { 0.0, 0.42307734489440918, 1.0, 1.0 },
+        Fire = { 1.0, 0.23529410362243652, 0.0, 1.0 },
+        Dark = { 0.0, 0.0, 0.0, 1.0 },
+        Light = { 1.0, 1.0, 1.0, 1.0 },
+        Ice = { 0.55, 0.90, 1.0, 1.0 },
+        Wind = { 0.0, 0.93013101816177368, 0.18602624535560608, 1.0 },
+        Earth = { 0.98689955472946167, 0.64557880163192749, 0.13359779119491577, 1.0 },
+        Lightning = { 0.78388655185699463, 0.095230832695960999, 0.99126636981964111, 1.0 },
+    };
+    local geo_cardinal_elements = {
+        'Water', 'Fire', 'Dark', 'Light', 'Ice', 'Wind', 'Earth', 'Lightning',
+    };
+
+    local function ensure_geo_cardinal_colors(settingsTable)
+        if (settingsTable.geoCardinalColors == nil) then
+            settingsTable.geoCardinalColors = {};
+        end
+        for i = 1, #geo_cardinal_elements do
+            local element = geo_cardinal_elements[i];
+            local fallback = geo_cardinal_default_colors[element];
+            if (settingsTable.geoCardinalColors[element] == nil) then
+                settingsTable.geoCardinalColors[element] = {
+                    fallback[1], fallback[2], fallback[3], fallback[4],
+                };
+            end
+            ensure_rgba4_inplace(settingsTable.geoCardinalColors[element], fallback);
+        end
+    end
+
+    local function render_geo_cardinal_color_swatch(element, color)
+        imgui.PushStyleColor(ImGuiCol_Button, color);
+        imgui.PushStyleColor(ImGuiCol_ButtonHovered, color);
+        imgui.PushStyleColor(ImGuiCol_ButtonActive, color);
+        if (imgui.Button(('##GlamGeoCardinal' .. element), { 20, 20 })) then
+            imgui.OpenPopup(('GlamGeoCardinalPicker##' .. element));
+        end
+        imgui.PopStyleColor(3);
+        imgui.SameLine();
+        imgui.Text(element);
+
+        if (imgui.BeginPopup(('GlamGeoCardinalPicker##' .. element))) then
+            imgui.ColorPicker3(('##GlamGeoCardinalPick' .. element), color);
+            imgui.EndPopup();
+        end
     end
 
     imgui.Text('Heading Compass');
@@ -756,6 +814,10 @@ local function render_compass_contents()
     );
 
     imgui.Separator();
+    imgui.Text('Layout');
+    s.width = render_float_setting('Compass Length (px)##GlamCompass', tonumber(s.width) or 540, 160.0, 1200.0, '%.0f');
+
+    imgui.Separator();
     imgui.Text('Behavior');
     s.show_degrees = select(1, render_toggle('Show Degrees (non-cardinal ticks)##GlamCompass', s.show_degrees == true));
     s.show_heading_value = select(1, render_toggle('Show Heading Value (deg)##GlamCompass', s.show_heading_value == true));
@@ -763,18 +825,23 @@ local function render_compass_contents()
     s.tick_deg = render_float_setting('Tick Step (deg)##GlamCompass', tonumber(s.tick_deg) or 5, 1.0, 45.0, '%.0f');
     s.major_tick_deg = render_float_setting('Major Tick (deg)##GlamCompass', tonumber(s.major_tick_deg) or 15, 5.0, 90.0, '%.0f');
     s.label_deg = render_float_setting('Label Step (deg)##GlamCompass', tonumber(s.label_deg) or 45, 15.0, 90.0, '%.0f');
-
-end
-
-local function ensure_rgba4_inplace(tbl, fallback)
-    if (type(tbl) ~= 'table') then
-        return fallback;
+    if (s.geoCardinalGlow == nil) then
+        s.geoCardinalGlow = true;
     end
-    tbl[1] = tonumber(tbl[1]) or fallback[1];
-    tbl[2] = tonumber(tbl[2]) or fallback[2];
-    tbl[3] = tonumber(tbl[3]) or fallback[3];
-    tbl[4] = tonumber(tbl[4]) or fallback[4];
-    return tbl;
+    s.geoCardinalGlow = select(1, render_toggle('Cardinal Chant glow (GEO)##GlamCompass', s.geoCardinalGlow == true));
+    if (s.geoCardinalGlow == true) then
+        local glowOpacityPct = { (tonumber(s.geoCardinalGlowOpacity) or 1.0) * 100.0 };
+        imgui.SliderFloat('Cardinal Chant Glow Opacity##GlamCompass', glowOpacityPct, 0.0, 100.0, '%.0f%%');
+        s.geoCardinalGlowOpacity = glowOpacityPct[1] / 100.0;
+        imgui.Separator();
+        imgui.Text('Cardinal Chant Element Colors');
+        ensure_geo_cardinal_colors(s);
+        for i = 1, #geo_cardinal_elements do
+            local element = geo_cardinal_elements[i];
+            render_geo_cardinal_color_swatch(element, s.geoCardinalColors[element]);
+        end
+    end
+
 end
 
 local function render_minimap_label_color_picker(popupId, label, color)
@@ -812,6 +879,7 @@ local function render_environment_contents()
         s.minimap_height = render_float_setting('Height (px)##GlamEnvMM', tonumber(s.minimap_height) or 180, 80, 400, '%.0f');
         s.minimap_zoom_step = render_float_setting('Zoom Step##GlamEnvMM', tonumber(s.minimap_zoom_step) or 0.1, 0.01, 1.0, '%.2f');
         s.minimap_default_zoom = render_float_setting('Default Zoom Multiplier##GlamEnvMM', tonumber(s.minimap_default_zoom) or 1.0, 1.0, 10.0, '%.2f');
+        s.fullscreen_map_default_zoom = render_float_setting('Fullscreen Default Zoom Multiplier##GlamEnvMM', tonumber(s.fullscreen_map_default_zoom) or tonumber(s.minimap_default_zoom) or 1.0, 1.0, 10.0, '%.2f');
         s.minimap_opacity = render_float_setting('Map Opacity##GlamEnvMM', tonumber(s.minimap_opacity) or 1.0, 0.1, 1.0, '%.2f');
         s.minimap_transit_opacity = render_float_setting('In-Transit Opacity (full map)##GlamEnvMM', tonumber(s.minimap_transit_opacity) or 0.45, 0.05, 1.0, '%.2f');
         do
@@ -1500,6 +1568,37 @@ conf.render_config = function()
                     GlamourUI.settings.TargetBar.hpBarDim,
                     'GlamTargetBarHPPos'
                 );
+                imgui.Separator();
+                if (GlamourUI.settings.TargetBar.mobdbIcons == nil) then
+                    GlamourUI.settings.TargetBar.mobdbIcons = true;
+                end
+                GlamourUI.settings.TargetBar.mobdbIcons = select(
+                    1,
+                    render_toggle('MobDB icons (mobs)##GlamTargetBar', GlamourUI.settings.TargetBar.mobdbIcons == true)
+                );
+                if (GlamourUI.settings.TargetBar.mobdbIcons == true) then
+                    local tb = GlamourUI.settings.TargetBar;
+                    if (tb.mobdbIconScale == nil) then
+                        tb.mobdbIconScale = 1.0;
+                    end
+                    if (tb.mobdbTextScale == nil) then
+                        tb.mobdbTextScale = 0.4;
+                    end
+                    tb.mobdbIconScale = render_float_setting(
+                        'MobDB Icon Scale##GlamTargetBar',
+                        tonumber(tb.mobdbIconScale) or 1.0,
+                        0.25,
+                        3.0,
+                        '%.2f'
+                    );
+                    tb.mobdbTextScale = render_float_setting(
+                        'MobDB Text Scale##GlamTargetBar',
+                        tonumber(tb.mobdbTextScale) or 0.4,
+                        0.1,
+                        2.0,
+                        '%.2f'
+                    );
+                end
             elseif (conf.selected_tab == 'PlayerStats') then
                 render_player_stats_contents();
             elseif (conf.selected_tab == 'Inventory') then

@@ -356,6 +356,95 @@ function M.world_to_screen(entry, worldX, worldY, worldZ, textureWidth, originX,
         (tonumber(originY) or 0) + (tonumber(offsetY) or 0) + texY * zoom;
 end
 
+-- Vanilla-style map grid labels (e.g. H-12) on 512×512 map coordinate space.
+M.MAP_REFERENCE_SIZE = 512;
+M.GRID_CELLS_PER_AXIS = 16;
+
+--- Grid labels always use 512×512 map coordinate space (divisor 32), not texture pixel size.
+function M.default_grid_metrics()
+    local ref = M.MAP_REFERENCE_SIZE;
+    local divisor = ref / M.GRID_CELLS_PER_AXIS;
+    return divisor, divisor * 0.5, ref;
+end
+
+---@param tuning table|nil per-zone overrides from map_grid.lua
+function M.map_coords_to_grid(entry, mapX, mapY, tuning)
+    if (entry == nil or mapX == nil or mapY == nil) then
+        return nil, nil;
+    end
+
+    tuning = tuning or {};
+    local divisor, gridOffset = M.default_grid_metrics();
+    if (tuning.grid_divisor ~= nil) then
+        divisor = tonumber(tuning.grid_divisor) or divisor;
+    end
+    if (tuning.grid_offset ~= nil) then
+        gridOffset = tonumber(tuning.grid_offset) or gridOffset;
+    end
+    if (divisor <= 0) then
+        return nil, nil;
+    end
+
+    local ox = entry.OffsetX;
+    local oy = entry.OffsetY;
+    if (tuning.entry_offset_x ~= nil) then
+        ox = tonumber(tuning.entry_offset_x) or ox;
+    end
+    if (tuning.entry_offset_y ~= nil) then
+        oy = tonumber(tuning.entry_offset_y) or oy;
+    end
+    ox = ox + (tonumber(tuning.shift_x) or 0);
+    oy = oy + (tonumber(tuning.shift_y) or 0);
+
+    local colIdx = math.floor((mapX - ox - gridOffset) / divisor);
+    local row = math.floor((mapY - oy - gridOffset) / divisor) + 1;
+    colIdx = math.max(0, math.min(25, colIdx));
+
+    return string.char(string.byte('A') + colIdx), row;
+end
+
+function M.world_coords_to_grid(entry, worldX, worldY, worldZ, tuning)
+    local mapX, mapY = M.world_to_map_coords(entry, worldX, worldY, worldZ);
+    if (mapX == nil) then
+        return nil, nil;
+    end
+    return M.map_coords_to_grid(entry, mapX, mapY, tuning);
+end
+
+function M.get_player_grid_coords(tuning)
+    local data = M.current_map_data;
+    if (data == nil or data.entry == nil) then
+        return nil, nil, 'no map';
+    end
+
+    local x, y, z = M.get_player_position();
+    if (x == nil) then
+        return nil, nil, 'no position';
+    end
+
+    local col, row = M.world_coords_to_grid(data.entry, x, y, z, tuning);
+    if (col == nil) then
+        return nil, nil, 'invalid scale';
+    end
+
+    return col, row, nil;
+end
+
+function M.format_grid_label(col, row)
+    if (col == nil or row == nil) then
+        return nil;
+    end
+    return string.format('(%s-%d)', col, row);
+end
+
+function M.get_player_grid_label(tuning)
+    local col, row, err = M.get_player_grid_coords(tuning);
+    if (col == nil) then
+        return nil, err;
+    end
+    return M.format_grid_label(col, row), nil;
+end
+
 function M.get_zone_key()
     local data = M.current_map_data;
     if (data == nil or data.entry == nil) then
