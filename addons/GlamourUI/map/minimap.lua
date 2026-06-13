@@ -125,7 +125,6 @@ function M.on_zone_changed(zoneId, subZoneId)
     require('minimap_zone_show').on_zone_changed(zoneId);
     if (zoneId ~= nil) then
         minimap_entities.on_zone(zoneId, subZoneId);
-        maptexture.cache_zone(zoneId);
     end
     return M.reload_map();
 end
@@ -137,7 +136,7 @@ function M.on_floor_changed(zoneId, floorId)
         return M.reload_map();
     end
 
-    maptexture.cache_zone(zoneId);
+    maptexture.cache_zone(zoneId, floorId);
     local ok, err = maptexture.activate(zoneId, floorId);
     if (not ok) then
         return false, err;

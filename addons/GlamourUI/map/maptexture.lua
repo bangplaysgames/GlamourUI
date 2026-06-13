@@ -41,6 +41,12 @@ M.texture_id = nil;
 M.width = 0;
 M.height = 0;
 
+local PURGE_BATCH = 4;
+local BACKGROUND_CACHE_BATCH = 1;
+local background_cache_queue = nil;
+local background_cache_running = false;
+local enforce_scheduled = false;
+
 local function max_cache_size()
     local s = GlamourUI.settings and GlamourUI.settings.Env;
     return math.max(8, math.min(256, tonumber(s and s.minimap_cache_max) or DEFAULT_MAX_CACHE));
@@ -52,6 +58,57 @@ local function cache_count()
         n = n + 1;
     end
     return n;
+end
+
+local function cancel_background_cache()
+    background_cache_queue = nil;
+    background_cache_running = false;
+end
+
+local function schedule_background_cache(zoneId, floorIds)
+    zoneId = tonumber(zoneId);
+    if (zoneId == nil or type(floorIds) ~= 'table' or #floorIds == 0) then
+        return;
+    end
+
+    background_cache_queue = { zoneId = zoneId, floorIds = floorIds };
+    if (background_cache_running == true) then
+        return;
+    end
+
+    background_cache_running = true;
+    local function step()
+        local queue = background_cache_queue;
+        if (queue == nil or #queue.floorIds == 0) then
+            background_cache_running = false;
+            M.schedule_enforce_cache_limit();
+            return;
+        end
+
+        local batch = math.max(1, BACKGROUND_CACHE_BATCH);
+        for _ = 1, batch do
+            if (#queue.floorIds == 0) then
+                break;
+            end
+            local floorId = table.remove(queue.floorIds, 1);
+            M.load_entry_to_cache(queue.zoneId, floorId);
+        end
+
+        if (cache_count() > max_cache_size()) then
+            M.schedule_enforce_cache_limit();
+        end
+
+        if (#queue.floorIds == 0) then
+            background_cache_queue = nil;
+            background_cache_running = false;
+            M.schedule_enforce_cache_limit();
+            return;
+        end
+
+        ashita.tasks.once(0, step);
+    end
+
+    ashita.tasks.once(0, step);
 end
 
 local function read_u8(data, offset)
@@ -450,46 +507,92 @@ function M.clear_active()
     M.height = 0;
 end
 
+local function remove_cache_key(key)
+    if (M.active_key == key) then
+        M.clear_active();
+    end
+    M.cache[key] = nil;
+end
+
+function M.purge_batch(keepZoneId, maxRemove)
+    keepZoneId = tonumber(keepZoneId);
+    maxRemove = math.max(1, tonumber(maxRemove) or PURGE_BATCH);
+    local removed = 0;
+
+    local function try_remove(key, item)
+        if (removed >= maxRemove or key == M.active_key) then
+            return;
+        end
+        remove_cache_key(key);
+        removed = removed + 1;
+    end
+
+    if (keepZoneId ~= nil) then
+        for key, item in pairs(M.cache) do
+            if (item.zoneId ~= keepZoneId) then
+                try_remove(key, item);
+            end
+        end
+    end
+
+    if (removed < maxRemove and cache_count() > max_cache_size()) then
+        for key, item in pairs(M.cache) do
+            try_remove(key, item);
+        end
+    end
+
+    return removed;
+end
+
 function M.clear_all()
+    cancel_background_cache();
+    enforce_scheduled = false;
     M.cache = {};
     M.clear_active();
-    collectgarbage('collect');
 end
 
 function M.purge_except_zone(keepZoneId)
     keepZoneId = tonumber(keepZoneId);
     if (keepZoneId == nil) then
+        return 0;
+    end
+
+    return M.purge_batch(keepZoneId, PURGE_BATCH);
+end
+
+function M.schedule_enforce_cache_limit()
+    if (enforce_scheduled == true) then
+        return;
+    end
+    if (cache_count() <= max_cache_size()) then
         return;
     end
 
-    local remove = {};
-    for key, item in pairs(M.cache) do
-        if (item.zoneId ~= keepZoneId) then
-            remove[#remove + 1] = key;
+    enforce_scheduled = true;
+    local function step()
+        if (cache_count() <= max_cache_size()) then
+            enforce_scheduled = false;
+            return;
         end
+
+        local keepZoneId = mapcore.get_player_zone();
+        local removed = M.purge_batch(keepZoneId, PURGE_BATCH);
+        if (removed == 0) then
+            enforce_scheduled = false;
+            return;
+        end
+
+        ashita.tasks.once(0, step);
     end
 
-    for i = 1, #remove do
-        if (M.active_key == remove[i]) then
-            M.clear_active();
-        end
-        M.cache[remove[i]] = nil;
-    end
-
-    if (#remove > 0) then
-        collectgarbage('collect');
-    end
+    ashita.tasks.once(0, step);
 end
 
 function M.enforce_cache_limit()
-    local keepZoneId = mapcore.get_player_zone();
-    if (keepZoneId == nil) then
+    if (cache_count() <= max_cache_size()) then
         return;
     end
-
-    if (cache_count() > max_cache_size()) then
-        M.purge_except_zone(keepZoneId);
-    end
+    M.schedule_enforce_cache_limit();
 end
 
 function M.load_entry_to_cache(zoneId, floorId)
@@ -533,22 +636,41 @@ function M.load_entry_to_cache(zoneId, floorId)
     return cached;
 end
 
-function M.cache_zone(zoneId)
+function M.cache_zone(zoneId, priorityFloorId)
     zoneId = tonumber(zoneId);
+    priorityFloorId = tonumber(priorityFloorId);
     if (zoneId == nil) then
         return 0;
     end
 
     local floors = mapcore.get_floors_for_zone(zoneId);
     local loaded = 0;
+    local pending = {};
 
-    for i = 1, #floors do
-        if (M.load_entry_to_cache(zoneId, floors[i]) ~= nil) then
+    if (priorityFloorId ~= nil) then
+        if (M.load_entry_to_cache(zoneId, priorityFloorId) ~= nil) then
             loaded = loaded + 1;
         end
     end
 
-    M.enforce_cache_limit();
+    for i = 1, #floors do
+        local floorId = floors[i];
+        if (floorId ~= priorityFloorId) then
+            local key = cache_key(zoneId, floorId);
+            if (M.cache[key] == nil) then
+                pending[#pending + 1] = floorId;
+            else
+                loaded = loaded + 1;
+            end
+        end
+    end
+
+    if (#pending > 0) then
+        schedule_background_cache(zoneId, pending);
+    else
+        M.schedule_enforce_cache_limit();
+    end
+
     return loaded;
 end
 
@@ -587,8 +709,6 @@ function M.activate_current_floor()
         return false, 'no zone';
     end
 
-    M.cache_zone(zoneId);
-
     local x, y, z = mapcore.get_player_position();
     if (x == nil) then
         return false, 'no position';
@@ -598,6 +718,8 @@ function M.activate_current_floor()
     if (floorId == nil) then
         return false, 'floor detection failed';
     end
+
+    M.cache_zone(zoneId, floorId);
 
     return M.activate(zoneId, floorId);
 end
