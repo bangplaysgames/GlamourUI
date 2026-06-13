@@ -4213,20 +4213,20 @@ local function player_is_geo_job()
     return player:GetMainJob() == 21 or player:GetSubJob() == 21;
 end
 
-local function draw_geo_cardinal_glow(dl, headingDeg, centerX, innerW, halfRange, topY, botY, opacity, compassSettings)
+local function draw_geo_cardinal_glow(dl, viewHeadingDeg, facingHeadingDeg, centerX, innerW, halfRange, topY, botY, opacity, compassSettings)
     local glowScale = math.max(0, math.min(1, tonumber(opacity) or 1.0));
     if (glowScale <= 0) then
         return;
     end
 
-    local facingElement = geo_cardinal_element_for_heading_deg(headingDeg);
-    local startDeg = math.floor(headingDeg - halfRange);
-    local endDeg = math.ceil(headingDeg + halfRange);
+    local facingElement = geo_cardinal_element_for_heading_deg(facingHeadingDeg);
+    local startDeg = math.floor(viewHeadingDeg - halfRange);
+    local endDeg = math.ceil(viewHeadingDeg + halfRange);
     local ribbonH = botY - topY;
 
     for d = startDeg, endDeg do
         local bearing = wrap_deg_360(d);
-        local rel = wrap_deg_180(bearing - headingDeg);
+        local rel = wrap_deg_180(bearing - viewHeadingDeg);
         if (math.abs(rel) <= halfRange + 0.001) then
             local element = geo_cardinal_element_for_heading_deg(bearing);
             local base = resolve_geo_cardinal_color(compassSettings, element);
@@ -4236,7 +4236,7 @@ local function draw_geo_cardinal_glow(dl, headingDeg, centerX, innerW, halfRange
                     alpha = alpha + (0.18 * glowScale);
                 end
                 local x0 = centerX + (rel / halfRange) * (innerW * 0.5);
-                local relNext = wrap_deg_180((bearing + 1) - headingDeg);
+                local relNext = wrap_deg_180((bearing + 1) - viewHeadingDeg);
                 local x1 = centerX + (relNext / halfRange) * (innerW * 0.5);
                 if (x1 < x0) then
                     x1 = x0 + 1;
@@ -4255,10 +4255,18 @@ local function draw_geo_cardinal_glow(dl, headingDeg, centerX, innerW, halfRange
     do
         local base = resolve_geo_cardinal_color(compassSettings, facingElement);
         if (base ~= nil) then
+            local playerRel = wrap_deg_180(facingHeadingDeg - viewHeadingDeg);
+            local halfW = innerW * 0.5;
+            local thumbX = centerX + (playerRel / halfRange) * halfW;
+            if (playerRel > halfRange + 0.001) then
+                thumbX = centerX + halfW;
+            elseif (playerRel < -halfRange - 0.001) then
+                thumbX = centerX - halfW;
+            end
             local bandW = math.max(8, innerW * 0.06);
             dl:AddRectFilled(
-                { centerX - (bandW * 0.5), topY },
-                { centerX + (bandW * 0.5), botY },
+                { thumbX - (bandW * 0.5), topY },
+                { thumbX + (bandW * 0.5), botY },
                 imgui.GetColorU32({ base[1], base[2], base[3], 0.30 * glowScale }),
                 3.0,
                 0
@@ -4368,7 +4376,7 @@ render.render_compass = function()
         local halfRange = fov * 0.5;
 
         if (s.geoCardinalGlow ~= false and player_is_geo_job()) then
-            draw_geo_cardinal_glow(dl, cameraHeadingDeg, centerX, innerW, halfRange, topY, botY, s.geoCardinalGlowOpacity, s);
+            draw_geo_cardinal_glow(dl, cameraHeadingDeg, playerHeadingDeg, centerX, innerW, halfRange, topY, botY, s.geoCardinalGlowOpacity, s);
         end
 
         local startDeg = math.floor((cameraHeadingDeg - halfRange) / tick) * tick;
