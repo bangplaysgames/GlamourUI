@@ -180,6 +180,58 @@ local MoonPhase = T{
 
 environment.is_open = true;
 
+local zone_timer_start = os.clock();
+
+local function format_zone_timer(seconds)
+    seconds = math.max(0, math.floor(tonumber(seconds) or 0));
+    local h = math.floor(seconds / 3600);
+    local m = math.floor((seconds % 3600) / 60);
+    local s = seconds % 60;
+    return ('%02d:%02d:%02d'):fmt(h, m, s);
+end
+
+environment.ResetZoneTimer = function()
+    zone_timer_start = os.clock();
+end
+
+environment.GetZoneElapsed = function()
+    return os.clock() - zone_timer_start;
+end
+
+environment.GetZoneTimerText = function()
+    return format_zone_timer(environment.GetZoneElapsed());
+end
+
+environment.GetZoneName = function()
+    local mm = AshitaCore:GetMemoryManager();
+    if (mm == nil) then
+        return '???';
+    end
+    local party = mm:GetParty();
+    if (party == nil) then
+        return '???';
+    end
+    local zoneId = party:GetMemberZone(0);
+    if (zoneId == nil or zoneId == 0) then
+        return '???';
+    end
+    local rm = AshitaCore:GetResourceManager();
+    if (rm == nil) then
+        return ('Zone %u'):fmt(zoneId);
+    end
+    local name = rm:GetString('zones.names', zoneId);
+    if (name == nil or name == '') then
+        return ('Zone %u'):fmt(zoneId);
+    end
+    return name;
+end
+
+ashita.events.register('packet_in', 'glam_env_zone_timer', function(e)
+    if (e.id == 0x00A) then
+        zone_timer_start = os.clock();
+    end
+end);
+
 local weatherpointer = ashita.memory.find('FFXiMain.dll', 0, '66A1????????663D????72', 0, 0);
 local timepointer = ashita.memory.find('FFXiMain.dll', 0, 'B0015EC390518B4C24088D4424005068', 0, 0);
 

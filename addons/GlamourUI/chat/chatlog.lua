@@ -3,6 +3,9 @@ local ffi = require('ffi');
 require('common');
 local compat = require('compat');
 local chatRoll = require('chatRoll');
+local ffxi_glyphs = require('ffxi_glyphs');
+local toasts = require('toasts');
+local combat_toasts = require('combat_toasts');
 
 local function is_valid_status_id(id)
     id = tonumber(id);
@@ -498,11 +501,16 @@ local function normalize_ffxi_star_glyph(s)
     if (s == nil or s == '') then
         return s;
     end
+    -- Do not gsub raw 0xAB on UTF-8 strings: it matches inside multibyte sequences (e.g. U+FFAB)
+    -- and leaves orphan bytes before a duplicate star.
     return tostring(s)
-        :gsub(string.char(0x81, 0x9A), '★')
-        :gsub('笘・', '★')
-        :gsub('\xe2\x80\xbb', '★')   -- CP932 0x819A → ※
-        :gsub('\xef\xbc\x8a', '★');  -- fullwidth asterisk
+        :gsub(ffxi_glyphs.MOB_CHECK_PREFIX_UTF8_CORRUPT, ffxi_glyphs.EMPTY_STAR_UTF8)
+        :gsub('\239\189' .. ffxi_glyphs.EMPTY_STAR_UTF8, ffxi_glyphs.EMPTY_STAR_UTF8)
+        :gsub(ffxi_glyphs.EMPTY_STAR_UTF8 .. '+', ffxi_glyphs.EMPTY_STAR_UTF8)
+        :gsub(ffxi_glyphs.STAR_ALT_UTF8, ffxi_glyphs.EMPTY_STAR_UTF8)
+        :gsub(string.char(0x81, 0x9A), ffxi_glyphs.EMPTY_STAR_UTF8)
+        :gsub('\xe2\x80\xbb', ffxi_glyphs.EMPTY_STAR_UTF8)
+        :gsub('\xef\xbc\x8a', ffxi_glyphs.EMPTY_STAR_UTF8);
 end
 
 local function normalize_utf8_arrow_glyphs(s)
@@ -552,12 +560,10 @@ local function post_decode_utf8_normalize(result)
     return normalize_utf8_arrow_glyphs(result);
 end
 
-local function shift_jis_wire_to_utf8(str)
+local function sjis_wire_chunk_to_utf8(str)
     if (str == nil or #str == 0) then
         return '';
     end
-
-    str = prepare_sjis_wire_text(str);
 
     local wideLen = kernel32.MultiByteToWideChar(CP_SHIFT_JIS, 0, str, #str, nil, 0);
     if (wideLen <= 0) then
@@ -586,6 +592,17 @@ local function shift_jis_wire_to_utf8(str)
     end
 
     return post_decode_utf8_normalize(ffi.string(utf8Buffer, utf8Len));
+end
+
+local function shift_jis_wire_to_utf8(str)
+    if (str == nil or #str == 0) then
+        return '';
+    end
+
+    str = prepare_sjis_wire_text(str);
+    str = ffxi_glyphs.shield_star_markers_for_sjis(str);
+    str = sjis_wire_chunk_to_utf8(str);
+    return ffxi_glyphs.restore_star_markers_after_sjis(str);
 end
 
 local function sjis_to_utf8(str)
@@ -631,12 +648,14 @@ local function setmode(m)
         return 'None';
     elseif(m == 0x03)then
         return 'Tell';
-    elseif(m == 0x0a or m == 0x0b or m == 0x0c)then
+    elseif(m == 0x08)then
         return 'Emote';
+    elseif(m == 0x0c)then
+        return 'GM Prompt';
     elseif(m == 0x04)then
         return 'Party';
     elseif(m == 0x0f)then
-        return 'Emote';
+        return 'Party';
     elseif(m == 0x05 or m == 0x10)then
         return 'LS[1]';
     elseif(m == 0x06 or m == 0x07)then
@@ -645,16 +664,22 @@ local function setmode(m)
         return 'Damage Dealt';
     elseif(m == 0x15 or m == 0x6e)then
         return 'Mob Ready';
+    elseif(m == 0x18 or m == 0x19)then
+        return 'Say';
     elseif(m == 0x1a)then
         return 'Yell';
     elseif(m == 0x1b)then
         return 'LS[2]';
     elseif(m == 0x1c)then
-        return 'Damage Taken';
+        return 'LS[2]';
     elseif(m == 0x1d)then
         return 'Miss';
-    elseif(m == 0x16 or m == 0x1f)then
+    elseif(m == 0x1e)then
+        return 'LS[3]';
+    elseif(m == 0x16)then
         return 'HP Recovered';
+    elseif(m == 0x1f)then
+        return 'LS[3]';
     elseif(m == 0x21)then
         return 'Unity';
     elseif(m == 0x22)then
@@ -691,6 +716,8 @@ local function setmode(m)
         return 'Echo';
     elseif(m == 0x500009d or m == 0x9d)then
         return 'Command Error';
+    elseif(m == 0x2a1)then
+        return 'System'; -- text_in only: conquest/regional-influence announcements.
     end
 
     return 'None';
@@ -1853,7 +1880,7 @@ local function debug_log_entry(entry)
     end
 
     local purpose = tostring(entry.purpose or 'None');
-    local source = (entry.injected == true) and 'text_in' or 'packet';
+    local source = (entry.fromTextIn == true) and 'text_in' or 'packet';
     local sender = tostring(entry.sender or '');
     local modeID = tostring(entry.modeID or '');
     local msg = tostring(entry.message or '');
@@ -2437,9 +2464,7 @@ local function resolve_gp_serv_event_0x32_text(data)
     if (data == nil or #data < 0x14) then
         return nil;
     end
-    local eventNum = struct.unpack('H', data, 0x0A + 1);
     local eventPara = struct.unpack('H', data, 0x0C + 1);
-    local eventNum2 = struct.unpack('H', data, 0x10 + 1);
     local eventPara2 = struct.unpack('H', data, 0x12 + 1);
 
     local function try_index(idx)
@@ -2470,14 +2495,6 @@ local function resolve_gp_serv_event_0x32_text(data)
         if (t ~= nil) then
             return t;
         end
-    end
-    t = try_index(bit.band(tonumber(eventNum) or 0, 0x7FFF));
-    if (t ~= nil) then
-        return t;
-    end
-    t = try_index(bit.band(tonumber(eventNum2) or 0, 0x7FFF));
-    if (t ~= nil) then
-        return t;
     end
 
     return nil;
@@ -2539,6 +2556,58 @@ local function format_display_message_template(template, p1, p2, p3, p4, playerN
     return clean_str(t);
 end
 
+-- Chat Attr 0x08: Mes is "%x,%x,%x,%x,%x,%x,%x," — val1 picks the DAT table, val2 the message index.
+local SPECIAL_FORMAT_TABLE_NAMES = {
+    [1] = { 'EventMess', 'events.messages', 'messages.events' },
+    [2] = { 'SkillName', 'skills.names', 'skills' },
+    [3] = { 'BitName', 'buffs.names_log', 'buffs.names' },
+    [4] = { 'EmotionMess', 'emotes.names' },
+    [6] = { 'SystemMess', 'messages', 'system.messages' },
+    [7] = { 'MonWazaMess', 'monsters.weapon_skills' },
+    [8] = { 'SevMess', 'sev_mess', 'dialog' },
+    [9] = { 'TrustMess', 'trust.messages' },
+    [10] = { 'UnityMess', 'unity.messages' },
+};
+
+local function lookup_special_format_string(tableIdx, msgIdx)
+    local rm = AshitaCore and AshitaCore:GetResourceManager() or nil;
+    local names = SPECIAL_FORMAT_TABLE_NAMES[tableIdx];
+    if (rm == nil or names == nil) then
+        return nil;
+    end
+    for i = 1, #names do
+        local hit = try_get_string_resource(rm, names[i], msgIdx);
+        if (hit ~= nil) then
+            return hit;
+        end
+    end
+    return nil;
+end
+
+-- Returns (decodedText, tableIdx). tableIdx is the special-format DAT table (see
+-- SPECIAL_FORMAT_TABLE_NAMES; 4 = EmotionMess/emotes) and is returned even when the
+-- template lookup misses, so callers can still classify the line (e.g. as an emote).
+local function decode_special_format_message(raw)
+    if (raw == nil) then
+        return nil, nil;
+    end
+    local v1, v2, v3, v4, v5, v6 = raw:match('^(%x+),(%x+),(%x+),(%x+),(%x+),(%x+),(%x+),');
+    if (v1 == nil) then
+        return nil, nil;
+    end
+    local tableIdx = tonumber(v1, 16) or 0;
+    local msgIdx = tonumber(v2, 16) or 0;
+    local template = lookup_special_format_string(tableIdx, msgIdx);
+    if (template == nil or template == '') then
+        return nil, tableIdx;
+    end
+    local text = format_display_message_template(template, tonumber(v3, 16), tonumber(v4, 16), tonumber(v5, 16), tonumber(v6, 16), nil);
+    return (text or clean_str(template)), tableIdx;
+end
+
+-- Ashita's resource manager has no registered table for zone display-message DAT data
+-- (see ashita.datmap.ini) — lookup always misses on this server. Returns nil rather than
+-- a synthetic placeholder; text_in already shows the client's own resolved text for these.
 local function resolve_display_message_or_fallback(msgId, msgType, p1, p2, p3, p4, playerName)
     local template = lookup_display_message_template(msgId);
     local text = format_display_message_template(template, p1, p2, p3, p4, playerName);
@@ -2548,30 +2617,22 @@ local function resolve_display_message_or_fallback(msgId, msgType, p1, p2, p3, p
     if (template ~= nil and template ~= '') then
         return clean_str(template);
     end
-    return ('[DisplayMsg %u] type=%u p1=%u p2=%u p3=%u p4=%u (%s)'):fmt(
-        tonumber(msgId) or 0,
-        tonumber(msgType) or 0,
-        tonumber(p1) or 0,
-        tonumber(p2) or 0,
-        tonumber(p3) or 0,
-        tonumber(p4) or 0,
-        tostring(playerName or '')
-    );
+    return nil;
 end
 
 local function handle_string_message_packet_0x27(e)
-    if (e == nil or e.data == nil or #e.data < 0x30) then
+    if (e == nil or e.data == nil or #e.data < 0x40) then
         return;
     end
     local playerIdx = struct.unpack('H', e.data, 0x08 + 1);
     local rawMid = struct.unpack('H', e.data, 0x0A + 1);
     local msgId = bit.band(tonumber(rawMid) or 0, 0x7FFF);
-    local msgType = struct.unpack('I', e.data, 0x0C + 1);
+    local msgType = struct.unpack('H', e.data, 0x0C + 1);
     local p1 = struct.unpack('I', e.data, 0x10 + 1);
     local p2 = struct.unpack('I', e.data, 0x14 + 1);
     local p3 = struct.unpack('I', e.data, 0x18 + 1);
     local p4 = struct.unpack('I', e.data, 0x1C + 1);
-    local nameRaw = struct.unpack('c16', e.data, 0x20 + 1);
+    local nameRaw = struct.unpack('c32', e.data, 0x20 + 1);
     local playerName = '';
     if (nameRaw ~= nil and nameRaw ~= '') then
         playerName = ((nameRaw:match('^([^%z]*)') or ''):gsub('%s+$', ''));
@@ -2584,6 +2645,10 @@ local function handle_string_message_packet_0x27(e)
     end
     local sender = (playerName ~= nil and playerName ~= '') and playerName or 'System';
     local text = resolve_display_message_or_fallback(msgId, msgType, p1, p2, p3, p4, playerName);
+    if (text == nil or text == '') then
+        -- Can't resolve this server's display-message DAT data; text_in already shows it correctly.
+        return;
+    end
 
     local committed, shown = append_entry(T{
         time = os.date('[%H:%M:%S]'),
@@ -2605,27 +2670,65 @@ local function handle_string_message_packet_0x27(e)
     end
 end
 
+-- GP_SERV_COMMAND_FRAGMENTS (0x4D): /servmes text >236 bytes spans multiple packets,
+-- glued back together using `timestamp` (id of the message) and `offset`.
+local servMesFragmentBuf = {
+    timestamp = nil,
+    total = 0,
+    bytes = '',
+};
+
+local function reset_servmes_fragment_buf()
+    servMesFragmentBuf.timestamp = nil;
+    servMesFragmentBuf.total = 0;
+    servMesFragmentBuf.bytes = '';
+end
+
 local function handle_servmes_packet_0x4d(e)
-    if (e == nil or e.data == nil or #e.data < 0x19) then
+    if (e == nil or e.data == nil or #e.data < 0x18) then
         return;
     end
-    local len = tonumber(struct.unpack('I', e.data, 0x0A + 1)) or 0;
-    if (len < 0 or len > 8192) then
-        len = 0;
+    local value1 = tonumber(struct.unpack('B', e.data, 0x06 + 1)) or 0;
+    if (value1 ~= 1) then
+        -- Not /servmes text (eg. ranking board data); not handled here.
+        return;
     end
-    local maxRead = len;
+    local timestamp = tonumber(struct.unpack('I', e.data, 0x08 + 1)) or 0;
+    local sizeTotal = tonumber(struct.unpack('I', e.data, 0x0C + 1)) or 0;
+    local fragOffset = tonumber(struct.unpack('I', e.data, 0x10 + 1)) or 0;
+    local dataSize = tonumber(struct.unpack('I', e.data, 0x14 + 1)) or 0;
+    if (dataSize < 0 or dataSize > 8192) then
+        dataSize = 0;
+    end
+
+    local avail = math.max(0, #e.data - 0x18);
+    local maxRead = (dataSize > 0) and dataSize or avail;
+    maxRead = math.min(maxRead, avail, 236);
     if (maxRead <= 0) then
-        maxRead = math.max(0, #e.data - 24);
-    end
-    maxRead = math.min(maxRead, #e.data - 24, 4096);
-    if (maxRead <= 0) then
         return;
     end
-    local raw = struct.unpack(('c%d'):fmt(maxRead), e.data, 0x18 + 1);
-    if (raw == nil or raw == '') then
+
+    local chunk = struct.unpack(('c%d'):fmt(maxRead), e.data, 0x18 + 1);
+    if (chunk == nil) then
         return;
     end
-    local cut = raw:match('^([^%z]*)') or raw;
+
+    if (servMesFragmentBuf.timestamp ~= timestamp) then
+        reset_servmes_fragment_buf();
+        servMesFragmentBuf.timestamp = timestamp;
+        servMesFragmentBuf.total = sizeTotal;
+    end
+    servMesFragmentBuf.bytes = servMesFragmentBuf.bytes .. chunk;
+
+    local isFinal = (sizeTotal <= 0) or ((fragOffset + maxRead) >= sizeTotal);
+    if (not isFinal) then
+        return;
+    end
+
+    local full = servMesFragmentBuf.bytes;
+    reset_servmes_fragment_buf();
+
+    local cut = full:match('^([^%z]*)') or full;
     local text = clean_str(cut);
     if (text == nil or text == '') then
         return;
@@ -2654,18 +2757,20 @@ local function handle_system_message_packet_0x53(e)
         return;
     end
     local param = struct.unpack('I', e.data, 0x04 + 1);
+    local param2 = struct.unpack('I', e.data, 0x08 + 1);
     local msgId = struct.unpack('H', e.data, 0x0C + 1);
     local mid = bit.band(tonumber(msgId) or 0, 0x7FFF);
     local template = lookup_display_message_template(mid);
     if (template == nil or template == '') then
         template = npc_dialog_string_lookup(mid);
     end
-    local text = format_display_message_template(template, param, 0, 0, 0, nil);
+    local text = format_display_message_template(template, param, param2, 0, 0, nil);
     if (text == nil or text == '') then
         if (template ~= nil and template ~= '') then
             text = clean_str(template);
         else
-            text = ('[SystemMsg %u] param=%u'):fmt(mid, tonumber(param) or 0);
+            -- Can't resolve this server's system-message DAT data; text_in already shows it correctly.
+            return;
         end
     end
 
@@ -3112,6 +3217,13 @@ local function handle_kill_message_packet_0x2d(e)
     end
 
     local purpose = 'System';
+    if (mid == 8 or mid == 105 or mid == 253) then
+        purpose = 'Experience';
+    elseif (mid == 371 or mid == 372) then
+        purpose = 'Limit Points';
+    elseif (mid == 718 or mid == 735) then
+        purpose = 'Capacity Points';
+    end
     if (message_is_catseye_gov_progress(text)) then
         purpose = 'GoV';
     end
@@ -3133,6 +3245,7 @@ local function handle_kill_message_packet_0x2d(e)
     if (committed and shown) then
         record_packet_chat_line(text, true);
     end
+    toasts.push(purpose, text);
 end
 
 local function handle_event_packet_0x32(e)
@@ -3235,6 +3348,7 @@ chatlog.handle_packet_in = function(e)
                 if (purpose == 'Spell Cast') then
                     chatlog.note_recent_trust_spell_cast(message);
                 end
+                toasts.push(purpose, clean_str(message));
                 local committed, shown = append_entry(T{
                     time = os.date('[%H:%M:%S]'),
                     sender = 'Battle',
@@ -3248,6 +3362,10 @@ chatlog.handle_packet_in = function(e)
                 });
                 if (committed and shown) then
                     record_packet_chat_line(message, true);
+                end
+            end, combat_toasts.handle_combat_event, function(act)
+                if (gParseDB ~= nil and gParseDB.ingest ~= nil) then
+                    gParseDB.ingest(act);
                 end
             end);
         end
@@ -3278,8 +3396,40 @@ chatlog.handle_packet_in = function(e)
             return;
         end
 
+        local specialTableIdx = nil;
+        if (attr ~= nil and bit.band(attr, 0x08) ~= 0) then
+            local decoded, tableIdx = decode_special_format_message(message);
+            if (decoded ~= nil and decoded ~= '') then
+                message = decoded;
+            end
+            specialTableIdx = tableIdx;
+        end
+
         local purpose = setmode(kind) or 'None';
+
+        -- Predefined emotes ("<Player> waves.") arrive as an EmotionMess special-format
+        -- message (table 4). The server's kind byte for these isn't the Emote channel here
+        -- (it lands on Party via setmode), so classify by the special-format table instead.
+        if (specialTableIdx == 4) then
+            purpose = 'Emote';
+        end
         local cleaned = clean_str(message or '');
+
+        if (kind == 0x0C) then
+            -- GM Prompt: Mes is quoted-string chunks — first is the dialog title, rest are options.
+            local segs = {};
+            for seg in cleaned:gmatch('"([^"]*)"') do
+                segs[#segs + 1] = seg;
+            end
+            if (#segs > 0) then
+                local title = segs[1];
+                local opts = {};
+                for i = 2, #segs do
+                    opts[#opts + 1] = segs[i];
+                end
+                cleaned = (#opts > 0) and (title .. ' [' .. table.concat(opts, ', ') .. ']') or title;
+            end
+        end
 
         do
             local allowNamePrefixPromote =
@@ -3414,7 +3564,8 @@ chatlog.handle_packet_in = function(e)
 
         local text = npc_dialog_string_lookup(msgIndex);
         if (text == nil or text == '') then
-            text = ('[SevMess:%d]'):fmt(msgIndex);
+            -- Can't resolve this server's SevMess DAT data; text_in already shows it correctly.
+            return;
         end
 
         local committed, shown = append_entry(T{

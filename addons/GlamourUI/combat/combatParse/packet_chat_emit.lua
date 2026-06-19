@@ -15,6 +15,81 @@ local M = {};
 local res_actmsg;
 local res_load_err;
 
+-- Action messages that mark a real player weapon skill landing (damage / HP-or-MP drain /
+-- HP recover), same set thotbar uses to detect a WS. A category-3 action whose message is
+-- NOT one of these isn't a damaging WS -- e.g. a trust ability mis-slotted into the WS
+-- category like NanaaMihgo's Despoil (a steal: message carries the stolen ITEM id, not
+-- damage), which would otherwise mis-toast as "Final Paradise for <itemId> damage".
+local WS_MESSAGE_IDS = { [103] = true, [185] = true, [187] = true, [238] = true };
+
+local function is_magic_burst_message(msg_id)
+    msg_id = tonumber(msg_id) or 0;
+    if (msg_id == 0) then
+        return false;
+    end
+    local row = res_actmsg and res_actmsg[msg_id] or nil;
+    if (row == nil or row.en == nil) then
+        return false;
+    end
+    return row.en:find('Magic Burst', 1, true) ~= nil;
+end
+
+local function skillchain_name_from_message(msg_id)
+    msg_id = tonumber(msg_id) or 0;
+    if (msg_id == 0) then
+        return nil;
+    end
+    local row = res_actmsg and res_actmsg[msg_id] or nil;
+    if (row == nil or row.en == nil) then
+        return nil;
+    end
+    local en = row.en;
+    if (en:find('Skillchain', 1, true) == nil) then
+        return nil;
+    end
+    local name = en:match('Skillchain:?%s*([^%.!${]+)');
+    if (name ~= nil) then
+        name = name:gsub('^%s+', ''):gsub('%s+$', '');
+        if (name ~= '' and name ~= 'Skillchain') then
+            return name;
+        end
+    end
+    return 'Skillchain';
+end
+
+local function add_effect_numeric(m)
+    if (m == nil) then
+        return nil;
+    end
+    local raw = (m.cadd_effect_param ~= nil and tostring(m.cadd_effect_param) ~= '')
+        and m.cadd_effect_param or m.add_effect_param;
+    local n = tonumber(raw);
+    if (n ~= nil and n > 0) then
+        return n;
+    end
+    return nil;
+end
+
+local function classify_combat_action(act, m)
+    local cat = tonumber(act.category) or 0;
+    local actorType = act.actor and act.actor.type or nil;
+    local isOwnedPet = (actorType == 'my_pet' or actorType == 'other_pets');
+    local msg = m and (tonumber(m.message) or 0) or 0;
+    -- Pet TP moves arrive as cat 11 (or msg 110/317), but automaton/pet ranged
+    -- weaponskills come as cat 2 and other pet weaponskills as cat 3, so treat
+    -- those as pet events too (otherwise they emit no toast / no damage number).
+    local isPetMove = isOwnedPet and (msg == 110 or msg == 317 or cat == 11 or cat == 2 or cat == 3);
+    local abilId = math.floor(tonumber(act.param) or 0);
+    if (cat == 3 and WS_MESSAGE_IDS[msg]) then
+        return 'ws', abilId;
+    elseif (cat == 4) then
+        return 'spell', abilId;
+    elseif (isPetMove) then
+        return 'pet', abilId % 0x10000;
+    end
+    return nil, abilId;
+end
+
 local function templ_has(templ, token)
     return templ ~= nil and templ ~= '' and templ:find(token, 1, true) ~= nil;
 end
@@ -349,6 +424,15 @@ local function purpose_from_row(row, msg_id)
         return 'Lose Effect';
     elseif (msg_id == 78 or msg_id == 328) then
         return 'Ability Not Ready';
+    elseif (msg_id == 98 or msg_id == 565 or msg_id == 566 or msg_id == 582
+        or msg_id == 673 or msg_id == 706 or msg_id == 765 or msg_id == 766) then
+        return 'Spoils'; -- item/gil/tab obtained from treasure pool, reives, etc.
+    elseif (msg_id == 8 or msg_id == 105 or msg_id == 253) then
+        return 'Experience';
+    elseif (msg_id == 371 or msg_id == 372) then
+        return 'Limit Points';
+    elseif (msg_id == 718 or msg_id == 735) then
+        return 'Capacity Points';
     end
     if (roe_regime.is_roe_message(msg_id)) then
         return roe_regime.purpose();
@@ -424,6 +508,165 @@ local function primary_numeric_display(m)
         return tostring(m.cparam);
     end
     return tostring(m.param or '');
+end
+
+local function resolve_combat_ability_name(act, kind, abilId)
+    if (kind == 'ws') then
+        return lookup_player_ws(abilId);
+    elseif (kind == 'spell') then
+        return lookup_spell(abilId);
+    elseif (kind == 'pet') then
+        return lookup_mon_ability(abilId, nil, { allow_player_ws = false });
+    end
+    local cat = tonumber(act.category) or 0;
+    abilId = math.floor(tonumber(abilId) or 0);
+    if (cat == 3) then
+        return lookup_player_ws(abilId);
+    elseif (cat == 4) then
+        return lookup_spell(abilId);
+    end
+    return nil;
+end
+
+local function emit_combat_events(act, combat_event_cb)
+    if (combat_event_cb == nil or act == nil) then
+        return;
+    end
+
+    local firstTgt = act.targets and act.targets[1];
+    local firstAction = firstTgt and firstTgt.actions and firstTgt.actions[1];
+    local kind, abilId = classify_combat_action(act, firstAction);
+
+    -- Resolve the ability name the SAME way the chat log does (template-driven
+    -- plain_action_label / resolve_action_resources). The category-based
+    -- lookup_mon_ability path mis-resolves pet TP moves like wyvern breaths
+    -- ("Gust Breath" -> "Petro Eyes"); the chat path gets them right.
+    local resolvedName = '';
+    if (firstAction ~= nil) then
+        resolvedName = plain_action_label(act, tonumber(firstAction.message) or 0, firstAction) or '';
+    end
+    if (resolvedName == '') then
+        -- The labelling sub-action may not be the first one (a breath's "uses"
+        -- line vs its damage line); scan for the first action that yields a label.
+        for _, tgt in ipairs(act.targets or {}) do
+            for _, m in ipairs(tgt.actions or {}) do
+                local lbl = plain_action_label(act, tonumber(m.message) or 0, m);
+                if (lbl ~= nil and lbl ~= '') then
+                    resolvedName = lbl;
+                    break;
+                end
+            end
+            if (resolvedName ~= '') then break; end
+        end
+    end
+    if (resolvedName == '') then
+        resolvedName = resolve_combat_ability_name(act, kind, abilId) or '';
+    end
+
+    if (kind ~= nil and resolvedName ~= '') then
+        local name = resolvedName;
+        local damage = nil;
+        local dmgMsg = firstAction and (tonumber(firstAction.message) or 0) or 0;
+        local primaryMsg = dmgMsg;
+        local targetId = nil;
+        local targetName = nil;
+
+        -- Damage: take the first damage-colored ('D') action across targets, the
+        -- same number the chat log's damage line prints. A pet move's "uses ..."
+        -- sub-action often carries no number, so reading only actions[1] missed it.
+        for _, tgt in ipairs(act.targets or {}) do
+            for _, m in ipairs(tgt.actions or {}) do
+                local mid = tonumber(m.message) or 0;
+                local row = res_actmsg and res_actmsg[mid] or nil;
+                if (row ~= nil and (row.color == 'D' or (row.color == 'H' and (mid == 227 or mid == 274)))) then
+                    local n = tonumber(primary_numeric_display(m));
+                    if (n ~= nil and n > 0) then
+                        damage = n;
+                        dmgMsg = mid;
+                        break;
+                    end
+                end
+            end
+            if (damage ~= nil) then break; end
+        end
+        if (damage == nil and firstAction ~= nil) then
+            local n = tonumber(primary_numeric_display(firstAction));
+            if (n ~= nil and n > 0) then
+                damage = n;
+            end
+        end
+
+        local damaging = (damage ~= nil);
+
+        if (firstTgt ~= nil) then
+            targetId = firstTgt.server_id;
+            local targTbl = actor_parse.parse(firstTgt.server_id);
+            targetName = targTbl and targTbl.name or nil;
+        end
+        pcall(function()
+            combat_event_cb({
+                kind = kind,
+                actorId = act.actor_id,
+                actorName = (act.actor and act.actor.name) or nil,
+                abilId = abilId,
+                name = name,
+                damage = damage,
+                damaging = damaging,
+                magicBurst = is_magic_burst_message(primaryMsg) or is_magic_burst_message(dmgMsg),
+                message = primaryMsg,
+                targetId = targetId,
+                targetName = targetName,
+            });
+        end);
+    end
+
+    local closingName = (resolvedName ~= '' and resolvedName) or resolve_combat_ability_name(act, kind, abilId) or '?';
+    local seenSkillchain = {};
+
+    for _, tgt in ipairs(act.targets or {}) do
+        local sid = tgt.server_id;
+        local targTbl = actor_parse.parse(sid);
+        local targetName = targTbl and targTbl.name or nil;
+        for __, m in ipairs(tgt.actions or {}) do
+            local scMsgId = 0;
+            local scDamage = nil;
+            if (m.has_add_effect) then
+                scMsgId = tonumber(m.add_effect_message) or 0;
+                scDamage = add_effect_numeric(m);
+            end
+            if (scMsgId == 0 or skillchain_name_from_message(scMsgId) == nil) then
+                scMsgId = tonumber(m.message) or 0;
+                if (skillchain_name_from_message(scMsgId) ~= nil) then
+                    local n = tonumber(primary_numeric_display(m));
+                    if (n ~= nil and n > 0) then
+                        scDamage = n;
+                    end
+                else
+                    scMsgId = 0;
+                end
+            end
+            local scName = skillchain_name_from_message(scMsgId);
+            if (scName ~= nil) then
+                local dedupeKey = ('%u:%u:%s'):fmt(sid, scMsgId, tostring(scDamage or 0));
+                if (not seenSkillchain[dedupeKey]) then
+                    seenSkillchain[dedupeKey] = true;
+                    pcall(function()
+                        combat_event_cb({
+                            kind = 'skillchain',
+                            actorId = act.actor_id,
+                            actorName = (act.actor and act.actor.name) or nil,
+                            abilId = abilId,
+                            name = closingName,
+                            skillchainName = scName,
+                            damage = scDamage,
+                            targetId = sid,
+                            targetName = targetName,
+                        });
+                    end);
+                end
+            end
+        end
+    end
 end
 
 local function condensed_swing_prefix(mode, m)
@@ -630,7 +873,7 @@ local function emit_spike_line(act, target_sid, m, mode)
     return purpose, out;
 end
 
-function M.emit_0x28(e, append_cb)
+function M.emit_0x28(e, append_cb, combat_event_cb, full_act_cb)
     if (append_cb == nil or e == nil or e.data == nil) then
         return;
     end
@@ -664,6 +907,15 @@ function M.emit_0x28(e, append_cb)
         act.target_count = #act.targets;
     end
 
+    -- Feed the combat parser the RAW, pre-condense packet -- condensing below
+    -- merges/sums swings, which would destroy hit/miss/multi-attack counts.
+    if (full_act_cb ~= nil) then
+        if (act.actor == nil) then
+            act.actor = actor_parse.parse(act.actor_id);
+        end
+        pcall(full_act_cb, act);
+    end
+
     local mode = mode_options.get_mode(chat);
     act = condense_action_packet.run(act, mode, function()
         return true;
@@ -672,6 +924,8 @@ function M.emit_0x28(e, append_cb)
     if (act.actor == nil) then
         act.actor = actor_parse.parse(act.actor_id);
     end
+
+    emit_combat_events(act, combat_event_cb);
 
     for _, tgt in ipairs(act.targets or {}) do
         local sid = tgt.server_id;
@@ -704,7 +958,7 @@ function M.emit_0x29(e, append_cb)
     local actor_id = struct.unpack('I', d, 0x05);
     local target_id = struct.unpack('I', d, 0x09);
     local param_1 = struct.unpack('I', d, 0x0D);
-    local param_2 = struct.unpack('H', d, 0x11);
+    local param_2 = struct.unpack('I', d, 0x11);
     local message_id = struct.unpack('H', d, 0x19) % 32768;
 
     if (message_id == 0 or res_actmsg[message_id] == nil) then
@@ -819,12 +1073,12 @@ function M.emit_0x29(e, append_cb)
     append_cb(purpose, out);
 end
 
-function M.emit_packet(e, append_cb)
+function M.emit_packet(e, append_cb, combat_event_cb, full_act_cb)
     if (e == nil or append_cb == nil) then
         return;
     end
     if (e.id == 0x28) then
-        M.emit_0x28(e, append_cb);
+        M.emit_0x28(e, append_cb, combat_event_cb, full_act_cb);
     elseif (e.id == 0x29) then
         M.emit_0x29(e, append_cb);
     end

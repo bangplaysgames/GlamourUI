@@ -525,8 +525,11 @@ resources.get_font = function(fontName)
         return nil;
     end
 
-    merge_gob_star_glyph(fontSize);
+    local starMerged = merge_gob_star_glyph(fontSize);
     merge_backslash_glyph(fontSize);
+    if (GlamourUI ~= nil) then
+        GlamourUI.starGlyphMerged = starMerged;
+    end
     resources.loaded_fonts[name] = font;
     return font;
 end

@@ -1,5 +1,7 @@
 require('common');
 
+local mob_check = require('mob_check');
+
 local M = {};
 
 local domain_buffs = T{
@@ -218,6 +220,7 @@ function M.parse(actor_id)
     else
         actor_name = actor_table.MonstrosityName;
     end
+    actor_name = mob_check.format_display_name(actor_name);
 
     return {
         name = actor_name,

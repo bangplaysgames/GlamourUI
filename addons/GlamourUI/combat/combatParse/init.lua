@@ -5,8 +5,8 @@ local packet_chat_emit = require('packet_chat_emit');
 
 local M = {};
 
-function M.emit_packet_combat(e, append_cb)
-    packet_chat_emit.emit_packet(e, append_cb);
+function M.emit_packet_combat(e, append_cb, combat_event_cb, full_act_cb)
+    packet_chat_emit.emit_packet(e, append_cb, combat_event_cb, full_act_cb);
 end
 
 function M.rewrite_incoming_0x28(e)

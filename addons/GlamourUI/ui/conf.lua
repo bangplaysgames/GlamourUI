@@ -1,6 +1,5 @@
 local imgui = require('imgui')
 local ffi = require('ffi')
-local chat = require('chat')
 local scaling = require('scaling')
 local settings = require('settings')
 local panelStyle = require('panelStyle')
@@ -166,6 +165,8 @@ local CONFIG_CONTENT_HEIGHTS = {
     CastBar = 340,
     Compass = 360,
     Environment = 360,
+    Toasts = 480,
+    CombatToasts = 480,
 };
 
 local function conf_calc_text_size(text)
@@ -210,6 +211,9 @@ local function conf_build_tabs()
         { id = 'CastBar', label = 'Cast Bar', show = GlamourUI.settings.cBar.enabled == true },
         { id = 'Compass', label = 'Compass', show = GlamourUI.settings.Compass ~= nil and GlamourUI.settings.Compass.enabled == true },
         { id = 'Environment', label = 'Environment', show = true },
+        { id = 'Toasts', label = 'Toasts', show = GlamourUI.settings.Toasts ~= nil and GlamourUI.settings.Toasts.enabled == true },
+        { id = 'CombatToasts', label = 'Combat Toasts', show = GlamourUI.settings.CombatToasts ~= nil and GlamourUI.settings.CombatToasts.enabled == true },
+        { id = 'Parse', label = 'Combat Parser', show = true },
     };
 end
 
@@ -529,6 +533,136 @@ local function render_recast_contents()
     );
 end
 
+local TOAST_TRIGGER_PURPOSES = T{ 'Spoils', 'Experience', 'Limit Points', 'Capacity Points', 'PartyInvite', 'TradeRequest' };
+
+local function render_toasts_contents()
+    local s = GlamourUI.settings.Toasts;
+    s.enabled = select(1, render_toggle('Enable Toasts##GlamToasts', s.enabled == true));
+    imgui.TextDisabled('Pops up when you obtain EXP, Limit Points, Capacity Points, items, or gil.');
+    if (s.enabled ~= true) then
+        return;
+    end
+
+    s.duration = render_float_setting('Duration (sec)##GlamToasts', tonumber(s.duration) or 10.0, 1.0, 30.0, '%.1f');
+    s.slideInDuration = render_float_setting('Slide-in time (sec)##GlamToasts', tonumber(s.slideInDuration) or 0.25, 0.05, 2.0, '%.2f');
+    s.fadeOutDuration = render_float_setting('Fade-out time (sec)##GlamToasts', tonumber(s.fadeOutDuration) or 1.5, 0.1, 5.0, '%.1f');
+    s.width = math.floor(render_float_setting('Width (px)##GlamToasts', tonumber(s.width) or 320, 120, 800, '%.0f'));
+    s.spacing = math.floor(render_float_setting('Spacing (px)##GlamToasts', tonumber(s.spacing) or 8, 0, 40, '%.0f'));
+    s.maxStack = math.floor(render_float_setting('Max stacked##GlamToasts', tonumber(s.maxStack) or 5, 1, 10, '%.0f'));
+    s.font_scale = render_float_setting('Font Scale##GlamToasts', tonumber(s.font_scale) or 1.0, 0.1, 3.0, '%.1f');
+    s.x = render_float_setting('Position X##GlamToasts', tonumber(s.x) or 1550, 0, 3840, '%.0f');
+    s.y = render_float_setting('Position Y##GlamToasts', tonumber(s.y) or 60, 0, 2160, '%.0f');
+    imgui.TextDisabled('Tip: once a toast finishes sliding in, you can also just drag it -- that becomes the new spot for future toasts.');
+
+    imgui.Separator();
+    imgui.Text('Triggers');
+    if (s.purposes == nil) then
+        s.purposes = T{};
+    end
+    for i = 1, #TOAST_TRIGGER_PURPOSES do
+        local purpose = TOAST_TRIGGER_PURPOSES[i];
+        s.purposes[purpose] = select(1, render_toggle(purpose .. '##GlamToastsTrigger', s.purposes[purpose] == true));
+    end
+
+    imgui.Separator();
+    if (imgui.Button('Test Toast##GlamToasts')) then
+        gToasts.push('Spoils', 'Test: You obtain a Test Item from Test Mob.');
+    end
+    imgui.SameLine();
+    if (imgui.Button('Test Item Toast (icon)##GlamToasts')) then
+        local inv = AshitaCore:GetMemoryManager():GetInventory();
+        local testItemId = 0;
+        for slot = 0, inv:GetContainerCountMax(0) - 1 do
+            local it = inv:GetContainerItem(0, slot);
+            if (it ~= nil and it.Id ~= nil and it.Id > 0) then
+                testItemId = it.Id;
+                break;
+            end
+        end
+        local info = gToasts.resolve_item_info(testItemId);
+        gToasts.push('Spoils', ('%s dropped to the treasure pool.'):fmt(info.name), { icon = info.icon, tooltip = info.desc });
+    end
+    imgui.SameLine();
+    if (imgui.Button('Test Trade Toast##GlamToasts')) then
+        gToasts.push('TradeRequest', 'Trade request from Testplayer.', { duration = 60.0, key = 'TradeRequest' });
+    end
+
+    imgui.Separator();
+    render_panel_background_controls('ToastsPB', s);
+end
+
+local function render_combat_toasts_contents()
+    local s = GlamourUI.settings.CombatToasts;
+    s.enabled = select(1, render_toggle('Enable Combat Toasts##GlamCombatToasts', s.enabled == true));
+    imgui.TextDisabled('Pops up on alliance member weapon skills, spells, skillchains, and magic bursts.');
+    if (s.enabled ~= true) then
+        return;
+    end
+
+    s.duration = render_float_setting('Duration (sec)##GlamCombatToasts', tonumber(s.duration) or 10.0, 1.0, 30.0, '%.1f');
+    s.slideInDuration = render_float_setting('Slide-in time (sec)##GlamCombatToasts', tonumber(s.slideInDuration) or 0.25, 0.05, 2.0, '%.2f');
+    s.fadeOutDuration = render_float_setting('Fade-out time (sec)##GlamCombatToasts', tonumber(s.fadeOutDuration) or 1.5, 0.1, 5.0, '%.1f');
+    s.width = math.floor(render_float_setting('Width (px)##GlamCombatToasts', tonumber(s.width) or 320, 120, 800, '%.0f'));
+    s.spacing = math.floor(render_float_setting('Spacing (px)##GlamCombatToasts', tonumber(s.spacing) or 8, 0, 40, '%.0f'));
+    s.maxStack = math.floor(render_float_setting('Max stacked##GlamCombatToasts', tonumber(s.maxStack) or 5, 1, 10, '%.0f'));
+    s.font_scale = render_float_setting('Font Scale##GlamCombatToasts', tonumber(s.font_scale) or 1.0, 0.1, 3.0, '%.1f');
+    s.x = render_float_setting('Position X##GlamCombatToasts', tonumber(s.x) or 1550, 0, 3840, '%.0f');
+    s.y = render_float_setting('Position Y##GlamCombatToasts', tonumber(s.y) or 420, 0, 2160, '%.0f');
+    imgui.TextDisabled('Tip: once a toast finishes sliding in, you can also just drag it -- that becomes the new spot for future toasts.');
+
+    imgui.Separator();
+    s.showSkillchainPanel = select(1, render_toggle('Show skillchain panel##GlamCombatToasts', s.showSkillchainPanel ~= false));
+    imgui.TextDisabled('Shows what YOU could weaponskill with to continue/close a chain off the most recent party weapon skill. Anchored to the right of this toast window.');
+
+    imgui.Separator();
+    imgui.TextDisabled('Test buttons use your current target -- target a mob first to see the skillchain panel populate.');
+    if (imgui.Button('Test WS Toast##GlamCombatToasts')) then
+        local selfEnt = GetPlayerEntity and GetPlayerEntity() or nil;
+        local selfId = selfEnt and selfEnt.ServerId or 0;
+        local selfName = (selfEnt and selfEnt.Name and tostring(selfEnt.Name):gsub('%z.*', '')) or 'You';
+        local targetIndex = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(0);
+        local targetEnt = (targetIndex ~= nil and targetIndex ~= 0) and GetEntity(targetIndex) or nil;
+        local targetId = targetEnt and targetEnt.ServerId or nil;
+        local targetName = (targetEnt and targetEnt.Name and tostring(targetEnt.Name):gsub('%z.*', '')) or 'Test Mob';
+        gCombatToasts.handle_combat_event({ kind = 'ws', actorId = selfId, actorName = selfName, abilId = 30, name = 'Aeolian Edge', damage = 1234, targetId = targetId, targetName = targetName });
+    end
+    imgui.SameLine();
+    if (imgui.Button('Test Spell Toast##GlamCombatToasts')) then
+        local selfEnt = GetPlayerEntity and GetPlayerEntity() or nil;
+        local selfId = selfEnt and selfEnt.ServerId or 0;
+        local selfName = (selfEnt and selfEnt.Name and tostring(selfEnt.Name):gsub('%z.*', '')) or 'You';
+        local targetIndex = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(0);
+        local targetEnt = (targetIndex ~= nil and targetIndex ~= 0) and GetEntity(targetIndex) or nil;
+        local targetId = targetEnt and targetEnt.ServerId or nil;
+        local targetName = (targetEnt and targetEnt.Name and tostring(targetEnt.Name):gsub('%z.*', '')) or 'Test Mob';
+        gCombatToasts.handle_combat_event({ kind = 'spell', actorId = selfId, actorName = selfName, abilId = 0, name = 'Thunder IV', damage = 987, damaging = true, targetId = targetId, targetName = targetName });
+    end
+    imgui.SameLine();
+    if (imgui.Button('Test MB Toast##GlamCombatToasts')) then
+        local selfEnt = GetPlayerEntity and GetPlayerEntity() or nil;
+        local selfId = selfEnt and selfEnt.ServerId or 0;
+        local selfName = (selfEnt and selfEnt.Name and tostring(selfEnt.Name):gsub('%z.*', '')) or 'You';
+        local targetIndex = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(0);
+        local targetEnt = (targetIndex ~= nil and targetIndex ~= 0) and GetEntity(targetIndex) or nil;
+        local targetId = targetEnt and targetEnt.ServerId or nil;
+        local targetName = (targetEnt and targetEnt.Name and tostring(targetEnt.Name):gsub('%z.*', '')) or 'Test Mob';
+        gCombatToasts.handle_combat_event({ kind = 'spell', actorId = selfId, actorName = selfName, abilId = 0, name = 'Thunder IV', damage = 4321, damaging = true, magicBurst = true, targetId = targetId, targetName = targetName });
+    end
+    if (imgui.Button('Test SC Toast##GlamCombatToasts')) then
+        local selfEnt = GetPlayerEntity and GetPlayerEntity() or nil;
+        local selfId = selfEnt and selfEnt.ServerId or 0;
+        local selfName = (selfEnt and selfEnt.Name and tostring(selfEnt.Name):gsub('%z.*', '')) or 'You';
+        local targetIndex = AshitaCore:GetMemoryManager():GetTarget():GetTargetIndex(0);
+        local targetEnt = (targetIndex ~= nil and targetIndex ~= 0) and GetEntity(targetIndex) or nil;
+        local targetId = targetEnt and targetEnt.ServerId or nil;
+        local targetName = (targetEnt and targetEnt.Name and tostring(targetEnt.Name):gsub('%z.*', '')) or 'Test Mob';
+        gCombatToasts.handle_combat_event({ kind = 'skillchain', actorId = selfId, actorName = selfName, abilId = 30, name = 'Aeolian Edge', skillchainName = 'Fragmentation', damage = 2100, targetId = targetId, targetName = targetName });
+    end
+
+    imgui.Separator();
+    render_panel_background_controls('CombatToastsPB', s);
+end
+
 local function render_pstats_bar_dim_controls(title, dimTable, idSuffix)
     imgui.Text(title);
     local barLength = { dimTable.l };
@@ -605,6 +739,7 @@ local function render_chat_logs_contents()
         chatSettings.condenseTargets = select(1, render_toggle('  Merge identical targets##GlamCondTgt', chatSettings.condenseTargets ~= false));
     end
 
+    imgui.Separator();
     imgui.Text('Stored messages');
     imgui.TextDisabled('Main ring buffer (memory / persist). Each chat window has its own max lines below; trimming one window no longer removes lines from the other.');
     local maxBufContents = { math.floor(math.min(20000, math.max(100, tonumber(chatSettings.maxEntries) or 1000))) };
@@ -870,6 +1005,17 @@ local function render_environment_contents()
         nil,
         nil
     );
+
+    imgui.Separator();
+    imgui.Text('Zone Timer');
+    if (s.zone_timer_enabled == nil) then
+        s.zone_timer_enabled = true;
+    end
+    s.zone_timer_enabled = select(1, render_toggle('Show Zone Timer##GlamEnvZT', s.zone_timer_enabled == true));
+    if (s.dynamis_tracker_enabled == nil) then
+        s.dynamis_tracker_enabled = true;
+    end
+    s.dynamis_tracker_enabled = select(1, render_toggle('Show Dynamis Timer and KI##GlamEnvDyn', s.dynamis_tracker_enabled == true));
 
     imgui.Separator();
     imgui.Text('Minimap');
@@ -1503,6 +1649,50 @@ local render_general_tab = function()
     imgui.EndTabItem();
 end
 
+local PARSE_SORTS = { 'damage', 'dps', 'healing', 'taken', 'name' };
+
+local function render_parse_contents()
+    local p = GlamourUI.settings.Parse;
+    if (p == nil) then
+        return;
+    end
+    p.enabled = select(1, render_toggle('Enable Combat Parser##GlamParse', p.enabled == true));
+    imgui.TextDisabled('DPS / damage / accuracy / healing / defense meter. Toggle: /glam parse');
+    if (p.enabled ~= true) then
+        return;
+    end
+
+    p.expanded = select(1, render_toggle('Start expanded (full window)##GlamParse', p.expanded == true));
+
+    imgui.Text('Sort by:');
+    for i = 1, #PARSE_SORTS do
+        imgui.SameLine();
+        if (imgui.RadioButton(PARSE_SORTS[i] .. '##GlamParseSort', p.sortBy == PARSE_SORTS[i])) then
+            p.sortBy = PARSE_SORTS[i];
+        end
+    end
+
+    p.idleTimeout = render_float_setting('Battle idle reset (sec)##GlamParse', tonumber(p.idleTimeout) or 12.0, 3.0, 60.0, '%.0f');
+    p.width = math.floor(render_float_setting('Meter width (px)##GlamParse', tonumber(p.width) or 280, 160, 800, '%.0f'));
+    p.font_scale = render_float_setting('FontScale##GlamParse', tonumber(p.font_scale) or 1, 0.1, 5.0, '%.1f');
+    render_font_combo('Font##GlamParse', p.font or '', function(name)
+        p.font = name;
+        gResources.reload_font(name ~= '' and name or GlamourUI.settings.font);
+    end);
+
+    imgui.Separator();
+    if (imgui.Button('Reset Battle##GlamParse') and gParseDB ~= nil) then
+        gParseDB.reset_battle();
+    end
+    imgui.SameLine();
+    if (imgui.Button('Reset Total##GlamParse') and gParseDB ~= nil) then
+        gParseDB.reset_total();
+    end
+
+    imgui.Separator();
+    render_panel_background_controls('ParsePB', p);
+end
+
 conf.render_config = function()
     local cbar_gui_scale = {GlamourUI.settings.cBar.gui_scale};
     local cbar_font_scale = {GlamourUI.settings.cBar.font_scale};
@@ -1613,6 +1803,12 @@ conf.render_config = function()
                 render_compass_contents();
             elseif (conf.selected_tab == 'Environment') then
                 render_environment_contents();
+            elseif (conf.selected_tab == 'Toasts') then
+                render_toasts_contents();
+            elseif (conf.selected_tab == 'CombatToasts') then
+                render_combat_toasts_contents();
+            elseif (conf.selected_tab == 'Parse') then
+                render_parse_contents();
             end
             imgui.EndChild();
 

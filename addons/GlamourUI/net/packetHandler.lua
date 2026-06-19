@@ -5,6 +5,7 @@ local actionPacket28 = require('action_packet28');
 local combatParse = require('combatParse');
 local enemy_debuff_tracker = require('enemy_debuff_tracker');
 local target_mob_action = require('target_mob_action');
+local toasts = require('toasts');
 
 ffi.cdef[[
     int32_t memcmp(const void* buff1, const void* buff2, size_t count);
@@ -346,6 +347,7 @@ packet.LoginPacket = function(e)
     end
     local mob_check = require('mob_check');
     mob_check.clear_char_info();
+    packet.DismissTradeRequestToast();
     packet.timer = os.time() + 30;
 end
 
@@ -802,25 +804,185 @@ packet.PartyBuffs = function(Packet)
 end
 
 
---Handle Party Invite Packet
-packet.PartyInvite = function(Packet);
-    gPacket.inviter = struct.unpack('c16', Packet.data, 0x0c + 1);
-    gPacket.InviteActive = true;
+--- Total members across your party + the two other alliance parties. Used to detect a
+--- "party status changed" event (you joined a party/alliance) for dismissing an invite.
+local function invite_party_total()
+    local party = AshitaCore and AshitaCore:GetMemoryManager() and AshitaCore:GetMemoryManager():GetParty() or nil;
+    if (party == nil) then
+        return 0;
+    end
+    local ok, n = pcall(function()
+        return (party:GetAlliancePartyMemberCount1() or 0)
+             + (party:GetAlliancePartyMemberCount2() or 0)
+             + (party:GetAlliancePartyMemberCount3() or 0);
+    end);
+    return (ok and n) or 0;
 end
 
---Handle Response to Party Invite
+--- Handle Party/Alliance Invite Packet (GP_SERV_COMMAND_INVITE, 0x00DC). Kind @0x0B is
+--- 0 for a normal party invite, 5 for an alliance invite; sName @0x0C is the inviter.
+--- Shown as a 60s toast (~the real invite lifetime). Dismissed early on accept/decline
+--- (outgoing 0x074) or when party status changes (TickPartyInviteDismiss).
+packet.PartyInvite = function(Packet)
+    local inviter = struct.unpack('c16', Packet.data, 0x0c + 1) or '';
+    local zero = inviter:find('\0', 1, true);
+    if (zero ~= nil) then
+        inviter = inviter:sub(1, zero - 1);
+    end
+    local kind = Packet.data:byte(0x0B + 1) or 0;
+
+    gPacket.inviter = inviter;
+    gPacket.inviteKind = kind;
+    gPacket.InviteActive = true;
+    gPacket.inviteMemberCount = invite_party_total();
+
+    local label = (kind == 5) and 'Alliance' or 'Party';
+    local who = (inviter ~= '') and inviter or 'someone';
+    toasts.push('PartyInvite', ('%s invite from %s.'):fmt(label, who), { duration = 60.0, key = 'PartyInvite' });
+end
+
+--Handle Response to Party Invite (outgoing 0x074 -- both accept and decline) -> dismiss now.
 packet.PartyInviteResponse = function(Packet)
     gPacket.InviteActive = false;
+    toasts.dismiss('PartyInvite');
 end
 
---Item Drop Packet
+--- Dismiss a pending invite toast as soon as party status changes (you joined a party or
+--- alliance), comparing the live member total against the snapshot taken at invite time.
+packet.TickPartyInviteDismiss = function()
+    if (gPacket.InviteActive ~= true) then
+        return;
+    end
+    if (invite_party_total() ~= (gPacket.inviteMemberCount or 0)) then
+        gPacket.InviteActive = false;
+        toasts.dismiss('PartyInvite');
+    end
+end
+
+local function entity_name_from_server_id(serverId)
+    serverId = tonumber(serverId) or 0;
+    if (serverId == 0 or GetEntity == nil) then
+        return nil;
+    end
+    if (GetIndexFromId ~= nil) then
+        local index = GetIndexFromId(serverId);
+        if (index ~= nil and index > 0) then
+            local ent = GetEntity(index);
+            if (ent ~= nil and ent.Name ~= nil and tostring(ent.Name) ~= '') then
+                return tostring(ent.Name):gsub('%z.*', '');
+            end
+        end
+    end
+    for x = 0, 2303 do
+        local ent = GetEntity(x);
+        if (ent ~= nil and ent.ServerId == serverId and ent.Name ~= nil and tostring(ent.Name) ~= '') then
+            return tostring(ent.Name):gsub('%z.*', '');
+        end
+    end
+    return nil;
+end
+
+--- Handle Trade Request Packet (GP_ITEM_TRADE_REQ, 0x0021). UniqueNo @0x04 is the trader's
+--- server id. Shown as a 60s keyed toast (~real request lifetime). Dismissed on trade
+--- response (0x0022, any kind except START) or when zoning (0x000B / login 0x000A).
+packet.TradeRequest = function(Packet)
+    if (Packet == nil or Packet.data == nil or #Packet.data < 0x08) then
+        return;
+    end
+    local traderId = struct.unpack('I', Packet.data, 0x04 + 1);
+    if (traderId == nil or traderId == 0) then
+        return;
+    end
+
+    gPacket.tradeRequestServerId = traderId;
+    gPacket.TradeRequestActive = true;
+
+    local who = entity_name_from_server_id(traderId) or 'someone';
+    toasts.push('TradeRequest', ('Trade request from %s.'):fmt(who), { duration = 60.0, key = 'TradeRequest' });
+end
+
+local TRADE_RES_KIND_START = 0;
+
+--- GP_ITEM_TRADE_RES (0x0022): trade window opened, cancelled, completed, or error.
+packet.TradeResponse = function(Packet)
+    if (Packet == nil or Packet.data == nil or #Packet.data < 0x0C) then
+        return;
+    end
+    local kind = struct.unpack('I', Packet.data, 0x08 + 1);
+    if (kind == TRADE_RES_KIND_START) then
+        return;
+    end
+    gPacket.TradeRequestActive = false;
+    toasts.dismiss('TradeRequest');
+end
+
+packet.DismissTradeRequestToast = function()
+    gPacket.TradeRequestActive = false;
+    toasts.dismiss('TradeRequest');
+end
+
+--- Manual little-endian byte reads, bypassing struct.unpack entirely. A 309860 came back
+--- from a supposed 'H' (2-byte) read during testing -- impossible for a true 2-byte value
+--- (max 65535), so struct.unpack's format chars aren't trustworthy here. offset is 0-based.
+local function read_u8(data, offset)
+    return data:byte(offset + 1) or 0;
+end
+local function read_u16le(data, offset)
+    return read_u8(data, offset) + (read_u8(data, offset + 1) * 256);
+end
+local function read_u32le(data, offset)
+    return read_u16le(data, offset) + (read_u16le(data, offset + 2) * 65536);
+end
+
+--- GP_SERV_COMMAND_TROPHY_LIST (0xD2): item and/or gold found, added to the treasure pool
+--- (or split directly if solo/party). Gold here is the player's final cut -- no further
+--- packet needed for that. Items still need a 0xD3 lot/distribution result to know who
+--- actually gets it, even when solo.
 packet.ItemDrop = function(pack)
     gInv.getTreasurePool();
+
+    if (pack == nil or pack.data == nil or #pack.data < 0x12) then
+        return;
+    end
+    local gold = read_u16le(pack.data, 0x0C);
+    if (gold > 0) then
+        toasts.push('Spoils', ('You obtain %u gil.'):fmt(gold), { icon = toasts.resolve_gil_icon() });
+    end
+
+    local itemId = read_u16le(pack.data, 0x10);
+    if (itemId > 0) then
+        local info = toasts.resolve_item_info(itemId);
+        toasts.push('Spoils', ('%s dropped to the treasure pool.'):fmt(info.name), { icon = info.icon, tooltip = info.desc });
+    end
 end
 
---Item Lot Packet
+--- GP_SERV_COMMAND_TROPHY_SOLUTION (0xD3): a lot/pass/distribution result on a pool item.
+--- When JudgeFlg==1 (item successfully won/distributed), LootUniqueNo is repurposed as a
+--- flag rather than a real server id: 0 means the local client is the winner. That's a
+--- direct, race-free signal -- no need to diff pool snapshots and guess from timing.
 packet.ItemLots = function(pack)
+    local itemId = nil;
+    local trophyIndex = nil;
+    if (pack ~= nil and pack.data ~= nil and #pack.data >= 0x16) then
+        trophyIndex = read_u8(pack.data, 0x14);
+        for i = 1, #gInv.treasurePool do
+            if (gInv.treasurePool[i].slot == trophyIndex) then
+                itemId = gInv.treasurePool[i].id;
+                break;
+            end
+        end
+    end
+
     gInv.getTreasurePool();
+
+    if (pack ~= nil and pack.data ~= nil and #pack.data >= 0x16) then
+        local lootUniqueNo = read_u32le(pack.data, 0x04);
+        local judgeFlg = read_u8(pack.data, 0x15);
+        if (judgeFlg == 1 and lootUniqueNo == 0) then
+            local info = toasts.resolve_item_info(itemId);
+            toasts.push('Spoils', ('You obtain %s.'):fmt(info.name), { icon = info.icon, tooltip = info.desc });
+        end
+    end
 end
 
 --Packet Sort
@@ -832,6 +994,7 @@ packet.HandleIncoming = function(e)
         packet.LoginPacket(e);
     elseif(e.id == 0x0B)then
         require('mob_check').clear_char_info();
+        packet.DismissTradeRequestToast();
     elseif(e.id == 0x17)then
         packet.ChatMessage(e);
     elseif(e.id == 0x28)then
@@ -873,6 +1036,10 @@ packet.HandleIncoming = function(e)
         packet.PartyBuffs(e);
     elseif(e.id == 0xDC)then
         packet.PartyInvite(e);
+    elseif(e.id == 0x21)then
+        packet.TradeRequest(e);
+    elseif(e.id == 0x22)then
+        packet.TradeResponse(e);
     elseif(e.id == 0xD2)then
         packet.ItemDrop(e);
     elseif(e.id == 0xD3)then

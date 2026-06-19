@@ -13,6 +13,8 @@ local JOB_ROLE_STYLES = {
     ['DRK'] = { 'damage' },
     ['NIN'] = { 'hybrid' },
     ['SAM'] = { 'damage' },
+    ['DRG'] = { 'damage' },
+    ['RNG'] = { 'damage' },
     ['SMN'] = { 'damage', 'healer' },
     ['BST'] = { 'damage' },
     ['BRD'] = { 'damage', 'healer' },
@@ -156,6 +158,36 @@ function M.get_party_member_name_segments(name)
     end
 
     return { { text = name, color = color_vec(trinity.other), lockedColor = true } };
+end
+
+--- Single trinity-role color for a party member BY NAME, by their main job --
+--- unlike get_party_member_name_segments this does NOT special-case trusts, so
+--- a trust is colored by its job the same as a player. Returns nil if the name
+--- isn't in the party roster or its job has no role mapping.
+function M.get_role_color(name)
+    name = normalize_member_name(name);
+    if (name == '') then
+        return nil;
+    end
+    local partyManager = AshitaCore and AshitaCore:GetMemoryManager() and AshitaCore:GetMemoryManager():GetParty() or nil;
+    if (partyManager == nil) then
+        return nil;
+    end
+    local slot = find_party_slot_by_name(partyManager, name);
+    if (slot == nil) then
+        return nil;
+    end
+    local rm = AshitaCore:GetResourceManager();
+    local jobId = partyManager:GetMemberMainJob(slot);
+    if (rm == nil or jobId == nil or tonumber(jobId) <= 0) then
+        return nil;
+    end
+    local jobAbbr = rm:GetString('jobs.names_abbr', jobId);
+    local roleSpec = (jobAbbr ~= nil and jobAbbr ~= '') and JOB_ROLE_STYLES[jobAbbr] or nil;
+    if (roleSpec == nil or roleSpec[1] == nil) then
+        return nil;
+    end
+    return color_vec(get_trinity_colors()[roleSpec[1]]);
 end
 
 local function build_roster()

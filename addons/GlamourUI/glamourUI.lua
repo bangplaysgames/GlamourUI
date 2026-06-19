@@ -70,9 +70,13 @@ gResources = require('resources');
 gCBar = require('cbar');
 gHide = require('hideDefault');
 gEnv = require('environment');
+gDynamis = require('dynamis_tracker');
 gMinimap = require('minimap');
 gFullscreenMap = require('fullscreen_map');
 gChat = require('chatlog');
+gToasts = require('toasts');
+gCombatToasts = require('combat_toasts');
+gParseDB = require('parse_db');
 local customChat = require('customChat');
 local chatGamepad = require('chat_gamepad');
 local panelStyleLib = require('panelStyle');
@@ -600,6 +604,9 @@ local chatCombatPurposeOrder = T{
     'After Battle',
     'Ability Not Ready',
     'Remove Debuff',
+    'Experience',
+    'Limit Points',
+    'Capacity Points',
 };
 
 local chatPurposeOrder = T{
@@ -643,6 +650,7 @@ end
 local COMBAT_COLOR = argb_to_rgba01(0xFFDCF1FC);
 local COMBAT_SPELL_COLOR = argb_to_rgba01(0xFFDDC9FF);
 local COMBAT_SYSTEM_COLOR = argb_to_rgba01(0xFFFFF3DA);
+local COMBAT_GAIN_COLOR = argb_to_rgba01(0xFFFFD700);
 
 local defaultChatCombatPurposeColors = T{
     ['Add Buff'] = COMBAT_SPELL_COLOR,
@@ -663,6 +671,9 @@ local defaultChatCombatPurposeColors = T{
     ['After Battle'] = COMBAT_SYSTEM_COLOR,
     ['Ability Not Ready'] = COMBAT_COLOR,
     ['Remove Debuff'] = COMBAT_SPELL_COLOR,
+    ['Experience'] = COMBAT_GAIN_COLOR,
+    ['Limit Points'] = COMBAT_GAIN_COLOR,
+    ['Capacity Points'] = COMBAT_GAIN_COLOR,
 };
 
 local knownChatColorCodes = T{
@@ -709,6 +720,8 @@ local defaultChatPurposeColors = T{
     ['Command Error'] = {1.0, 0.2, 0.2, 1.0},
     ['GoV'] = {0.75, 0.75, 0.75, 0.75 },
     ['None'] = {0.65, 0.65, 0.65, 1.0 },
+    ['PartyInvite'] = {0.45, 0.85, 1.0, 1.0 },
+    ['TradeRequest'] = {1.0, 0.72, 0.0, 1.0 },
 };
 
 for i = 1, #chatCombatPurposeOrder do
@@ -970,6 +983,9 @@ local function normalize_all_panel_style(dst)
         dst.cBar,
         dst.Env,
         dst.Compass,
+        dst.Toasts,
+        dst.CombatToasts,
+        dst.Parse,
     };
     for i = 1, #list do
         ps.normalize_settings(list[i]);
@@ -1091,6 +1107,13 @@ local render_frame = function()
     end
 
     gUI.render_compass();
+    gUI.render_toasts();
+    gUI.render_combat_toasts();
+    gUI.render_skillchain_panel();
+    if (gParseDB ~= nil and gParseDB.tick ~= nil) then
+        gParseDB.tick();
+    end
+    gUI.render_parse_window();
 
     if(not gHelper.is_event(0))then
         if (gPacket ~= nil and gPacket.TickTargetMobLevel ~= nil) then
@@ -1101,7 +1124,9 @@ local render_frame = function()
         gUI.render_target_bar();
         gParty.render_alliance_panel();
         gParty.render_player_stats();
-        gUI.render_invite();
+        if (gPacket ~= nil and gPacket.TickPartyInviteDismiss ~= nil) then
+            gPacket.TickPartyInviteDismiss();
+        end
         gConf.render_config();
         if (gFirstRun ~= nil and gFirstRun.render ~= nil) then
             gFirstRun.render();
@@ -1154,6 +1179,9 @@ local update_party_after_zone = function()
         gParty.set_party_leads();
         if (package.loaded['chatPartyNames'] ~= nil) then
             require('chatPartyNames').invalidate_roster_cache();
+        end
+        if (gParseDB ~= nil and gParseDB.on_zone ~= nil) then
+            gParseDB.on_zone();
         end
     end
 
@@ -1279,6 +1307,9 @@ function normalize_configured_fonts(settings)
     normalize_panel_font(settings.cBar, defaultFont, false);
     normalize_panel_font(settings.Compass, defaultFont, false);
     normalize_panel_font(settings.Env, defaultFont, false);
+    normalize_panel_font(settings.Toasts, defaultFont, false);
+    normalize_panel_font(settings.CombatToasts, defaultFont, false);
+    normalize_panel_font(settings.Parse, defaultFont, false);
 
     local chat = settings.Chat;
     if (chat ~= nil) then
@@ -1387,11 +1418,64 @@ local default_settings = T{
         x = 1500,
         y = 850
     },
+    Toasts = T{
+        enabled = true,
+        duration = 10.0,
+        slideInDuration = 0.25,
+        fadeOutDuration = 1.5,
+        width = 320,
+        spacing = 8,
+        maxStack = 5,
+        font_scale = 1,
+        x = 1550,
+        y = 60,
+        panelBackground = {0.05, 0.05, 0.05, 0.85},
+        purposes = T{
+            ['Spoils'] = true,
+            ['Experience'] = true,
+            ['Limit Points'] = true,
+            ['Capacity Points'] = true,
+            ['PartyInvite'] = true,
+            ['TradeRequest'] = true,
+        },
+    },
+    CombatToasts = T{
+        enabled = true,
+        duration = 10.0,
+        slideInDuration = 0.25,
+        fadeOutDuration = 1.5,
+        width = 320,
+        spacing = 8,
+        maxStack = 5,
+        font_scale = 1,
+        x = 1550,
+        y = 420,
+        panelBackground = {0.05, 0.05, 0.05, 0.85},
+        showSkillchainPanel = true,
+    },
+    Parse = T{
+        enabled = false,
+        expanded = false,
+        scope = 'battle',
+        sortBy = 'damage',
+        includeSkillchain = true,
+        idleTimeout = 12.0,
+        width = 280,
+        font_scale = 1,
+        themed = true,
+        theme = 'Default',
+        gui_scale = 1,
+        x = 100,
+        y = 200,
+        panelBackground = {0.05, 0.05, 0.05, 0.85},
+    },
     Env = {
         font_scale = 1,
         themed = true,
         theme = 'Default',
         gui_scale = 1,
+        zone_timer_enabled = true,
+        dynamis_tracker_enabled = true,
         minimap_enabled = true,
         minimap_width = 180,
         minimap_height = 180,
@@ -1589,6 +1673,9 @@ ashita.events.register('load', 'load_cb', function()
     GlamourUI.PartyList.x = GlamourUI.settings.Party.pList.x;
     GlamourUI.PartyList.y = GlamourUI.settings.Party.pList.y;
     gMinimap.init();
+    if (gDynamis ~= nil and gDynamis.init ~= nil) then
+        gDynamis.init();
+    end
 end)
 
 ashita.events.register('d3d_present', 'present_cb', function()
@@ -1596,6 +1683,9 @@ ashita.events.register('d3d_present', 'present_cb', function()
     update_party_after_zone();
     if (gMinimap ~= nil and gMinimap.tick ~= nil) then
         gMinimap.tick();
+    end
+    if (gDynamis ~= nil and gDynamis.tick ~= nil) then
+        gDynamis.tick();
     end
     if (gFullscreenMap ~= nil and gFullscreenMap.is_open ~= nil and gFullscreenMap.is_open()
         and gFullscreenMap.tick_movement ~= nil) then
@@ -1815,12 +1905,38 @@ ashita.events.register('command', 'command_cb', function (e)
             print(chat.message('/glam pass slot# - Passes on the treasure pool item in slot: slot#'));
             print(chat.message('/glam debug - Toggle incoming packet debug (UI + append to Logs\\packet_in_DATE.log)'));
             print(chat.message('/glam firstrun - Open or close the first-run setup wizard'));
+            print(chat.message('/glam parse [expand|compact|battle|total|reset|resettotal] - Combat parser meter'));
             print(chat.error('The slot number is reflected in the GlamourUI Treasure Pool.  This number may not reflect the positioning in the default Treasure Pool Window'));
         elseif(args[1]:any('/glam'))then
             e.blocked = true;
             if(#args > 1) then
                 if (args[2] == 'config') then
                     gConf.is_open = not gConf.is_open;
+                end
+                if (args[2] == 'parse') then
+                    local p = GlamourUI.settings and GlamourUI.settings.Parse or nil;
+                    if (p ~= nil) then
+                        local sub = args[3];
+                        if (sub == 'expand') then
+                            p.enabled = true;
+                            p.expanded = true;
+                        elseif (sub == 'compact') then
+                            p.enabled = true;
+                            p.expanded = false;
+                        elseif (sub == 'battle' or sub == 'total') then
+                            p.enabled = true;
+                            p.scope = sub;
+                        elseif (sub == 'reset') then
+                            if (gParseDB ~= nil) then gParseDB.reset_all(); end
+                            print(chat.header('GlamourUI: parser reset (battle + total)'));
+                        elseif (sub == 'resettotal') then
+                            if (gParseDB ~= nil) then gParseDB.reset_total(); end
+                            print(chat.header('GlamourUI: parser total reset'));
+                        else
+                            p.enabled = not p.enabled;
+                        end
+                        settings.save();
+                    end
                 end
                 if (args[2]:any('firstrun')) then
                     if (gFirstRun ~= nil and gFirstRun.toggle ~= nil) then

@@ -32,6 +32,18 @@ local MOB_NAME_COLOR_CODE = 0x44;
 local NM_NAME_COLOR_CODE = 0x52;
 local MOB_NAME_RGBA = { 1.0, 0.35, 0.35, 1.0 };
 local NM_NAME_RGBA = { 1.0, 0.82, 0.20, 1.0 };
+local MOB_NAME_PREFIX_BYTES = {
+    string.char(0xAB),
+    string.char(0x81, 0x9A),
+};
+local MOB_NAME_UTF8_PREFIXES = {
+    '\226\152\134', -- ☆
+    '\226\152\133', -- ★ (mis-normalized mob marker)
+    '\239\189\171', -- U+FFAB (mis-decoded 0xAB)
+    '\194\171',     -- U+00AB
+};
+local MOB_CHECK_STAR_TEXT = '☆';
+local MOB_CHECK_STAR_COLOR = { 1.0, 0.88, 0.35, 1.0 };
 
 local DIFF_GREEN = { 0.25, 0.90, 0.30, 1.0 };
 local DIFF_RED = { 1.0, 0.28, 0.28, 1.0 };
@@ -92,6 +104,45 @@ local function append_segment(segments, text, color, opts)
         atomic = opts and opts.atomic or false,
         parts = opts and opts.parts or nil,
     };
+end
+
+function M.split_mob_name_prefix(name)
+    name = tostring(name or '');
+    for i = 1, #MOB_NAME_PREFIX_BYTES do
+        local prefix = MOB_NAME_PREFIX_BYTES[i];
+        if (name:sub(1, #prefix) == prefix) then
+            return name:sub(#prefix + 1), true;
+        end
+    end
+    for i = 1, #MOB_NAME_UTF8_PREFIXES do
+        local prefix = MOB_NAME_UTF8_PREFIXES[i];
+        if (name:sub(1, #prefix) == prefix) then
+            return name:sub(#prefix + 1), true;
+        end
+    end
+    if (name:sub(1, #MOB_CHECK_STAR_TEXT) == MOB_CHECK_STAR_TEXT) then
+        return name:sub(#MOB_CHECK_STAR_TEXT + 1), true;
+    end
+    local filledStar = '★';
+    if (name:sub(1, #filledStar) == filledStar) then
+        return name:sub(#filledStar + 1), true;
+    end
+    return name, false;
+end
+
+function M.format_display_name(name)
+    local clean, hadStar = M.split_mob_name_prefix(name);
+    if (hadStar) then
+        return MOB_CHECK_STAR_TEXT .. clean, true;
+    end
+    return clean, false;
+end
+
+local function append_mob_check_star_segment(segments)
+    append_segment(segments, MOB_CHECK_STAR_TEXT, MOB_CHECK_STAR_COLOR, {
+        atomic = true,
+        parts = T{ require('ffxi_glyphs').mob_check_star_part() },
+    });
 end
 
 local function build_type_segment(segments, typeText, checkType, bodyColor)
@@ -254,7 +305,7 @@ function M.ingest_check(targetIndex, entity, messageId, levelParam, checkType)
 
     if (entity ~= nil) then
         if (entity.Name ~= nil and entity.Name ~= '') then
-            info.Name = entity.Name;
+            info.Name = M.split_mob_name_prefix(entity.Name);
         end
         if (entity.ServerId ~= nil and entity.ServerId ~= 0) then
             info.ServerId = entity.ServerId;
@@ -275,19 +326,23 @@ end
 function M.build_chat_display(entity, messageId, levelParam, checkType, targetIndex, bodyColor)
     bodyColor = bodyColor or { 0.92, 0.92, 0.88, 1.0 };
     local m = tonumber(messageId) or 0;
-    local name = tostring((entity ~= nil and entity.Name ~= nil and entity.Name ~= '') and entity.Name or 'Unknown');
+    local rawName = tostring((entity ~= nil and entity.Name ~= nil and entity.Name ~= '') and entity.Name or 'Unknown');
+    local name, hadStar = M.split_mob_name_prefix(rawName);
     local isNm = M.is_notorious(entity, messageId);
     local nameColor = isNm and NM_NAME_RGBA or MOB_NAME_RGBA;
     local nameCode = isNm and NM_NAME_COLOR_CODE or MOB_NAME_COLOR_CODE;
 
     if (m == 0xF9) then
         local tail = ' — Impossible to gauge!';
-        local plain = name .. tail;
+        local plain = (hadStar and (MOB_CHECK_STAR_TEXT .. ' ') or '') .. name .. tail;
         local raw = ffxi_color_code(nameCode) .. name .. ffxi_color_reset() .. tail;
-        local segments = {
-            { text = name, color = nameColor },
-            { text = tail, color = bodyColor },
-        };
+        local segments = {};
+        if (hadStar) then
+            append_mob_check_star_segment(segments);
+            append_segment(segments, ' ', bodyColor);
+        end
+        append_segment(segments, name, nameColor);
+        append_segment(segments, tail, bodyColor);
         return plain, raw, segments;
     end
 
@@ -302,6 +357,10 @@ function M.build_chat_display(entity, messageId, levelParam, checkType, targetIn
     local condColor = M.condition_color(m, bodyColor);
 
     local segments = {};
+    if (hadStar) then
+        append_mob_check_star_segment(segments);
+        append_segment(segments, ' ', bodyColor);
+    end
     append_segment(segments, name, nameColor);
     append_segment(segments, (' (Lv. %s)'):fmt(lvText), bodyColor);
     if (typeText ~= '') then
@@ -313,7 +372,12 @@ function M.build_chat_display(entity, messageId, levelParam, checkType, targetIn
         append_segment(segments, ('(%s)'):fmt(condText), condColor);
     end
 
-    local plainParts = T{ name, (' (Lv. %s)'):fmt(lvText) };
+    local plainParts = T{};
+    if (hadStar) then
+        plainParts:append(MOB_CHECK_STAR_TEXT);
+    end
+    plainParts:append(name);
+    plainParts:append((' (Lv. %s)'):fmt(lvText));
     if (typeText ~= '') then
         plainParts:append(typeText);
     end
