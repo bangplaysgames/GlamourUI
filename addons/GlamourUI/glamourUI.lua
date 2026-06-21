@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '2.2.2';
+addon.version = '2.3.1';
 
 local function glam_normalize_root(path)
     path = tostring(path or '');
@@ -77,6 +77,7 @@ gChat = require('chatlog');
 gToasts = require('toasts');
 gCombatToasts = require('combat_toasts');
 gParseDB = require('parse_db');
+gFilters = require('combat_filters');
 local customChat = require('customChat');
 local chatGamepad = require('chat_gamepad');
 local panelStyleLib = require('panelStyle');
@@ -1072,6 +1073,9 @@ local ensure_loaded = function(playerServerId)
     if (package.loaded['chatPartyNames'] ~= nil) then
         require('chatPartyNames').invalidate_roster_cache();
     end
+    if (gFilters ~= nil and gFilters.invalidate ~= nil) then
+        gFilters.invalidate();
+    end
     coroutine.sleep(1);
     loaded = true;
 
@@ -1182,6 +1186,9 @@ local update_party_after_zone = function()
         end
         if (gParseDB ~= nil and gParseDB.on_zone ~= nil) then
             gParseDB.on_zone();
+        end
+        if (gFilters ~= nil and gFilters.invalidate ~= nil) then
+            gFilters.invalidate();
         end
     end
 
@@ -1468,6 +1475,9 @@ local default_settings = T{
         x = 100,
         y = 200,
         panelBackground = {0.05, 0.05, 0.05, 0.85},
+    },
+    Filters = T{
+        byJob = T{},
     },
     Env = {
         font_scale = 1,

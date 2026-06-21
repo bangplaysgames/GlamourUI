@@ -492,13 +492,12 @@ function M.draw_viewport(opts)
     minimap_entities.draw(dl, childMinX, childMinY, offsetX, offsetY, mapZoom, texW, mouseX, mouseY, overlayAlpha);
 
     local headingRad = (M.heading_fn ~= nil) and M.heading_fn() or nil;
-    local markerX, markerY;
-    if (centerOnPlayer and panState == nil) then
-        markerX = childMinX + availW * 0.5;
-        markerY = childMinY + availH * 0.5;
-    else
-        markerX, markerY = player_marker_screen_pos(childMinX, childMinY, offsetX, offsetY, mapZoom, texW);
-    end
+    -- Always place the marker at the player's true position on the map. Pinning
+    -- it to the window center is only valid when the map is actually centered on
+    -- the player; for zones whose scaled map fits inside the minimap window,
+    -- compute_map_offset centers the MAP instead, and a centered marker would no
+    -- longer line up with the map/entities (the Sea Serpent Grotto offset).
+    local markerX, markerY = player_marker_screen_pos(childMinX, childMinY, offsetX, offsetY, mapZoom, texW);
     if (markerX ~= nil and markerY ~= nil) then
         local markerOpacity = tonumber(mapOpacityOverride) or tonumber(s and s.minimap_opacity) or 1.0;
         draw_player_marker(dl, markerX, markerY, headingRad, 14 * guiScale, markerOpacity);

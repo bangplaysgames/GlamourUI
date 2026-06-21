@@ -578,7 +578,8 @@ local draw_target_name = function(targetIndex, targetEntity, nameStatus, guiScal
     if (hadStar) then
         starWidth = ffxi_glyphs.star_scaled_text_width(starPart.text);
     end
-    local textWidth = imgui.CalcTextSize(levelText ~= nil and (nameText .. levelText) or nameText) * GlamourUI.settings.PlayerStats.gui_scale;
+    local levelSep = '   '; -- gap between the mob name and its level/job text
+    local textWidth = imgui.CalcTextSize(levelText ~= nil and (nameText .. levelSep .. levelText) or nameText) * GlamourUI.settings.PlayerStats.gui_scale;
     textWidth = textWidth + starWidth;
     local xOffset = (GlamourUI.settings.TargetBar.hpBarDim.l - textWidth) * 0.5;
 
@@ -604,7 +605,7 @@ local draw_target_name = function(targetIndex, targetEntity, nameStatus, guiScal
     imgui.Text(nameText);
     if(levelText ~= nil)then
         imgui.SameLine(0, 0);
-        imgui.Text(levelText);
+        imgui.Text(levelSep .. levelText);
     end
 
     if(nameStatus ~= nil)then
@@ -4114,9 +4115,14 @@ render.render_toasts = function()
             local wp = { imgui.GetWindowPos() };
             local ws = { imgui.GetWindowSize() };
             local x0, y0 = wp[1], wp[2];
-            entry.w = ws[1];
-            entry.h = ws[2];
-            render._toastH = ws[2];
+            -- Ignore the bogus first-frame auto-resize size; adopting it shifts the
+            -- whole stack next frame (the flicker). Trust it from frame 2 on.
+            entry.framesShown = (tonumber(entry.framesShown) or 0) + 1;
+            if (entry.framesShown >= 2) then
+                entry.w = ws[1];
+                entry.h = ws[2];
+                render._toastH = ws[2];
+            end
 
             if (draggable) then
                 if (anchorDragging and imgui.IsMouseDown(0) ~= true) then
@@ -4242,10 +4248,16 @@ render.render_combat_toasts = function()
             local wp = { imgui.GetWindowPos() };
             local ws = { imgui.GetWindowSize() };
             local x0, y0 = wp[1], wp[2];
-            -- Remember this frame's measured size for next frame's layout.
-            entry.w = ws[1];
-            entry.h = ws[2];
-            render._combatToastH = ws[2];
+            -- A brand-new AlwaysAutoResize window reports a bogus size on its first
+            -- frame; adopting it would shift the whole stack next frame (the flicker).
+            -- Only trust the measured size from the second frame on; until then the
+            -- estimate (estH) is used for both draw and layout.
+            entry.framesShown = (tonumber(entry.framesShown) or 0) + 1;
+            if (entry.framesShown >= 2) then
+                entry.w = ws[1];
+                entry.h = ws[2];
+                render._combatToastH = ws[2];
+            end
 
             local dl = imgui.GetWindowDrawList();
 

@@ -214,50 +214,85 @@ packet.action.castBarSpellName = '';
 packet.castBarInterruptHideDelaySec = 1.0;
 packet.action.castBarDismissAt = nil;
 
-packet._recentIncomingSync = {};
+-- Per-instance packet dedupe.
+--
+-- Each FFXI world packet header (atom0s XiPackets, world/Header.md) carries a
+-- uint16 `sync` counter at offset 0x02 that the protocol increments per packet,
+-- with SEPARATE counters for the client->server (out) and server->client (in)
+-- directions. So the (id, sync) pair is a stable per-INSTANCE fingerprint:
+--   * the same line genuinely sent/received twice -> two packets, two distinct
+--     sync values -> both must log (we do NOT suppress those);
+--   * the same packet instance dispatched to our handlers twice -> identical
+--     (id, sync) -> the second is a duplicate and is dropped.
+-- We key on the whole packet payload (which embeds id+sync+body), so a sync
+-- that ever fails to differ still won't collapse two different-body lines. A
+-- short time window bounds the table and guards against sync wrap (65536 pkts).
+local function make_packet_dedupe_store(maxN, maxAgeSec)
+    return {
+        seen = {},
+        order = {},
+        maxN = maxN,
+        maxAgeSec = maxAgeSec,
+    };
+end
+
+packet._recentIncomingSync = {};      -- retained for backwards compat (unused store)
 packet._recentIncomingSyncOrder = {};
 packet._recentIncomingSyncMax = 512;
 packet._recentIncomingSyncMaxAgeSec = 2.0;
 
-local function incoming_packet_dedupe_key(e)
-    local d = e and e.data;
+packet._incomingDedupe = make_packet_dedupe_store(512, 2.0);
+packet._outgoingDedupe = make_packet_dedupe_store(512, 2.0);
+
+local function packet_dedupe_key(e)
+    -- Prefer the exact bytes the client built (data_modified for out), falling
+    -- back to e.data. Both include the header sync at 0x02.
+    local d = e and (e.data_modified or e.data);
     if (d == nil or type(d) ~= 'string' or #d < 4) then
         return nil;
     end
     return d;
 end
 
-local function should_drop_duplicate_incoming_packet(e)
-    local key = incoming_packet_dedupe_key(e);
+local function should_drop_duplicate_packet(store, e)
+    local key = packet_dedupe_key(e);
     if (key == nil) then
         return false;
     end
     local now = os.clock();
-    local last = packet._recentIncomingSync[key];
-    if (last ~= nil and (now - last) <= (tonumber(packet._recentIncomingSyncMaxAgeSec) or 2.0)) then
-        return true;
+    local maxAge = tonumber(store.maxAgeSec) or 2.0;
+    local last = store.seen[key];
+    if (last ~= nil and (now - last) <= maxAge) then
+        return true; -- same (id, sync) instance already handled -> duplicate.
     end
-    packet._recentIncomingSync[key] = now;
-    packet._recentIncomingSyncOrder[#packet._recentIncomingSyncOrder + 1] = { key = key, t = now };
-    local maxN = tonumber(packet._recentIncomingSyncMax) or 512;
-    local maxAge = tonumber(packet._recentIncomingSyncMaxAgeSec) or 2.0;
-    while (#packet._recentIncomingSyncOrder > maxN) do
-        local old = table.remove(packet._recentIncomingSyncOrder, 1);
-        if (old ~= nil and old.key ~= nil and packet._recentIncomingSync[old.key] == old.t) then
-            packet._recentIncomingSync[old.key] = nil;
+    store.seen[key] = now;
+    store.order[#store.order + 1] = { key = key, t = now };
+    local maxN = tonumber(store.maxN) or 512;
+    while (#store.order > maxN) do
+        local old = table.remove(store.order, 1);
+        if (old ~= nil and old.key ~= nil and store.seen[old.key] == old.t) then
+            store.seen[old.key] = nil;
         end
     end
-    while (#packet._recentIncomingSyncOrder > 0) do
-        local head = packet._recentIncomingSyncOrder[1];
+    while (#store.order > 0) do
+        local head = store.order[1];
         if (head == nil or head.t == nil or (now - head.t) <= maxAge) then
             break;
         end
-        table.remove(packet._recentIncomingSyncOrder, 1);
-        if (head.key ~= nil and packet._recentIncomingSync[head.key] == head.t) then
-            packet._recentIncomingSync[head.key] = nil;
+        table.remove(store.order, 1);
+        if (head.key ~= nil and store.seen[head.key] == head.t) then
+            store.seen[head.key] = nil;
         end
     end
     return false;
+end
+
+local function should_drop_duplicate_incoming_packet(e)
+    return should_drop_duplicate_packet(packet._incomingDedupe, e);
+end
+
+local function should_drop_duplicate_outgoing_packet(e)
+    return should_drop_duplicate_packet(packet._outgoingDedupe, e);
 end
 packet.chat = {}
 packet.buff = {}
@@ -1032,6 +1067,20 @@ packet.HandleIncoming = function(e)
         if (gChat ~= nil and gChat.handle_packet_in ~= nil) then
             gChat.handle_packet_in(e);
         end
+    elseif(e.id == 0x110)then
+        -- Currency totals (same packet offsets the 'points' addon reads).
+        if (gInv ~= nil) then
+            gInv.sparks = struct.unpack('I', e.data, 0x05);
+        end
+    elseif(e.id == 0x113)then
+        if (gInv ~= nil) then
+            gInv.sparks = struct.unpack('I', e.data, 0x75);
+            gInv.accolades = struct.unpack('I', e.data, 0xE5);
+        end
+    elseif(e.id == 0x61)then
+        if (gInv ~= nil) then
+            gInv.accolades = math.floor(e.data:byte(0x5A) / 4) + e.data:byte(0x5B) * 2 ^ 6 + e.data:byte(0x5C) * 2 ^ 14;
+        end
     elseif(e.id == 0x76)then
         packet.PartyBuffs(e);
     elseif(e.id == 0xDC)then
@@ -1082,6 +1131,10 @@ end
 
 
 packet.HandleOutgoing = function(e)
+    if (should_drop_duplicate_outgoing_packet(e)) then
+        return;
+    end
+
     if (ffi.C.memcmp(e.data_raw, e.chunk_data_raw, e.size) == 0) then
         gPacket.HandleOutgoingChunk(e);
     end

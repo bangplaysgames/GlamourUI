@@ -3293,6 +3293,32 @@ local function handle_event_packet_0x32(e)
     end
 end
 
+-- True when `message` has the client's outgoing-tell echo format ">>Name : body"
+-- (leading ">>"). Incoming tells render as "Name>> body", so a leading ">>" is
+-- unambiguously our own just-sent tell -- which is already logged from the 0x0B6
+-- packet, making this text_in copy a duplicate. Order-independent (no marker).
+local function message_is_outgoing_tell_echo(message)
+    if (message == nil) then
+        return false;
+    end
+    return message:match('^%s*>>%s*%S') ~= nil;
+end
+
+-- True when `message` is the server's echo of a tell WE just sent. The client
+-- (and some servers) mis-mode this echo as Party rather than Tell, so it dodges
+-- the chat-mode dedupe and doubles up next to the Tell entry we logged from the
+-- outgoing 0x0B6 packet. `_outTellEcho` is stamped at send time (name + body).
+local function is_recent_outgoing_tell_echo(message)
+    local ot = chatlog._outTellEcho;
+    if (ot == nil or ot.body == nil or ot.body == ''
+        or (os.clock() - (tonumber(ot.at) or 0)) >= 2.0) then
+        return false;
+    end
+    local norm = normalize_for_dedupe(message or '');
+    return (norm:find(ot.body, 1, true) ~= nil
+        and (ot.name == '' or norm:find(ot.name, 1, true) ~= nil));
+end
+
 chatlog.handle_packet_in = function(e)
     if (e.id == 0x32) then
         handle_event_packet_0x32(e);
@@ -3512,6 +3538,12 @@ chatlog.handle_packet_in = function(e)
             end
         end
 
+        -- Drop the server's echo of a tell we just sent (mis-moded as Party et al.).
+        -- Genuine incoming tells (purpose 'Tell') are never matched here.
+        if (purpose ~= 'Tell' and is_recent_outgoing_tell_echo(cleaned)) then
+            return;
+        end
+
         local entry = T{
             time = os.date('[%H:%M:%S]'),
             sender = sender,
@@ -3628,6 +3660,15 @@ chatlog.handle_packet_out = function(e)
             chatlog.lastInputPurpose = 'Tell';
         end
 
+        -- Remember this outgoing tell so its text_in echo (which the client
+        -- mis-modes as Party) can be dropped -- otherwise it doubles alongside
+        -- this Tell entry when chat suppression is disabled.
+        chatlog._outTellEcho = {
+            name = tostring(sender or ''),
+            body = normalize_for_dedupe(clean_str(message) or ''),
+            at = os.clock(),
+        };
+
         append_entry(T{
             time = os.date('[%H:%M:%S]'),
             sender = sender,
@@ -3666,6 +3707,19 @@ chatlog.handle_text_in = function(e)
 
     local function drop_text_in(reason)
         debug_log_text_in_not_shown(entry, reason);
+    end
+
+    -- Drop the echo of an outgoing tell (already logged from the 0x0B6 packet as
+    -- Tell). The client mis-modes this echo as Party, so it escapes the normal
+    -- chat-mode dedupe and doubles up. Primary signal is the format: the client
+    -- prefixes outgoing-tell echoes with ">>" (">>Name : body"), whereas incoming
+    -- tells are "Name>> body" -- so a leading ">>" here is always our own sent
+    -- tell. This is order-independent; the _outTellEcho marker is only a fallback
+    -- because the text_in echo can arrive BEFORE the 0x0B6 packet stamps it.
+    if (message_is_outgoing_tell_echo(entry.message)
+        or is_recent_outgoing_tell_echo(entry.message)) then
+        drop_text_in('outgoing_tell_echo');
+        return;
     end
 
     if (string.find(entry.modeID, '4079') or message_is_catseye_gov_progress(entry.message)) then

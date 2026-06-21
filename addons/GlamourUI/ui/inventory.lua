@@ -24,6 +24,10 @@ inventory.settings = {}
 inventory.treasurePool = T{}
 inventory._treasurePoolFingerprint = nil;
 
+-- Currency totals, fed from packets in net/packetHandler.lua (0x110/0x113/0x61).
+inventory.sparks = 0;
+inventory.accolades = 0;
+
 inventory.render_inv_panel = function()
     local player = AshitaCore:GetMemoryManager():GetPlayer();
     local zoning = player:GetIsZoning();
@@ -35,14 +39,16 @@ inventory.render_inv_panel = function()
             local safeTex = gResources.getTex(GlamourUI.settings, 'Inv', 'safe.png');
             local tPoolTex = gResources.getTex(GlamourUI.settings, 'Inv', 'treasure.png');
             local gilTex = gResources.getTex(GlamourUI.settings, 'Inv', 'gil.png');
+            local sparksTex = gResources.getTex(GlamourUI.settings, 'Inv', 'sparks.png');
+            local accoladesTex = gResources.getTex(GlamourUI.settings, 'Inv', 'accolades.png');
             local mX = env.menu.w;
             local mY = env.menu.h;
             local wX = env.window.w;
             local wY = env.window.h;
             local scaleX = wX / mX;
             local scaleY = wY / mY;
-            local size = {(115 * scaleX), (185 * scaleY)};
-            local menu = {wX - (128 * scaleX), wY - (200 * scaleY)};
+            local size = {(115 * scaleX), (245 * scaleY)};
+            local menu = {wX - (128 * scaleX), wY - (260 * scaleY)};
             local gil = AshitaCore:GetMemoryManager():GetInventory():GetContainerItem(0, 0);
             local wardCount = gInv.getInventory(8) + gInv.getInventory(10) + gInv.getInventory(11) + gInv.getInventory(12) + gInv.getInventory(13) + gInv.getInventory(14) + gInv.getInventory(15) + gInv.getInventory(16);
             local wardMax = gInv.getInventoryMax(8) + gInv.getInventoryMax(10) + gInv.getInventoryMax(11) + gInv.getInventoryMax(12) + gInv.getInventoryMax(13)+ gInv.getInventoryMax(14) + gInv.getInventoryMax(15) + gInv.getInventoryMax(16);
@@ -101,6 +107,23 @@ inventory.render_inv_panel = function()
                 imgui.SetCursorPosX(85 * scaleX);
                 imgui.SetCursorPosY(147 * scaleY);
                 imgui.Image(gilTex, {15 * scaleX, 15 * scaleY});
+
+                --Sparks
+                imgui.SetCursorPosX(15 * scaleX);
+                imgui.SetCursorPosY(175 * scaleY);
+                imgui.Text(tostring(gInv.sparks or 0));
+                imgui.SetCursorPosX(85 * scaleX);
+                imgui.SetCursorPosY(176 * scaleY);
+                imgui.Image(sparksTex, {15 * scaleX, 15 * scaleY});
+
+                --Accolades
+                imgui.SetCursorPosX(15 * scaleX);
+                imgui.SetCursorPosY(205 * scaleY);
+                imgui.Text(tostring(gInv.accolades or 0));
+                imgui.SetCursorPosX(85 * scaleX);
+                imgui.SetCursorPosY(206 * scaleY);
+                imgui.Image(accoladesTex, {15 * scaleX, 15 * scaleY});
+
                 gResources.pop_font(fontPushed);
                 imgui.End();
             end

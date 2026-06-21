@@ -591,6 +591,19 @@ local function render_toasts_contents()
     render_panel_background_controls('ToastsPB', s);
 end
 
+-- Job-specific filter checkboxes (combat_filters). target is the live boolean
+-- table for the current job's filter set; edits persist on Save.
+local function render_filter_toggles(label, target, keys, labels, idp)
+    if (target == nil or keys == nil) then
+        return;
+    end
+    imgui.Text(label);
+    for i = 1, #keys do
+        local k = keys[i];
+        target[k] = select(1, render_toggle((labels[k] or k) .. '##' .. idp .. k, target[k] ~= false));
+    end
+end
+
 local function render_combat_toasts_contents()
     local s = GlamourUI.settings.CombatToasts;
     s.enabled = select(1, render_toggle('Enable Combat Toasts##GlamCombatToasts', s.enabled == true));
@@ -613,6 +626,14 @@ local function render_combat_toasts_contents()
     imgui.Separator();
     s.showSkillchainPanel = select(1, render_toggle('Show skillchain panel##GlamCombatToasts', s.showSkillchainPanel ~= false));
     imgui.TextDisabled('Shows what YOU could weaponskill with to continue/close a chain off the most recent party weapon skill. Anchored to the right of this toast window.');
+
+    imgui.Separator();
+    if (gFilters ~= nil) then
+        local set = gFilters.active_set();
+        imgui.TextDisabled(('Filters (per job -- current: %s)'):fmt(gFilters.current_job() or '?'));
+        render_filter_toggles('Show categories', set.toastCats, gFilters.TOAST_CATS, gFilters.TOAST_CAT_LABELS, 'GlamFCat');
+        render_filter_toggles('Show players', set.toastPlayers, gFilters.TOAST_PLAYERS, gFilters.PLAYER_LABELS, 'GlamFTP');
+    end
 
     imgui.Separator();
     imgui.TextDisabled('Test buttons use your current target -- target a mob first to see the skillchain panel populate.');
@@ -1679,6 +1700,13 @@ local function render_parse_contents()
         p.font = name;
         gResources.reload_font(name ~= '' and name or GlamourUI.settings.font);
     end);
+
+    imgui.Separator();
+    if (gFilters ~= nil) then
+        local set = gFilters.active_set();
+        imgui.TextDisabled(('Player filter (per job -- current: %s)'):fmt(gFilters.current_job() or '?'));
+        render_filter_toggles('Show players', set.parserPlayers, gFilters.PARSER_PLAYERS, gFilters.PLAYER_LABELS, 'GlamFPP');
+    end
 
     imgui.Separator();
     if (imgui.Button('Reset Battle##GlamParse') and gParseDB ~= nil) then

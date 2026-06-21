@@ -589,12 +589,9 @@ local function emit_combat_events(act, combat_event_cb)
             end
             if (damage ~= nil) then break; end
         end
-        if (damage == nil and firstAction ~= nil) then
-            local n = tonumber(primary_numeric_display(firstAction));
-            if (n ~= nil and n > 0) then
-                damage = n;
-            end
-        end
+        -- No fallback to firstAction.param: for non-damaging actions (buff/enfeeb
+        -- spells) that field holds the status id, not damage -- which is what was
+        -- showing the buff id as a damage number on buff-spell toasts.
 
         local damaging = (damage ~= nil);
 
