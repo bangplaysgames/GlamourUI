@@ -1,0 +1,1 @@
+- [Pet skillchain wiring](pet-skillchain-wiring.md) — how BST/SMN/PUP pet TP moves feed combat-toast skillchains; two id schemes; untested guesses to verify
