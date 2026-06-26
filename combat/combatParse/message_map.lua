@@ -1,0 +1,60 @@
+require('common');
+
+local message_map = {};
+for n = 1, 700, 1 do
+    message_map[n] = T{};
+end
+
+message_map[85] = T{ 284 };
+message_map[653] = T{ 654 };
+message_map[655] = T{ 656 };
+message_map[93] = T{ 273 };
+message_map[156] = T{ 156, 323, 422, 425 };
+message_map[75] = T{ 283 };
+message_map[248] = T{ 355 };
+message_map['No effect'] = T{ 283, 423, 659 };
+message_map[432] = T{ 433 };
+message_map[82] = T{ 230, 236, 237, 267, 268, 271 };
+message_map[230] = T{ 266 };
+message_map[319] = T{ 266 };
+message_map[134] = T{ 287 };
+message_map[116] = T{ 131, 134, 144, 146, 148, 150, 364, 414, 416, 441, 602, 668, 285, 145, 147, 149, 151, 286, 287, 365, 415, 421 };
+message_map[127] = T{ 319, 320, 645 };
+message_map[420] = T{ 421 };
+message_map[375] = T{ 412 };
+message_map[186] = T{ 194, 242, 243 };
+message_map.Receives = T{ 203, 205, 270, 272, 277, 279, 280, 266, 267, 269, 278 };
+message_map[426] = T{ 427 };
+message_map[320] = T{ 267 };
+message_map[414] = T{ 415 };
+message_map[7] = T{ 263 };
+message_map[148] = T{ 149 };
+message_map[441] = T{ 421 };
+message_map[131] = T{ 286 };
+message_map[150] = T{ 151 };
+message_map[424] = T{ 421 };
+message_map[437] = T{ 438 };
+message_map[126] = T{ 676 };
+message_map[268] = T{ 269 };
+message_map[271] = T{ 272 };
+message_map[252] = T{ 265 };
+message_map[360] = T{ 361 };
+message_map[362] = T{ 363 };
+message_map[318] = T{ 263 };
+message_map[323] = T{ 283 };
+message_map[364] = T{ 365 };
+message_map[146] = T{ 147 };
+message_map[236] = T{ 270 };
+message_map[194] = T{ 280 };
+message_map[185] = T{ 264 };
+message_map[243] = T{ 278 };
+message_map[2] = T{ 264 };
+message_map[668] = T{ 669 };
+message_map[762] = T{ 365 };
+message_map[242] = T{ 277 };
+message_map[238] = T{ 367 };
+message_map[188] = T{ 282 };
+message_map[342] = T{ 344 };
+message_map[369] = T{ 403 };
+
+return message_map;
