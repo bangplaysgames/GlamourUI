@@ -29,6 +29,7 @@ end
 
 local function getThemeID(theme)
     local dir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Themes\\'):fmt(AshitaCore:GetInstallPath()));
+    if (dir == nil) then return; end
     for i = 1,#dir,1 do
         if(dir[i] == theme) then
             return i;
@@ -38,7 +39,7 @@ end
 
 local function getLayoutID(layout)
     local dir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Layouts\\'):fmt(AshitaCore:GetInstallPath()));
-
+    if (dir == nil) then return; end
     for i = 1,#dir,1 do
         if(dir[i] == layout) then
             return i;
@@ -119,7 +120,7 @@ end
 
 local function getBuffID(buff)
     local dir = ashita.fs.get_directory(('%s\\config\\addons\\%s\\icons\\'):fmt(AshitaCore:GetInstallPath(), addon.name));
-
+    if (dir == nil) then return; end
     for i = 1,#dir,1 do
         if(dir[i] == buff)then
             return i;

@@ -175,11 +175,23 @@ local function touch_scope(scope, now)
     scope.ended = false;
 end
 
+-- Pets get a NEW server id every time they are released and resummoned, so
+-- keying combatants by sid would list the same pet multiple times for one owner.
+-- Key pets by owner-slot + pet name instead so a resummon compiles into the
+-- existing entry. Non-pets stay keyed by sid.
+local function combatant_key(side, sid, ownerSid, name)
+    if ((side == 'my_pet' or side == 'other_pets') and name ~= nil and name ~= '') then
+        return 'pet:' .. tostring(ownerSid or '?') .. ':' .. tostring(name);
+    end
+    return sid;
+end
+
 local function get_combatant(scope, sid, name, side, ownerSid, now, isTrust)
-    local c = scope.combatants[sid];
+    local key = combatant_key(side, sid, ownerSid, name);
+    local c = scope.combatants[key];
     if (c == nil) then
         c = new_combatant(sid, name, side, ownerSid, now);
-        scope.combatants[sid] = c;
+        scope.combatants[key] = c;
     else
         if (name ~= nil and name ~= '' and (c.name == nil or c.name:sub(1, 2) == '?#')) then
             c.name = name;

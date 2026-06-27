@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '2.3.1';
+addon.version = '2.3.2';
 
 local function glam_normalize_root(path)
     path = tostring(path or '');
@@ -75,20 +75,32 @@ local function glam_seed_default_config()
         return true;
     end
 
+    local stats = { copied = 0, failed = 0 };
+
+    -- Ashita V4 has no recursive directory lister, so walk the tree manually:
+    --   ashita.fs.get_directory(path)        -> subdirectory names (no filter arg)
+    --   ashita.fs.get_dir(path, '.*', false) -> file names in that dir only
     local function copy_tree(srcDir, dstDir)
         if (not ashita.fs.exists(dstDir)) then
             ashita.fs.create_directory(dstDir);
         end
-        local files = ashita.fs.get_directory(srcDir, '.*');
+
+        local files = ashita.fs.get_dir(srcDir .. '\\', '.*', false);
         if (files ~= nil) then
             for _, name in ipairs(files) do
                 local d = dstDir .. '\\' .. name;
                 if (not ashita.fs.exists(d)) then
-                    copy_file(srcDir .. '\\' .. name, d);
+                    if (copy_file(srcDir .. '\\' .. name, d)) then
+                        stats.copied = stats.copied + 1;
+                    else
+                        stats.failed = stats.failed + 1;
+                        print(('[GlamourUI] Failed to copy config file: %s'):fmt(name));
+                    end
                 end
             end
         end
-        local subs = ashita.fs.get_directories ~= nil and ashita.fs.get_directories(srcDir, '.*') or nil;
+
+        local subs = ashita.fs.get_directory(srcDir .. '\\');
         if (subs ~= nil) then
             for _, name in ipairs(subs) do
                 copy_tree(srcDir .. '\\' .. name, dstDir .. '\\' .. name);
@@ -97,6 +109,13 @@ local function glam_seed_default_config()
     end
 
     copy_tree(src, dst);
+
+    -- Confirm the copy actually landed before any module reads config.
+    if (not ashita.fs.exists(dst .. '\\Themes\\Default')) then
+        print('[GlamourUI] WARNING: default config seeding did not complete (Themes\\Default missing).');
+    elseif (stats.copied > 0 or stats.failed > 0) then
+        print(('[GlamourUI] Seeded default config: %d file(s) copied, %d failed.'):fmt(stats.copied, stats.failed));
+    end
 end
 
 glam_seed_default_config();

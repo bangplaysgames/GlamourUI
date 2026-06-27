@@ -1,4 +1,7 @@
 *.zip
 .gitignore
 .idea
-.vs
+.vs*
+.vs/
+.vs\
+.claude
