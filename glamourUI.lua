@@ -94,7 +94,7 @@ local function glam_seed_default_config()
                         stats.copied = stats.copied + 1;
                     else
                         stats.failed = stats.failed + 1;
-                        print(('[GlamourUI] Failed to copy config file: %s'):fmt(name));
+                        print(('[GlamourUI] Failed to copy config file: %s'):format(name));
                     end
                 end
             end
@@ -114,7 +114,7 @@ local function glam_seed_default_config()
     if (not ashita.fs.exists(dst .. '\\Themes\\Default')) then
         print('[GlamourUI] WARNING: default config seeding did not complete (Themes\\Default missing).');
     elseif (stats.copied > 0 or stats.failed > 0) then
-        print(('[GlamourUI] Seeded default config: %d file(s) copied, %d failed.'):fmt(stats.copied, stats.failed));
+        print(('[GlamourUI] Seeded default config: %d file(s) copied, %d failed.'):format(stats.copied, stats.failed));
     end
 end
 
