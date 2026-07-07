@@ -25,6 +25,7 @@ local TOGGLE_ROWS = {
     {
         { key = 'show_alliance', envKey = 'minimap_show_alliance', label = 'Alliance' },
         { key = 'show_other_players', envKey = 'minimap_show_other_players', label = 'Players' },
+        { key = 'show_trusts', envKey = 'minimap_show_trusts', label = 'Trusts' },
         { key = 'show_target', envKey = 'minimap_show_target', label = 'Target' },
     },
 };
@@ -69,6 +70,7 @@ function M.defaults_from_env(env)
         show_party = bool_from_env(env, 'minimap_show_party', true),
         show_alliance = bool_from_env(env, 'minimap_show_alliance', true),
         show_other_players = bool_from_env(env, 'minimap_show_other_players', true),
+        show_trusts = bool_from_env(env, 'minimap_show_trusts', true),
         show_target = bool_from_env(env, 'minimap_show_target', true),
     };
 end
@@ -83,6 +85,7 @@ local function normalize_zone_entry(entry)
         show_party = entry.show_party == true,
         show_alliance = entry.show_alliance == true,
         show_other_players = entry.show_other_players == true,
+        show_trusts = entry.show_trusts ~= false,
         show_target = entry.show_target ~= false,
     };
 end
@@ -146,6 +149,7 @@ local function refresh_ui_state(env, zoneId)
         show_party = eff.show_party,
         show_alliance = eff.show_alliance,
         show_other_players = eff.show_other_players,
+        show_trusts = eff.show_trusts,
         show_target = eff.show_target,
     };
     M._ui_state_zone = zoneId;
@@ -180,6 +184,7 @@ local function ensure_zone_entry(zoneId, env)
             show_party = src.show_party == true,
             show_alliance = src.show_alliance == true,
             show_other_players = src.show_other_players == true,
+            show_trusts = src.show_trusts ~= false,
             show_target = src.show_target ~= false,
         };
         M.store.zones[zoneId] = entry;

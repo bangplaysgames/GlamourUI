@@ -238,4 +238,26 @@ function M.add_effect_damage(action)
     return total;
 end
 
+--- True when an action belongs on the parse timeline (damage hits/misses, not heals/buffs).
+function M.is_timeline_damage(r, addEffect)
+    if (r == nil or r.bucket == nil or r.bucket == 'none' or r.bucket == 'heal') then
+        return false;
+    end
+    addEffect = tonumber(addEffect) or 0;
+    if (addEffect > 0) then
+        return true;
+    end
+    if (r.bucket == 'taken') then
+        return r.isHit == true or r.isMiss == true or r.isShadow == true
+            or r.isEvade == true or r.isParry == true or r.isTpMove == true;
+    end
+    if (r.isHit == true and (tonumber(r.value) or 0) > 0) then
+        return true;
+    end
+    if (r.isMiss == true or r.isCrit == true or r.isBurst == true) then
+        return true;
+    end
+    return false;
+end
+
 return M;

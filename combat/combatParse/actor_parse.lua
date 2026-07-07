@@ -203,10 +203,10 @@ function M.parse(actor_id)
                     end
                 end
             elseif (typ == nil) then
-                -- Trusts and other allied NPCs (no 0x10 mob flag)
+                -- Trusts / allied NPCs not occupying a party slot (no 0x10 mob flag).
                 typ = 'trust';
-                filt = 'party';
-                dmg = 'partydmg';
+                filt = 'others';
+                dmg = 'otherdmg';
             end
         else
             typ = 'other';

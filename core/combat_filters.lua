@@ -21,6 +21,7 @@ local function default_set()
         toastCats = { ws = true, spell = true, pet = true, skillchain = true, magicBurst = true },
         toastPlayers = { self = true, party = true, pets = true, alliance = true, others = false },
         parserPlayers = { self = true, party = true, pets = true, alliance = true },
+        showTrusts = true,
     };
 end
 
@@ -53,6 +54,7 @@ local function normalize_set(set)
     if (type(set.toastCats) ~= 'table') then set.toastCats = d.toastCats; else fill_bool_defaults(set.toastCats, d.toastCats); end
     if (type(set.toastPlayers) ~= 'table') then set.toastPlayers = d.toastPlayers; else fill_bool_defaults(set.toastPlayers, d.toastPlayers); end
     if (type(set.parserPlayers) ~= 'table') then set.parserPlayers = d.parserPlayers; else fill_bool_defaults(set.parserPlayers, d.parserPlayers); end
+    if (set.showTrusts == nil) then set.showTrusts = d.showTrusts; end
     return set;
 end
 
@@ -200,6 +202,42 @@ function M.parser_allows_side(side)
         return false;
     end
     return true;
+end
+
+--- True if trusts should appear in the parser combatant list.
+function M.parser_allows_trusts()
+    return M.active_set().showTrusts ~= false;
+end
+
+--- True if the parser should record stats for a player-side actor (after pet rollup).
+--- Trusts and pets inherit the owner's party / alliance group filters.
+function M.parser_tracks_actor(side, isTrust)
+    if (side == nil or side == 'my_pet' or side == 'other_pets' or side == 'others') then
+        return false;
+    end
+    if (isTrust == true and not M.parser_allows_trusts()) then
+        return false;
+    end
+    return M.parser_allows_side(side);
+end
+
+--- True if pet-bucket damage should roll into this owner's parse.
+function M.parser_tracks_pet_damage_for(side)
+    if (M.active_set().parserPlayers.pets == false) then
+        return false;
+    end
+    return M.parser_tracks_actor(side, false);
+end
+
+--- True if a stored combatant row should be shown in the parser UI / totals.
+function M.parser_allows_combatant(c)
+    if (c == nil) then
+        return false;
+    end
+    if (c.side == 'my_pet' or c.side == 'other_pets') then
+        return false;
+    end
+    return M.parser_tracks_actor(c.side, c.isTrust == true);
 end
 
 return M;

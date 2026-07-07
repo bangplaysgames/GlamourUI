@@ -1081,4 +1081,64 @@ function M.emit_packet(e, append_cb, combat_event_cb, full_act_cb)
     end
 end
 
+local function resolve_timeline_display_name(act, action)
+    local resolvedName = '';
+    if (action ~= nil) then
+        resolvedName = plain_action_label(act, tonumber(action.message) or 0, action) or '';
+    end
+    if (resolvedName == '' and act.targets ~= nil) then
+        for _, tgt in ipairs(act.targets) do
+            for _, m in ipairs(tgt.actions or {}) do
+                local lbl = plain_action_label(act, tonumber(m.message) or 0, m);
+                if (lbl ~= nil and lbl ~= '') then
+                    resolvedName = lbl;
+                    break;
+                end
+            end
+            if (resolvedName ~= '') then break; end
+        end
+    end
+    if (resolvedName == '') then
+        local kind, abilId = classify_combat_action(act, action);
+        resolvedName = resolve_combat_ability_name(act, kind, abilId) or '';
+    end
+    return resolvedName;
+end
+
+--- Resolve a human-readable ability name for parse timeline labels.
+function M.resolve_timeline_ability_name(act, action, result)
+    result = result or {};
+    local name = resolve_timeline_display_name(act, action);
+    if (name ~= nil and name ~= '') then
+        return name;
+    end
+
+    local bucket = result.bucket or '';
+    local cat = tonumber(act.category) or 0;
+    local param = tonumber(act.param) or 0;
+    local actorName = act.actor and act.actor.name or nil;
+
+    if (bucket == 'melee') then
+        return 'Melee';
+    elseif (bucket == 'ranged') then
+        return 'Ranged';
+    elseif (bucket == 'ws' or cat == 3) then
+        return lookup_player_ws(param) or 'WS';
+    elseif (bucket == 'magic' or cat == 4) then
+        return lookup_spell(param) or 'Magic';
+    elseif (bucket == 'ability' or cat == 6) then
+        return lookup_job_ability(param) or 'Ability';
+    elseif (bucket == 'pet') then
+        return lookup_mon_ability(param, actorName, { allow_player_ws = false })
+            or lookup_job_ability(param) or 'Pet';
+    elseif (bucket == 'mobskill' or (bucket == 'taken' and result.isTpMove == true)) then
+        return lookup_mon_ability(param, actorName)
+            or spellparse_weapon_skill_name(param)
+            or lookup_player_ws(param) or 'TP';
+    elseif (bucket == 'taken') then
+        return 'Damage';
+    end
+    return bucket ~= '' and bucket or 'Hit';
+end
+
 return M;

@@ -7,6 +7,8 @@ local minimap_zone_show = require('minimap_zone_show');
 
 local M = {};
 
+local trust_detect = require('trust_detect');
+
 M.zone_names = {};
 M.npcs = {};
 M.mobs = {};
@@ -317,7 +319,9 @@ function M.scan()
                             };
 
                             if (gmap.entity_passes_filter(row)) then
-                                if (kind == 'npc' and showNpc) then
+                                if (kind == 'npc' and showNpc and not trust_detect.entity_is_trust(entity)) then
+                                    -- Trusts in party/alliance slots are drawn separately; skip
+                                    -- stray trust NPC dots (including trusts outside our party).
                                     foundNpc[serverId] = row;
                                 elseif (kind == 'mob' and showMob) then
                                     if (entity.HPPercent == nil or entity.HPPercent > 0) then
@@ -560,6 +564,7 @@ local function draw_party_and_alliance(
     local show = zone_show_flags(s);
     local showParty = show.show_party == true;
     local showAlliance = show.show_alliance == true;
+    local showTrusts = show.show_trusts ~= false;
     if (not showParty and not showAlliance) then
         return;
     end
@@ -585,7 +590,7 @@ local function draw_party_and_alliance(
                 local sid = partyMgr:GetMemberServerId(i);
                 if (entityIndex ~= nil and entityIndex > 0 and sid ~= playerSid and sid ~= skipTargetId) then
                     local entity = GetEntity(entityIndex);
-                    if (is_entity_rendered(entity)) then
+                    if (is_entity_rendered(entity) and (showTrusts or not trust_detect.entity_is_trust(entity))) then
                         local wx, wy, wz = entity_position(entity, true);
                         if (wx ~= nil) then
                             local sx, sy = mapcore.world_to_screen(

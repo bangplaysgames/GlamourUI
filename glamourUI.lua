@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 addon.name = 'GlamourUI';
 addon.author = 'Banggugyangu';
 addon.desc = "A modular and customizable interface for FFXI";
-addon.version = '2.3.3';
+addon.version = '2.3.0';
 
 local function glam_normalize_root(path)
     path = tostring(path or '');
@@ -52,74 +52,6 @@ end
 
 glam_setup_package_path();
 
--- Seed default config assets into config\addons\GlamourUI before anything else loads.
--- BLOCKING: runs synchronously at addon load, prior to any require/init that reads config.
-local function glam_seed_default_config()
-    local src = GlamourUI_ROOT .. 'defaultConfig';
-    local dst = AshitaCore:GetInstallPath() .. 'config\\addons\\GlamourUI';
-
-    if (not ashita.fs.exists(src)) then
-        print('[GlamourUI] defaultConfig folder missing; cannot seed config.');
-        return;
-    end
-
-    local function copy_file(srcFile, dstFile)
-        local inf = io.open(srcFile, 'rb');
-        if (inf == nil) then return false; end
-        local data = inf:read('*a');
-        inf:close();
-        local outf = io.open(dstFile, 'wb');
-        if (outf == nil) then return false; end
-        outf:write(data or '');
-        outf:close();
-        return true;
-    end
-
-    local stats = { copied = 0, failed = 0 };
-
-    -- Ashita V4 has no recursive directory lister, so walk the tree manually:
-    --   ashita.fs.get_directory(path)        -> subdirectory names (no filter arg)
-    --   ashita.fs.get_dir(path, '.*', false) -> file names in that dir only
-    local function copy_tree(srcDir, dstDir)
-        if (not ashita.fs.exists(dstDir)) then
-            ashita.fs.create_directory(dstDir);
-        end
-
-        local files = ashita.fs.get_dir(srcDir .. '\\', '.*', false);
-        if (files ~= nil) then
-            for _, name in ipairs(files) do
-                local d = dstDir .. '\\' .. name;
-                if (not ashita.fs.exists(d)) then
-                    if (copy_file(srcDir .. '\\' .. name, d)) then
-                        stats.copied = stats.copied + 1;
-                    else
-                        stats.failed = stats.failed + 1;
-                        print(('[GlamourUI] Failed to copy config file: %s'):format(name));
-                    end
-                end
-            end
-        end
-
-        local subs = ashita.fs.get_directory(srcDir .. '\\');
-        if (subs ~= nil) then
-            for _, name in ipairs(subs) do
-                copy_tree(srcDir .. '\\' .. name, dstDir .. '\\' .. name);
-            end
-        end
-    end
-
-    copy_tree(src, dst);
-
-    -- Confirm the copy actually landed before any module reads config.
-    if (not ashita.fs.exists(dst .. '\\Themes\\Default')) then
-        print('[GlamourUI] WARNING: default config seeding did not complete (Themes\\Default missing).');
-    elseif (stats.copied > 0 or stats.failed > 0) then
-        print(('[GlamourUI] Seeded default config: %d file(s) copied, %d failed.'):format(stats.copied, stats.failed));
-    end
-end
-
-glam_seed_default_config();
-
 local settings = require('settings');
 require('common');
 
@@ -144,6 +76,7 @@ gFullscreenMap = require('fullscreen_map');
 gChat = require('chatlog');
 gToasts = require('toasts');
 gCombatToasts = require('combat_toasts');
+package.loaded['parse_db'] = nil;
 gParseDB = require('parse_db');
 gFilters = require('combat_filters');
 local customChat = require('customChat');
@@ -1543,6 +1476,15 @@ local default_settings = T{
         x = 100,
         y = 200,
         panelBackground = {0.05, 0.05, 0.05, 0.85},
+        timelineX = 420,
+        timelineY = 200,
+        timelineWidth = 760,
+        timelineRowGap = 0,
+        liveTimelineEnabled = false,
+        liveTimelineX = 420,
+        liveTimelineY = 360,
+        liveTimelineWidth = 760,
+        liveTimelineBackground = {0.05, 0.05, 0.05, 0.45},
     },
     Filters = T{
         byJob = T{},
@@ -1572,6 +1514,7 @@ local default_settings = T{
         minimap_show_party = true,
         minimap_show_alliance = true,
         minimap_show_other_players = true,
+        minimap_show_trusts = true,
         minimap_show_target = true,
         minimap_label_hover_only = false,
         minimap_label_mobs = false,

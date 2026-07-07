@@ -49,6 +49,7 @@ function M.string_to_act(packet)
     act_table['msg'] = ashita.bits.unpack_be(packet:totable(), 230, 10);
     act_table['unknown'] = ashita.bits.unpack_be(packet:totable(), 102, 16);
     act_table['recast'] = ashita.bits.unpack_be(packet:totable(), 118, 32);
+    act_table['info'] = act_table['recast'];
     act_table['targets'] = {};
 
     local offset = 150;

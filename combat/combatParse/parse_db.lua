@@ -6,16 +6,18 @@
     merges/sums swings, which would destroy hit/miss/multi-attack counts, so the
     parser must see the un-condensed packet.
 
-    Maintains two scopes:
-      battle -- the current fight; auto-resets after a combat-idle timeout.
+    Maintains scopes:
+      battle -- selectable fight history + one live bucket; idle starts a new
+              fight without discarding previous battles.
       total  -- cumulative; only cleared on command / Reset Total.
 
     No imgui here; ui/parse_window.lua reads the query API and draws.
 
-    Scope tracking matches the user's choice: party + alliance + their pets
+    Scope tracking matches the user's choice: party + alliance players
     (player-side combatants), plus damage *taken* from mobs (credited to the
-    player target, for the Defense view). Mob offense tables are not tracked, so
-    mob actors never become combatants.
+    player target, for the Defense view). Pet offense is rolled into the owner's
+    parse as dmg.pet (via the owner id in the action packet). Mob offense tables
+    are not tracked, so mob actors never become combatants.
 ]]--
 
 require('common');
@@ -23,6 +25,9 @@ require('common');
 local actor_parse = require('actor_parse');
 local parse_classify = require('parse_classify');
 local combat_filters = require('combat_filters');
+local trust_detect = require('trust_detect');
+local parse_timeline_log = require('parse_timeline_log');
+local packet_chat_emit = require('packet_chat_emit');
 
 local M = {};
 
@@ -36,33 +41,9 @@ local PLAYER_SIDES = {
 -- serverId -> actor_parse result, cleared on zone. actor_parse.parse scans
 -- entities 0..2303 per call, so the parser must not pay that per action.
 local sideCache = {};
--- serverId -> bool trust flag (cached; the entity scan is expensive). A party
--- trust is matched by actor_parse's party loop and gets type 'p1', NOT 'trust',
--- so trust-ness must be read from the entity (same test chatPartyNames uses).
-local trustCache = {};
-
+-- serverId -> bool trust flag (cached; see trust_detect).
 local function sid_is_trust(sid)
-    sid = tonumber(sid) or 0;
-    if (sid == 0) then
-        return false;
-    end
-    local cached = trustCache[sid];
-    if (cached ~= nil) then
-        return cached;
-    end
-    local res = false;
-    if (GetEntity ~= nil) then
-        for x = 0, 2303 do
-            local e = GetEntity(x);
-            if (e ~= nil and e.ServerId == sid) then
-                local sf = tonumber(e.SpawnFlags) or 0;
-                res = (bit.band(sf, 0x1000) == 0x1000) or ((tonumber(e.TrustOwnerTargetIndex) or 0) > 0);
-                break;
-            end
-        end
-    end
-    trustCache[sid] = res;
-    return res;
+    return trust_detect.sid_is_trust(sid);
 end
 
 local function classify_sid(sid)
@@ -90,12 +71,82 @@ end
 local ACTIVE_GAP_CAP = 10.0;
 
 local function new_scope()
-    return { start_clock = nil, last_clock = nil, active = 0, ended = false, combatants = {} };
+    return {
+        id = nil,
+        start_clock = nil,
+        last_clock = nil,
+        last_engagement_clock = nil,
+        end_clock = nil,
+        active = 0,
+        ended = false,
+        endedReason = nil,
+        combatants = {},
+        events = {},
+    };
+end
+
+local battleCounter = 0;
+
+local state = {
+    battles = {},
+    current = new_scope(),
+    total = new_scope(),
+    viewBattleId = nil,
+};
+
+local function ensure_battle_id(scope)
+    if (scope.id == nil) then
+        battleCounter = battleCounter + 1;
+        scope.id = battleCounter;
+    end
+end
+
+local function battle_has_data(scope)
+    if (scope == nil) then
+        return false;
+    end
+    if (scope.start_clock ~= nil) then
+        return true;
+    end
+    if (scope.events ~= nil and #scope.events > 0) then
+        return true;
+    end
+    return next(scope.combatants or {}) ~= nil;
+end
+
+local function finalize_battle(scope, reason, now)
+    if (not battle_has_data(scope)) then
+        return nil;
+    end
+    ensure_battle_id(scope);
+    scope.ended = true;
+    scope.endedReason = reason;
+    scope.end_clock = now;
+    return scope;
+end
+
+local function archive_current(reason, now)
+    now = tonumber(now) or os.clock();
+    local b = state.current;
+    if (not battle_has_data(b)) then
+        state.current = new_scope();
+        return;
+    end
+    local archivedId = b.id;
+    parse_timeline_log.end_battle(b, reason, now);
+    local finalized = finalize_battle(b, reason, now);
+    if (finalized ~= nil) then
+        state.battles[#state.battles + 1] = finalized;
+    end
+    state.current = new_scope();
+    if (archivedId ~= nil and state.viewBattleId == archivedId) then
+        state.viewBattleId = nil;
+    end
 end
 
 -- actor_parse exposes a pet's owner as a party SLOT KEY (p0/p1/al0/a20, where
--- 'p'=base 0, 'al'=base 6, 'a2'=base 12). Resolve it to the owner's name.
-local function owner_name_from_slot(slotKey)
+-- 'p'=base 0, 'al'=base 6, 'a2'=base 12). Resolve it to the owner's name or sid.
+local function party_slot_index(slotKey)
     if (type(slotKey) ~= 'string') then
         return nil;
     end
@@ -107,7 +158,14 @@ local function owner_name_from_slot(slotKey)
     if (base == nil) then
         return nil;
     end
-    local idx = base + tonumber(num);
+    return base + tonumber(num);
+end
+
+local function owner_name_from_slot(slotKey)
+    local idx = party_slot_index(slotKey);
+    if (idx == nil) then
+        return nil;
+    end
     local party = AshitaCore and AshitaCore:GetMemoryManager() and AshitaCore:GetMemoryManager():GetParty() or nil;
     if (party == nil) then
         return nil;
@@ -119,6 +177,34 @@ local function owner_name_from_slot(slotKey)
         return nm;
     end
     return nil;
+end
+
+local function owner_sid_from_slot(slotKey)
+    local idx = party_slot_index(slotKey);
+    if (idx == nil) then
+        return 0;
+    end
+    local party = AshitaCore and AshitaCore:GetMemoryManager() and AshitaCore:GetMemoryManager():GetParty() or nil;
+    if (party == nil) then
+        return 0;
+    end
+    local ok, sid = pcall(function()
+        return party:GetMemberServerId(idx);
+    end);
+    if (ok and sid ~= nil and sid > 0) then
+        return sid;
+    end
+    return 0;
+end
+
+-- Pet action packets carry the owner's server id in act.info (retail layout) /
+-- act.recast (legacy packet_codec field at the same bit offset).
+local function pet_owner_sid_from_packet(act, actorOwner)
+    local sid = tonumber(act.info) or tonumber(act.recast) or 0;
+    if (sid > 0) then
+        return sid;
+    end
+    return owner_sid_from_slot(actorOwner);
 end
 
 local function new_combatant(sid, name, side, ownerSid, now)
@@ -143,11 +229,6 @@ local function new_combatant(sid, name, side, ownerSid, now)
     };
 end
 
-local state = {
-    battle = new_scope(),
-    total = new_scope(),
-};
-
 local function settings()
     return GlamourUI and GlamourUI.settings and GlamourUI.settings.Parse or nil;
 end
@@ -161,7 +242,34 @@ local function idle_timeout()
     return t;
 end
 
+--- Damage / taken activity (not heals) — used so trust regen between pulls does not block splits.
+local function counts_as_engagement(r)
+    if (r == nil or r.bucket == nil or r.bucket == 'none' or r.bucket == 'heal') then
+        return false;
+    end
+    return true;
+end
+
+local function engagement_clock(scope)
+    if (scope == nil) then
+        return nil;
+    end
+    return scope.last_engagement_clock or scope.last_clock;
+end
+
+local function maybe_archive_idle(now)
+    now = tonumber(now) or os.clock();
+    local b = state.current;
+    local last = engagement_clock(b);
+    if (battle_has_data(b) and last ~= nil and (now - last) > idle_timeout()) then
+        archive_current('idle', now);
+        return true;
+    end
+    return false;
+end
+
 local function touch_scope(scope, now)
+    ensure_battle_id(scope);
     if (scope.start_clock == nil) then
         scope.start_clock = now;
     elseif (scope.last_clock ~= nil) then
@@ -175,23 +283,11 @@ local function touch_scope(scope, now)
     scope.ended = false;
 end
 
--- Pets get a NEW server id every time they are released and resummoned, so
--- keying combatants by sid would list the same pet multiple times for one owner.
--- Key pets by owner-slot + pet name instead so a resummon compiles into the
--- existing entry. Non-pets stay keyed by sid.
-local function combatant_key(side, sid, ownerSid, name)
-    if ((side == 'my_pet' or side == 'other_pets') and name ~= nil and name ~= '') then
-        return 'pet:' .. tostring(ownerSid or '?') .. ':' .. tostring(name);
-    end
-    return sid;
-end
-
 local function get_combatant(scope, sid, name, side, ownerSid, now, isTrust)
-    local key = combatant_key(side, sid, ownerSid, name);
-    local c = scope.combatants[key];
+    local c = scope.combatants[sid];
     if (c == nil) then
         c = new_combatant(sid, name, side, ownerSid, now);
-        scope.combatants[key] = c;
+        scope.combatants[sid] = c;
     else
         if (name ~= nil and name ~= '' and (c.name == nil or c.name:sub(1, 2) == '?#')) then
             c.name = name;
@@ -273,15 +369,118 @@ local function apply_taken(c, r)
     end
 end
 
+local function timeline_actor(sid, name, side, isTrust)
+    return {
+        sid = tonumber(sid) or 0,
+        name = name,
+        side = side,
+        trust = isTrust == true,
+    };
+end
+
+local function timeline_action(action)
+    if (action == nil) then
+        return nil;
+    end
+    return {
+        message = tonumber(action.message) or 0,
+        param = tonumber(action.param) or 0,
+        reaction = tonumber(action.reaction) or 0,
+        animation = tonumber(action.animation) or 0,
+        effect = tonumber(action.effect) or 0,
+    };
+end
+
+local function timeline_result(r, addEffect)
+    if (r == nil) then
+        return nil;
+    end
+    local out = {
+        bucket = r.bucket,
+        value = r.value or 0,
+        isHit = r.isHit == true,
+        isMiss = r.isMiss == true,
+        isCrit = r.isCrit == true,
+        isBurst = r.isBurst == true,
+        isParry = r.isParry == true,
+        isEvade = r.isEvade == true,
+        isShadow = r.isShadow == true,
+        isTpMove = r.isTpMove == true,
+    };
+    if (addEffect ~= nil and addEffect > 0) then
+        out.addEffect = addEffect;
+    end
+    return out;
+end
+
+local function shallow_copy_event(entry)
+    local out = {};
+    for k, v in pairs(entry) do
+        out[k] = v;
+    end
+    return out;
+end
+
+local function log_timeline_event(scope, now, act, actor, target, action, r, petSource)
+    local addEffect = parse_classify.add_effect_damage(action);
+    if (not parse_classify.is_timeline_damage(r, addEffect)) then
+        return;
+    end
+    local entry = {
+        actor = actor,
+        petSource = petSource,
+        target = target,
+        act = {
+            category = tonumber(act.category) or 0,
+            param = tonumber(act.param) or 0,
+            info = tonumber(act.info) or tonumber(act.recast) or 0,
+        },
+        action = timeline_action(action),
+        result = timeline_result(r, addEffect),
+    };
+    if (scope.start_clock == nil) then
+        scope.start_clock = now;
+    end
+    entry.t = now - scope.start_clock;
+    entry.abilityName = packet_chat_emit.resolve_timeline_ability_name(act, action, entry.result);
+    scope.events[#scope.events + 1] = entry;
+    parse_timeline_log.log_event(now, shallow_copy_event(entry));
+end
+
 local function ingest_into(scope, act, now)
     local actorSide = act.actor and act.actor.filter or nil;
     local actorSid = tonumber(act.actor_id) or 0;
     local actorName = act.actor and act.actor.name or nil;
     local actorOwner = act.actor and act.actor.owner or nil;
+    local petSource = nil;
     -- Trust-ness is read from the entity (party trusts are matched by
     -- actor_parse's party loop and get type 'p1', so `type=='trust'` misses them).
     local actorIsTrust = sid_is_trust(actorSid);
     local actorIsPlayerSide = (actorSide ~= nil and PLAYER_SIDES[actorSide] == true);
+
+    -- Credit pet offense/healing to the owner as dmg.pet, not a separate row.
+    if (actorSide == 'my_pet' or actorSide == 'other_pets') then
+        petSource = timeline_actor(actorSid, actorName, actorSide, actorIsTrust);
+        local ownerSid = pet_owner_sid_from_packet(act, actorOwner);
+        if (ownerSid <= 0) then
+            actorIsPlayerSide = false;
+        else
+            local oinfo = classify_sid(ownerSid);
+            if (oinfo == nil or PLAYER_SIDES[oinfo.filter] ~= true) then
+                actorIsPlayerSide = false;
+            else
+                actorSid = ownerSid;
+                actorSide = oinfo.filter;
+                actorName = oinfo.name;
+                actorOwner = nil;
+                actorIsTrust = false;
+            end
+        end
+    end
+
+    if (actorIsPlayerSide and not combat_filters.parser_tracks_actor(actorSide, actorIsTrust)) then
+        actorIsPlayerSide = false;
+    end
 
     local touched = false;
 
@@ -295,20 +494,39 @@ local function ingest_into(scope, act, now)
             local r = parse_classify.classify(act, action, tside);
             if (r.bucket ~= 'none') then
                 if (r.bucket == 'taken') then
-                    -- Credit the player-side target taking the hit.
-                    local c = get_combatant(scope, tgt.server_id, tname, tside,
-                        tinfo and tinfo.owner or nil, now, tIsTrust);
-                    apply_taken(c, r);
-                    touched = true;
+                    if (combat_filters.parser_tracks_actor(tside, tIsTrust)) then
+                        local c = get_combatant(scope, tgt.server_id, tname, tside,
+                            tinfo and tinfo.owner or nil, now, tIsTrust);
+                        apply_taken(c, r);
+                        if (scope == state.current) then
+                            log_timeline_event(scope, now, act,
+                                timeline_actor(actorSid, actorName, actorSide, actorIsTrust),
+                                timeline_actor(tgt.server_id, tname, tside, tIsTrust),
+                                action, r, nil);
+                            scope.last_engagement_clock = now;
+                        end
+                        touched = true;
+                    end
                 elseif (actorIsPlayerSide) then
                     local c = get_combatant(scope, actorSid, actorName, actorSide, actorOwner, now, actorIsTrust);
+                    local skipPet = (r.bucket == 'pet' and not combat_filters.parser_tracks_pet_damage_for(actorSide));
                     if (r.bucket == 'heal') then
                         c.heal.total = c.heal.total + r.value;
                         if (r.value > 0) then c.heal.count = c.heal.count + 1; end
-                    else
+                        touched = true;
+                    elseif (not skipPet) then
                         apply_offense(c, r, action);
+                        if (scope == state.current) then
+                            log_timeline_event(scope, now, act,
+                                timeline_actor(actorSid, actorName, actorSide, actorIsTrust),
+                                timeline_actor(tgt.server_id, tname, tside, tIsTrust),
+                                action, r, petSource);
+                            if (counts_as_engagement(r)) then
+                                scope.last_engagement_clock = now;
+                            end
+                        end
+                        touched = true;
                     end
-                    touched = true;
                 end
             end
         end
@@ -332,33 +550,143 @@ function M.ingest(act)
 
     local now = os.clock();
 
-    -- A fresh action after the current battle went idle starts a new battle
-    -- (total already holds the cumulative numbers).
-    if (state.battle.ended == true) then
-        state.battle = new_scope();
-    end
+    maybe_archive_idle(now);
 
-    ingest_into(state.battle, act, now);
+    ingest_into(state.current, act, now);
     ingest_into(state.total, act, now);
 end
 
---- Per-frame: freeze the current battle once combat has been idle past the timeout.
+--- Per-frame: archive the live battle once combat has been idle past the timeout.
 function M.tick()
-    local b = state.battle;
-    if (b.ended ~= true and b.last_clock ~= nil) then
-        if ((os.clock() - b.last_clock) > idle_timeout()) then
-            b.ended = true;
-        end
-    end
+    maybe_archive_idle(os.clock());
 end
 
 -- ---- Query API (read by ui/parse_window.lua) ------------------------------
+
+local function find_battle_by_id(id)
+    id = tonumber(id);
+    if (id == nil) then
+        return nil;
+    end
+    if (state.current.id == id) then
+        return state.current;
+    end
+    for i = 1, #state.battles do
+        local b = state.battles[i];
+        if (b.id == id) then
+            return b;
+        end
+    end
+    return nil;
+end
+
+local function resolve_battle_scope()
+    if (state.viewBattleId ~= nil) then
+        local b = find_battle_by_id(state.viewBattleId);
+        if (b ~= nil) then
+            return b;
+        end
+    end
+    if (battle_has_data(state.current)) then
+        return state.current;
+    end
+    local last = state.battles[#state.battles];
+    if (last ~= nil) then
+        return last;
+    end
+    return state.current;
+end
+
+function M.set_view_battle(id)
+    state.viewBattleId = tonumber(id);
+end
+
+function M.get_view_battle_id()
+    return resolve_battle_scope().id;
+end
+
+function M.battle_catalog()
+    local list = {};
+    for i = 1, #state.battles do
+        local b = state.battles[i];
+        list[#list + 1] = {
+            id = b.id,
+            index = i,
+            duration = math.max(0, tonumber(b.active) or 0),
+            ended = true,
+            live = false,
+            events = #(b.events or {}),
+            reason = b.endedReason,
+        };
+    end
+    if (battle_has_data(state.current)) then
+        local c = state.current;
+        list[#list + 1] = {
+            id = c.id,
+            index = #state.battles + 1,
+            duration = math.max(0, tonumber(c.active) or 0),
+            ended = false,
+            live = true,
+            events = #(c.events or {}),
+            reason = nil,
+        };
+    end
+    return list;
+end
+
+function M.battle_timeline_events(battleId)
+    local b = find_battle_by_id(battleId);
+    if (b == nil) then
+        return {};
+    end
+    return b.events or {};
+end
+
+function M.battle_timeline_duration(battleId)
+    local b = find_battle_by_id(battleId);
+    if (b == nil) then
+        return 0;
+    end
+    local dur = math.max(0, tonumber(b.active) or 0);
+    local events = b.events or {};
+    if (#events > 0) then
+        local lastT = tonumber(events[#events].t) or 0;
+        if (lastT > dur) then
+            dur = lastT;
+        end
+    end
+    if (dur <= 0 and b.start_clock ~= nil and b.end_clock ~= nil) then
+        dur = math.max(0, b.end_clock - b.start_clock);
+    end
+    return dur;
+end
+
+--- Live timeline: current battle event log (always state.current, not view scope).
+function M.live_timeline_events()
+    return state.current.events or {};
+end
+
+--- Wall-clock seconds since the current battle started (battle start -> now).
+function M.live_timeline_elapsed()
+    local c = state.current;
+    if (not battle_has_data(c) or c.start_clock == nil) then
+        return 0;
+    end
+    return math.max(0, os.clock() - c.start_clock);
+end
+
+function M.live_timeline_battle_id()
+    if (not battle_has_data(state.current)) then
+        return nil;
+    end
+    return state.current.id;
+end
 
 function M.get_scope(name)
     if (name == 'total') then
         return state.total;
     end
-    return state.battle;
+    return resolve_battle_scope();
 end
 
 --- Seconds of ACTIVE combat in a scope (downtime gaps excluded), used as the
@@ -382,7 +710,7 @@ function M.combatant_list(name, sortKey)
     local scope = M.get_scope(name);
     local list = {};
     for _, c in pairs(scope.combatants) do
-        if (PLAYER_SIDES[c.side] == true and combat_filters.parser_allows_side(c.side)) then
+        if (PLAYER_SIDES[c.side] == true and combat_filters.parser_allows_combatant(c)) then
             list[#list + 1] = c;
         end
     end
@@ -408,7 +736,7 @@ function M.total_damage(name)
     local scope = M.get_scope(name);
     local sum = 0;
     for _, c in pairs(scope.combatants) do
-        if (PLAYER_SIDES[c.side] == true and combat_filters.parser_allows_side(c.side)) then
+        if (PLAYER_SIDES[c.side] == true and combat_filters.parser_allows_combatant(c)) then
             sum = sum + (c.dmg.total or 0);
         end
     end
@@ -455,7 +783,7 @@ end
 -- ---- Lifecycle ------------------------------------------------------------
 
 function M.reset_battle()
-    state.battle = new_scope();
+    archive_current('reset', os.clock());
 end
 
 function M.reset_total()
@@ -463,15 +791,21 @@ function M.reset_total()
 end
 
 function M.reset_all()
-    state.battle = new_scope();
+    if (battle_has_data(state.current)) then
+        parse_timeline_log.end_battle(state.current, 'reset_all', os.clock());
+    end
+    state.battles = {};
+    state.current = new_scope();
     state.total = new_scope();
+    state.viewBattleId = nil;
+    battleCounter = 0;
 end
 
 --- Called on zone change: drop the entity classification cache (server ids and
 --- party layout change across zones).
 function M.on_zone()
     sideCache = {};
-    trustCache = {};
+    trust_detect.clear_cache();
 end
 
 return M;

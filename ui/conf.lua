@@ -29,7 +29,6 @@ end
 
 local function getThemeID(theme)
     local dir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Themes\\'):fmt(AshitaCore:GetInstallPath()));
-    if (dir == nil) then return; end
     for i = 1,#dir,1 do
         if(dir[i] == theme) then
             return i;
@@ -39,7 +38,7 @@ end
 
 local function getLayoutID(layout)
     local dir = ashita.fs.get_directory(('%s\\config\\addons\\GlamourUI\\Layouts\\'):fmt(AshitaCore:GetInstallPath()));
-    if (dir == nil) then return; end
+
     for i = 1,#dir,1 do
         if(dir[i] == layout) then
             return i;
@@ -119,8 +118,8 @@ local function render_font_combo(comboId, selectedFont, onSelect, opts)
 end
 
 local function getBuffID(buff)
-    local dir = ashita.fs.get_directory(('%s\\config\\addons\\%s\\icons\\'):fmt(AshitaCore:GetInstallPath(), addon.name));
-    if (dir == nil) then return; end
+    local dir = ashita.fs.get_directory(('%s\\resources\\%s\\'):fmt(AshitaCore:GetInstallPath(), addon.name));
+
     for i = 1,#dir,1 do
         if(dir[i] == buff)then
             return i;
@@ -1086,6 +1085,7 @@ local function render_environment_contents()
         s.minimap_show_party = select(1, render_toggle('Default: Show Party##GlamEnvMM', s.minimap_show_party == true));
         s.minimap_show_alliance = select(1, render_toggle('Default: Show Alliance##GlamEnvMM', s.minimap_show_alliance == true));
         s.minimap_show_other_players = select(1, render_toggle('Default: Show Other Players##GlamEnvMM', s.minimap_show_other_players == true));
+        s.minimap_show_trusts = select(1, render_toggle('Default: Show Trusts##GlamEnvMM', s.minimap_show_trusts ~= false));
         s.minimap_show_target = select(1, render_toggle('Default: Show Target Marker##GlamEnvMM', s.minimap_show_target == true));
         imgui.Text('Name labels (each entity once)');
         s.minimap_label_hover_only = select(1, render_toggle('Names on Hover Only##GlamEnvMM', s.minimap_label_hover_only == true));
@@ -1126,7 +1126,7 @@ local refresh_config_dirs = function()
 
     configDirs.themes = ashita.fs.get_directory(('%s\\config\\addons\\%s\\Themes\\'):fmt(installPath, addon.name));
     configDirs.layouts = ashita.fs.get_directory(('%s\\config\\addons\\%s\\Layouts\\'):fmt(installPath, addon.name));
-    configDirs.buffs = ashita.fs.get_directory(('%s\\config\\addons\\%s\\icons'):fmt(installPath, addon.name));
+    configDirs.buffs = ashita.fs.get_directory(('%s\\resources\\%s'):fmt(installPath, addon.name));
     font_manager.scan_directory(fontPath);
     if (gResources.update_shift_jis_font_list ~= nil) then
         gResources.update_shift_jis_font_list();
@@ -1695,6 +1695,24 @@ local function render_parse_contents()
     end
 
     p.idleTimeout = render_float_setting('Battle idle reset (sec)##GlamParse', tonumber(p.idleTimeout) or 12.0, 3.0, 60.0, '%.0f');
+    p.timelineRowGap = render_float_setting('Timeline row gap (px)##GlamParse', tonumber(p.timelineRowGap) or 0, 0.0, 8.0, '%.0f');
+    imgui.TextDisabled('Pixels between stacked labels (0 = touching, 1 = 1px, etc.).');
+
+    imgui.Separator();
+    imgui.Text('Live timeline');
+    p.liveTimelineEnabled = select(1, render_toggle('Show live timeline##GlamParseLiveTL', p.liveTimelineEnabled == true));
+    if (p.liveTimelineEnabled == true) then
+        if (p.liveTimelineBackground == nil or type(p.liveTimelineBackground) ~= 'table') then
+            p.liveTimelineBackground = { 0.05, 0.05, 0.05, 0.45 };
+        end
+        local bg = p.liveTimelineBackground;
+        bg[4] = render_float_setting(
+            'Live timeline background alpha##GlamParseLiveTL',
+            tonumber(bg[4]) or 0.45,
+            0.0, 1.0, '%.2f');
+        p.liveTimelineBackground = bg;
+    end
+
     p.width = math.floor(render_float_setting('Meter width (px)##GlamParse', tonumber(p.width) or 280, 160, 800, '%.0f'));
     p.font_scale = render_float_setting('FontScale##GlamParse', tonumber(p.font_scale) or 1, 0.1, 5.0, '%.1f');
     render_font_combo('Font##GlamParse', p.font or '', function(name)
@@ -1707,6 +1725,10 @@ local function render_parse_contents()
         local set = gFilters.active_set();
         imgui.TextDisabled(('Player filter (per job -- current: %s)'):fmt(gFilters.current_job() or '?'));
         render_filter_toggles('Show players', set.parserPlayers, gFilters.PARSER_PLAYERS, gFilters.PLAYER_LABELS, 'GlamFPP');
+        local showTrusts = { set.showTrusts ~= false };
+        if (imgui.Checkbox('Show trusts##GlamFTrust', showTrusts)) then
+            set.showTrusts = showTrusts[1];
+        end
     end
 
     imgui.Separator();

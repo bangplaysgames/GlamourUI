@@ -15,6 +15,8 @@ require('common');
 local imgui = require('imgui');
 local panelStyle = require('panelStyle');
 local chatPartyNames = require('chatPartyNames');
+local parse_timeline_playback = require('parse_timeline_playback');
+local parse_timeline_live = require('parse_timeline_live');
 
 local M = {};
 
@@ -75,11 +77,8 @@ local function name_color(c)
     return side_color(c.side);
 end
 
--- Display label: pets show their owner's name in parentheses.
+-- Display label for a combatant row.
 local function display_name(c)
-    if ((c.side == 'my_pet' or c.side == 'other_pets') and c.ownerName ~= nil and c.ownerName ~= '') then
-        return ('%s (%s)'):fmt(c.name, c.ownerName);
-    end
     return c.name;
 end
 
@@ -88,6 +87,50 @@ local function scope_name(s)
         return 'total';
     end
     return 'battle';
+end
+
+local function battle_label(entry)
+    if (entry == nil) then
+        return 'Battle';
+    end
+    local tag = entry.live and ' live' or ' ended';
+    return ('Battle %d  %s%s'):fmt(entry.id or 0, fmt_dur(entry.duration or 0), tag);
+end
+
+local function draw_battle_selector(s, scope)
+    if (scope ~= 'battle' or gParseDB.battle_catalog == nil) then
+        return;
+    end
+    local catalog = gParseDB.battle_catalog();
+    if (#catalog == 0) then
+        return;
+    end
+
+    local viewId = gParseDB.get_view_battle_id();
+    local selectedLabel = battle_label(catalog[1]);
+    for i = 1, #catalog do
+        if (catalog[i].id == viewId) then
+            selectedLabel = battle_label(catalog[i]);
+            break;
+        end
+    end
+
+    imgui.SetNextItemWidth(math.max(140, (tonumber(s.width) or 220) - 72));
+    if (imgui.BeginCombo('##GlamParseBattle', selectedLabel)) then
+        for i = 1, #catalog do
+            local entry = catalog[i];
+            if (imgui.Selectable(battle_label(entry) .. '##GlamParseBattle' .. tostring(entry.id), entry.id == viewId)) then
+                gParseDB.set_view_battle(entry.id);
+            end
+        end
+        imgui.EndCombo();
+    end
+
+    imgui.SameLine();
+    local canReplay = parse_timeline_playback.can_replay(viewId);
+    if (canReplay and imgui.SmallButton('Replay##GlamParseReplay')) then
+        parse_timeline_playback.open(viewId);
+    end
 end
 
 -- ---- Compact meter --------------------------------------------------------
@@ -128,6 +171,9 @@ local function render_compact(s)
     local scope = scope_name(s);
     local barW = math.max(160, tonumber(s.width) or 280);
 
+    if (scope == 'battle') then
+        draw_battle_selector(s, scope);
+    end
     imgui.Text(('Battle %s'):fmt(fmt_dur(gParseDB.scope_duration(scope))));
     imgui.SameLine();
     imgui.TextDisabled(('| %s dps'):fmt(fmt_num(gParseDB.raid_dps(scope))));
@@ -227,6 +273,11 @@ local function render_expanded(s)
         s.expanded = false;
     end
     scope = scope_name(s);
+
+    if (scope == 'battle') then
+        draw_battle_selector(s, scope);
+        imgui.Separator();
+    end
 
     imgui.Text(('Duration %s   Raid DPS %s'):fmt(
         fmt_dur(gParseDB.scope_duration(scope)), fmt_num(gParseDB.raid_dps(scope))));
@@ -355,6 +406,9 @@ function M.render()
 
     gResources.pop_font(fontPushed);
     panelStyle.pop_panel_background(bgPops);
+
+    parse_timeline_playback.render();
+    parse_timeline_live.render();
 end
 
 return M;
